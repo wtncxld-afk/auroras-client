@@ -20,7 +20,7 @@ Download **AurorasClientSetup-<version>.exe** from this repository's **Releases*
 - Offline and errors: the manifest, version files, asset index and Java runtime index are saved after the first download, so an installed version still launches without internet (the launcher says it is using the saved copy). Downloads are retried three times and every file is checked against Mojang's SHA-1 and size. A custom Java that is older than the version needs is refused with a message naming both versions. Fabric, NeoForge and Forge availability and loader versions come from their own official metadata. Each version is labelled Untested until it appears in `validated.json`.
 - Instances keep their own Minecraft version, loader and loader version, Java setting, memory, launch arguments, and their own folder (mods, config, resource packs, saves, logs, HUD), side by side.
 - Accounts: Microsoft device-code sign-in (needs your Azure app ID, below), or preview a skin by username (preview accounts cannot play).
-- Seven animated backgrounds, ambient audio (generated, off by default), cursor trails, all configurable and persistent.
+- Seven animated backgrounds (Sakura, Sakura Night, Aurora Borealis, Cosmic Nebula, Midnight Rain, Floating Islands, Minimal), drawn sharp at your screen's pixel density at up to 60 fps, with cross-fades between them; ambient audio (generated, off by default), cursor trails, all configurable and persistent.
 - Mods: live Modrinth + CurseForge search and one-click installs with dependencies and checksum verification.
 - Totem Creator (PNG and resource pack export), Skins preview, Modules list, themes.
 - Signed-update checking (needs your update server and key pair, below).
