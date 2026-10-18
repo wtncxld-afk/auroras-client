@@ -38,7 +38,8 @@ public final class Config {
     static List<SettingDef> hud(String anchor, int offY, SettingDef... extra) {
         List<SettingDef> l = new ArrayList<>(List.of(bool("enabled", false), anchor("anchor", anchor), integer("offX", anchor.endsWith("R") ? -4 : anchor.equals("TC") || anchor.equals("C") || anchor.equals("BC") ? 0 : 4, -4000, 4000), integer("offY", offY, -4000, 4000),
             dbl("scale", 1.0, 0.5, 3.0), color("color", "FFFFFF"), bool("shadow", true), bool("background", true), integer("bgOpacity", 45, 0, 100),
-            new SettingDef("style", Type.ENUM, "minimal", 0, 0, List.of("minimal", "compact", "expanded")), color("accent", "6FE3FF"), bool("border", false), integer("opacity", 100, 10, 100)));
+            new SettingDef("style", Type.ENUM, "minimal", 0, 0, List.of("minimal", "compact", "expanded")), color("accent", "6FE3FF"), bool("border", false), integer("opacity", 100, 10, 100),
+            color("bgColor", "0C0F16"), integer("radius", 2, 0, HudKit.MAX_RADIUS), new SettingDef("textMode", Type.ENUM, "solid", 0, 0, List.of("solid", "chroma", "gradient")), dbl("chromaSpeed", 1.0, 0.1, 5.0)));
         l.addAll(Arrays.asList(extra)); return l;
     }
     static List<SettingDef> plain(SettingDef... s) { List<SettingDef> l = new ArrayList<>(List.of(bool("enabled", false))); l.addAll(Arrays.asList(s)); return l; }
@@ -55,7 +56,9 @@ public final class Config {
             String pending = "Logic is tested; in-game hookup is pending", none = "Not implemented yet", exp = "Experimental: written but not yet tested in a real game";
             add("fps", "FPS Counter", Category.HUD, true, exp, hud("TL", 20, bool("showFrameTime", false), bool("showAverage", false)));
             add("coords", "Coordinates", Category.HUD, true, exp, hud("TL", 36, integer("decimals", 1, 0, 3), bool("showX", true), bool("showY", true), bool("showZ", true), bool("showDirection", true), key("key", 67)));
-            add("keystrokes", "Keystrokes", Category.HUD, true, exp, hud("BL", -24, bool("showMouse", true), bool("showCps", true), bool("showSpace", true), bool("animate", true)));
+            add("keystrokes", "Keystrokes", Category.HUD, true, exp, hud("BL", -24, bool("showMouse", true), bool("showCps", true), bool("showSpace", true), bool("showModifiers", false), bool("animate", true),
+                integer("keySize", 18, 12, 32), integer("gap", 2, 0, 6), choice("labels", "bound", List.of("bound", "wasd", "arrows")), choice("spaceStyle", "bar", List.of("bar", "text")),
+                integer("fadeMs", 120, 0, 600), color("pressedText", "06141F"), integer("pressedOpacity", 85, 10, 100)));
             add("cps", "CPS Counter", Category.HUD, true, exp, hud("TL", 52, integer("windowMs", 1000, 250, 5000), bool("showRight", true)));
             add("armor", "Armor Status", Category.HUD, true, exp, hud("BR", -24, choice("format", "percent", List.of("percent", "numeric", "bar")), bool("showHeld", true), choice("layout", "vertical", List.of("vertical", "horizontal"))));
             add("clock", "Clock", Category.HUD, true, exp, hud("TR", 4, bool("h24", true), bool("seconds", false)));

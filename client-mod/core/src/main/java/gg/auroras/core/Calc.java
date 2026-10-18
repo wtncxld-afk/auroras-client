@@ -67,6 +67,16 @@ public final class Calc {
             this.factor = factor; this.speed = Math.max(0.01, Math.min(1.0, speed));
         }
         public void tick(boolean keyDown) { double t = keyDown ? 1.0 / factor : 1.0; cur += (t - cur) * speed; if (Math.abs(t - cur) < 1e-3) cur = t; }
+        /**
+         * Per-frame version of tick: the same easing (speed per 1/20 s), spread over real time, so the zoom glides at any
+         * frame rate instead of stepping 20 times a second. dt is in seconds; dt = 0.05 matches one tick exactly.
+         */
+        public void frame(boolean keyDown, double dtSeconds) {
+            double t = keyDown ? 1.0 / factor : 1.0, k = 1 - Math.pow(1 - speed, Math.max(0, Math.min(0.25, dtSeconds)) * 20);
+            cur += (t - cur) * k; if (Math.abs(t - cur) < 1e-3) cur = t;
+        }
+        /** New settings without jumping: keeps the current zoom level and the scroll-adjusted factor while zoomed. */
+        public Zoom withSettings(double newFactor, double newSpeed) { Zoom z = new Zoom(newFactor, newSpeed); z.cur = cur; return z; }
         public double fovMultiplier() { return cur; }
         public double factor() { return factor; }
         /** Scroll-wheel zoom: changes the target while zooming; the FOV eases to it like the initial zoom. */

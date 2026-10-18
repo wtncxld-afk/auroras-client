@@ -111,11 +111,14 @@ public final class ModuleMenu {
     }
     /** Human label for a setting key: "bgOpacity" -> "Background opacity". */
     public static String label(String key) {
-        Map<String, String> L = Map.ofEntries(Map.entry("bgOpacity", "Background opacity"), Map.entry("offX", "Horizontal offset"), Map.entry("offY", "Vertical offset"), Map.entry("tintStrength", "Tint strength"),
-            Map.entry("showArt", "Cover art"), Map.entry("showProgress", "Progress bar"), Map.entry("marquee", "Scroll long titles"), Map.entry("skyQuality", "Sky quality"), Map.entry("h24", "24-hour clock"), Map.entry("windowMs", "Window (ms)"),
-            Map.entry("scrollAdjust", "Scroll to change zoom"), Map.entry("skipFront", "Skip front view with F5"), Map.entry("hideRain", "Hide rain splashes"), Map.entry("multiplier", "Amount kept"), Map.entry("level", "Brightness"), Map.entry("graphWidth", "Graph width (px)"), Map.entry("showGraph", "Frame graph"), Map.entry("dynamic", "Widen while moving"));
-        if (L.containsKey(key)) return L.get(key); String s = key.replaceAll("([A-Z])", " $1").toLowerCase(Locale.ROOT); return Character.toUpperCase(s.charAt(0)) + s.substring(1);
+        String s = LABELS.get(key); if (s != null) return s; s = key.replaceAll("([A-Z])", " $1").toLowerCase(Locale.ROOT); return Character.toUpperCase(s.charAt(0)) + s.substring(1);
     }
+    private static final Map<String, String> LABELS = Map.ofEntries(Map.entry("bgOpacity", "Background opacity"), Map.entry("offX", "Horizontal offset"), Map.entry("offY", "Vertical offset"), Map.entry("tintStrength", "Tint strength"),
+            Map.entry("showArt", "Cover art"), Map.entry("showProgress", "Progress bar"), Map.entry("marquee", "Scroll long titles"), Map.entry("skyQuality", "Sky quality"), Map.entry("h24", "24-hour clock"), Map.entry("windowMs", "Window (ms)"),
+            Map.entry("scrollAdjust", "Scroll to change zoom"), Map.entry("skipFront", "Skip front view with F5"), Map.entry("hideRain", "Hide rain splashes"), Map.entry("multiplier", "Amount kept"), Map.entry("level", "Brightness"), Map.entry("graphWidth", "Graph width (px)"), Map.entry("showGraph", "Frame graph"), Map.entry("dynamic", "Widen while moving"),
+            Map.entry("bgColor", "Background colour"), Map.entry("radius", "Corner radius"), Map.entry("textMode", "Text colour"), Map.entry("chromaSpeed", "Colour speed"),
+            Map.entry("keySize", "Key size"), Map.entry("gap", "Key gap"), Map.entry("labels", "Key labels"), Map.entry("spaceStyle", "Space bar"), Map.entry("showModifiers", "Sneak and sprint keys"),
+            Map.entry("fadeMs", "Release fade (ms)"), Map.entry("pressedText", "Pressed text colour"), Map.entry("pressedOpacity", "Pressed opacity"), Map.entry("showSpace", "Space bar key"), Map.entry("showMouse", "Mouse buttons"), Map.entry("showCps", "CPS on mouse buttons"));
     /** Focus order for keyboard users: search, categories, then cards (grid) or rows (settings). */
     public int focusCount(Layout l) { return 2 + l.cats().size() + (open == null ? l.cards().size() : l.rows().size() + 1); }
 }

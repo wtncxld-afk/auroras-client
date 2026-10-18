@@ -31,24 +31,35 @@ public final class HudRenderer {
 
     /** Parsed settings of one element, refreshed only when settings change. */
     static final class El {
-        final String id; final Config.Module mod; boolean on, shadow, bg, border; Hud.Anchor anchor = Hud.Anchor.TL; int offX, offY, color, accent, bgPct, opacity; float scale = 1; HudKit.Style style = HudKit.Style.MINIMAL;
+        final String id; final Config.Module mod; boolean on, shadow, bg, border; Hud.Anchor anchor = Hud.Anchor.TL; int offX, offY, color, accent, bgPct, opacity, bgColor, radius; float scale = 1; HudKit.Style style = HudKit.Style.MINIMAL;
+        String textMode = "solid"; double chromaSpeed = 1; Keystrokes.Layout keys;
         final Perf.CachedText text = new Perf.CachedText(); final HudKit.Fade fade = new HudKit.Fade(); final int[] pos = new int[2]; int w, h; String[] lines = new String[0];
         El(String id) { this.id = id; mod = AurorasClient.REG.get(id); }
         void load() {
-            Config.ProfileManager pm = AurorasClient.PM; on = pm.enabled(id); anchor = Hud.Anchor.valueOf(pm.get(id + ".anchor")); offX = i("offX"); offY = i("offY"); scale = Float.parseFloat(pm.get(id + ".scale"));
+            Config.ProfileManager pm = AurorasClient.PM; vals.clear(); for (Config.SettingDef d : mod.settings()) vals.put(d.key(), pm.get(id + "." + d.key())); on = pm.enabled(id); anchor = Hud.Anchor.valueOf(pm.get(id + ".anchor")); offX = i("offX"); offY = i("offY"); scale = Float.parseFloat(pm.get(id + ".scale"));
             color = Integer.parseInt(pm.get(id + ".color"), 16); accent = Integer.parseInt(pm.get(id + ".accent"), 16); shadow = b("shadow"); bg = b("background"); border = b("border"); bgPct = i("bgOpacity"); opacity = i("opacity");
             style = HudKit.Style.of(pm.get(id + ".style")); text.set(Long.MIN_VALUE, "");
+            bgColor = Integer.parseInt(pm.get(id + ".bgColor"), 16); radius = i("radius"); textMode = s("textMode"); chromaSpeed = Double.parseDouble(pm.get(id + ".chromaSpeed"));
+            if (id.equals("keystrokes")) keys = Keystrokes.layout(i("keySize"), i("gap"), b("showMouse"), b("showModifiers"), b("showSpace"), s("spaceStyle"));
         }
-        boolean b(String k) { return AurorasClient.PM.get(id + "." + k).equals("true"); }
-        int i(String k) { return Integer.parseInt(AurorasClient.PM.get(id + "." + k)); }
-        String s(String k) { return AurorasClient.PM.get(id + "." + k); }
+        /** This element's settings by short key, copied in load(), so per-frame reads don't build "id.key" strings. */
+        final Map<String, String> vals = new HashMap<>();
+        String raw(String k) { String v = vals.get(k); return v != null ? v : AurorasClient.PM.get(id + "." + k); }
+        boolean b(String k) { return "true".equals(raw(k)); }
+        int i(String k) { return Integer.parseInt(raw(k)); }
+        String s(String k) { return raw(k); }
     }
     static final Map<String, El> ELS = new LinkedHashMap<>();
     static int seen = -1;
     static final Perf.UpdateGate SLOW = new Perf.UpdateGate(250);
     static final Calc.CpsCounter LEFT = new Calc.CpsCounter(1000), RIGHT = new Calc.CpsCounter(1000);
     static Calc.CpsCounter left = LEFT, right = RIGHT; static int cpsWindow = 1000;
-    static final double[] KEY_GLOW = new double[8];
+    static final double[] KEY_GLOW = new double[Keystrokes.INPUTS];
+    static net.minecraft.client.KeyMapping[] KEY_MAPS; // Minecraft's own key mappings, in Keystrokes input order
+    static final String[] KEY_NAMES = new String[Keystrokes.INPUTS]; static final Perf.UpdateGate KEY_NAMES_GATE = new Perf.UpdateGate(1000);
+    static final int[] RECTS = HudKit.rectBuffer(); static final long T0 = System.nanoTime(); static double seconds;
+    /** One-character strings for ASCII, so per-character colouring doesn't allocate. */
+    static final String[] CH = new String[128]; static { for (int c = 0; c < 128; c++) CH[c] = String.valueOf((char) c); }
     static double fpsAvg; static final HudKit.Smooth FPS_AVG = new HudKit.Smooth();
     static final GameLogic.FrameGraph FRAMES = new GameLogic.FrameGraph(200); static final int[] BARS = new int[200];
     static final Identifier LOGO = Identifier.fromNamespaceAndPath("auroras_client", "textures/gui/logo.png");
@@ -76,7 +87,7 @@ public final class HudRenderer {
         boolean reduced = AurorasClient.PM.get("menuanim.reducedMotion").equals("true");
         int sw = ctx.w(), sh = ctx.h(); long nowMs = System.currentTimeMillis();
         boolean slow = SLOW.due(System.nanoTime());
-        fpsAvg = FPS_AVG.update(mc.getFps(), dt, 2.0, false); editingNow = editing;
+        fpsAvg = FPS_AVG.update(mc.getFps(), dt, 2.0, false); editingNow = editing; seconds = reduced ? 0 : (System.nanoTime() - T0) / 1e9;
         for (El e : ELS.values()) {
             double a = e.fade.update(e.on, dt, 0.18, reduced || editing); if (a <= 0) continue;
             if (e.id.equals("keystrokes")) { keystrokes(ctx, mc, e, sw, sh, dt, a); continue; }
@@ -152,8 +163,8 @@ public final class HudRenderer {
         int bw = Math.max(gw, Gfx.width(lines[0])) + px * 2, bh = 9 + 3 + gh + py * 2; e.w = Hud.scaled(bw, e.scale); e.h = Hud.scaled(bh, e.scale);
         Hud.resolveInto(e.anchor, e.offX, e.offY, e.w, e.h, sw, sh, e.pos);
         ctx.push(); ctx.translate(e.pos[0], e.pos[1]); ctx.scale(e.scale);
-        if (e.bg) ctx.fill(0, 0, bw, bh, HudKit.argb(0x0C0F16, e.bgPct * e.opacity / 100, fade));
-        ctx.text(lines[0], px, py, HudKit.argb(e.color, e.opacity, fade), e.shadow);
+        panel(ctx, e, bw, bh, fade);
+        text(ctx, e, lines[0], px, py, e.color, fade);
         int n = FRAMES.heights(gw, gh, BARS), base = py + 12 + gh;
         for (int k = 0; k < n; k++) { int h = Math.max(1, BARS[k]), x = px + gw - n + k; ctx.fill(x, base - h, x + 1, base, HudKit.argb(GameLogic.FrameGraph.color(BARS[k], gh), e.opacity, fade)); }
         ctx.pop();
@@ -171,39 +182,69 @@ public final class HudRenderer {
         int[] b = HudKit.box(e.style, Math.max(tw, label != null ? (int) (Gfx.width(label) * 0.75f) : 0), th);
         e.w = Hud.scaled(b[0], e.scale); e.h = Hud.scaled(b[1], e.scale); Hud.resolveInto(e.anchor, e.offX, e.offY, e.w, e.h, sw, sh, e.pos);
         ctx.push(); ctx.translate(e.pos[0], e.pos[1]); ctx.scale(e.scale);
-        if (e.bg) ctx.fill(0, 0, b[0], b[1], HudKit.argb(0x0C0F16, e.bgPct * e.opacity / 100, fade));
-        if (e.border) { int c = HudKit.argb(e.accent, 55 * e.opacity / 100, fade); ctx.fill(0, 0, b[0], 1, c); ctx.fill(0, b[1] - 1, b[0], b[1], c); ctx.fill(0, 0, 1, b[1], c); ctx.fill(b[0] - 1, 0, b[0], b[1], c); }
-        if (e.style.accent > 0) ctx.fill(0, 0, e.style.accent, b[1], HudKit.argb(e.accent, e.opacity, fade));
+        panel(ctx, e, b[0], b[1], fade);
+        if (e.style.accent > 0) { int r = HudKit.fitRadius(e.radius, b[0], b[1]); ctx.fill(0, r, e.style.accent, b[1] - r, HudKit.argb(e.accent, e.opacity, fade)); }
         int y = e.style.padY;
         if (label != null) { ctx.push(); ctx.translate(e.style.padX + e.style.accent, y); ctx.scale(0.75f); ctx.text(label, 0, 0, HudKit.argb(e.accent, 90 * e.opacity / 100, fade), false); ctx.pop(); y += 7; }
         boolean right = e.id.equals("modulelist") && e.s("align").equals("right");
         for (int i = 0; i < lines.length; i++) {
-            int lw = Gfx.width(lines[i]), x = right ? b[0] - e.style.padX - lw : e.style.padX + e.style.accent, col = e.color;
-            if (e.id.equals("ping")) { int ms = parsePing(lines[i]); col = HudKit.PING_COLORS[Math.max(0, HudKit.pingLevel(ms, e.i("goodMs"), e.i("okMs")) < 0 ? 3 : HudKit.pingLevel(ms, e.i("goodMs"), e.i("okMs")))]; }
-            if (e.id.equals("modulelist") && i % 2 == 0) col = e.accent;
-            ctx.text(lines[i], x, y, HudKit.argb(col, e.opacity, fade), e.shadow); y += 10;
+            int lw = Gfx.width(lines[i]), x = right ? b[0] - e.style.padX - lw : e.style.padX + e.style.accent;
+            if (e.id.equals("ping")) { int lvl = HudKit.pingLevel(parsePing(lines[i]), e.i("goodMs"), e.i("okMs")); ctx.text(lines[i], x, y, HudKit.argb(HudKit.PING_COLORS[lvl < 0 ? 3 : lvl], e.opacity, fade), e.shadow); }
+            else text(ctx, e, lines[i], x, y, e.id.equals("modulelist") && i % 2 == 0 && !HudKit.perChar(e.textMode) ? e.accent : e.color, fade);
+            y += 10;
         }
         ctx.pop();
     }
     static int parsePing(String s) { try { return Integer.parseInt(s.replaceAll("[^0-9]", "")); } catch (NumberFormatException x) { return -1; } }
 
-    static final String[] KEYS = {"W", "A", "S", "D", "LMB", "RMB", "———"};
+    /** Background and border of an element, rounded by its corner radius. Coordinates are the element's own (after translate and scale). */
+    static void panel(Gfx ctx, El e, int w, int h, double fade) {
+        if (e.bg) { int c = HudKit.argb(e.bgColor, e.bgPct * e.opacity / 100, fade), n = HudKit.roundRect(w, h, e.radius, RECTS); for (int k = 0; k < n * 4; k += 4) ctx.fill(RECTS[k], RECTS[k + 1], RECTS[k + 2], RECTS[k + 3], c); }
+        if (e.border) outline(ctx, 0, 0, w, h, e.radius, HudKit.argb(e.accent, 55 * e.opacity / 100, fade));
+    }
+    static void rounded(Gfx ctx, int x, int y, int w, int h, int r, int argb) { int n = HudKit.roundRect(w, h, r, RECTS); for (int k = 0; k < n * 4; k += 4) ctx.fill(x + RECTS[k], y + RECTS[k + 1], x + RECTS[k + 2], y + RECTS[k + 3], argb); }
+    static void outline(Gfx ctx, int x, int y, int w, int h, int r, int argb) { int n = HudKit.roundOutline(w, h, r, RECTS); for (int k = 0; k < n * 4; k += 4) ctx.fill(x + RECTS[k], y + RECTS[k + 1], x + RECTS[k + 2], y + RECTS[k + 3], argb); }
+    /** Text in the element's colour mode: one string when solid, coloured character by character for chroma and gradient. */
+    static void text(Gfx ctx, El e, String s, int x, int y, int rgb, double fade) { text(ctx, e, s, x, y, rgb, fade, 0, 0); }
+    /** blendTo / blend: mixes the colour toward blendTo by blend (0..1), used for pressed keys. */
+    static void text(Gfx ctx, El e, String s, int x, int y, int rgb, double fade, int blendTo, double blend) {
+        if (!HudKit.perChar(e.textMode)) { ctx.text(s, x, y, HudKit.argb(blend > 0 ? mix(rgb, blendTo, blend) : rgb, e.opacity, fade), e.shadow); return; }
+        int cx = x, base = e.pos[0];
+        for (int i = 0; i < s.length(); ) {
+            int cp = s.codePointAt(i), n = Character.charCount(cp); String ch = cp < 128 ? CH[cp] : s.substring(i, i + n); i += n;
+            int c = HudKit.textColor(e.textMode, rgb, e.accent, base + cx, seconds, e.chromaSpeed); if (blend > 0) c = mix(c, blendTo, blend);
+            ctx.text(ch, cx, y, HudKit.argb(c, e.opacity, fade), e.shadow); cx += Gfx.width(ch);
+        }
+    }
+
+    /**
+     * Keystrokes: layout from core Keystrokes (key size, gap and rows are settings), labels from the player's own key binds
+     * (refreshed once a second, so rebinding shows up), press lights the key at once and the release fades over fadeMs.
+     */
     static void keystrokes(Gfx ctx, Minecraft mc, El e, int sw, int sh, double dt, double fade) {
-        boolean mouse = e.b("showMouse"), space = e.b("showSpace"), anim = e.b("animate"); int rows = space ? 3 : 2;
-        int bw = 58 + e.style.padX * 2, bh = rows * 20 - 2 + (mouse ? 20 : 0) + e.style.padY * 2; e.w = Hud.scaled(bw, e.scale); e.h = Hud.scaled(bh, e.scale);
+        Keystrokes.Layout lay = e.keys; if (lay == null) return; int px = e.style.padX, py = e.style.padY;
+        int bw = lay.w() + px * 2, bh = lay.h() + py * 2; e.w = Hud.scaled(bw, e.scale); e.h = Hud.scaled(bh, e.scale);
         Hud.resolveInto(e.anchor, e.offX, e.offY, e.w, e.h, sw, sh, e.pos);
-        boolean[] down = {mc.options.keyUp.isDown(), mc.options.keyLeft.isDown(), mc.options.keyDown.isDown(), mc.options.keyRight.isDown(), mc.options.keyAttack.isDown(), mc.options.keyUse.isDown(), mc.options.keyJump.isDown()};
+        var o = mc.options; if (KEY_MAPS == null) KEY_MAPS = new net.minecraft.client.KeyMapping[]{o.keyUp, o.keyLeft, o.keyDown, o.keyRight, o.keyAttack, o.keyUse, o.keyJump, o.keyShift, o.keySprint}; var maps = KEY_MAPS;
+        String mode = e.s("labels"), ss = e.s("spaceStyle");
+        if (KEY_NAMES_GATE.due(System.nanoTime()) || KEY_NAMES[0] == null) for (int k = 0; k < maps.length; k++) KEY_NAMES[k] = maps[k].getTranslatedKeyMessage().getString();
+        double fadeS = e.b("animate") ? e.i("fadeMs") / 1000.0 : 0; int pressedPct = e.i("pressedOpacity"), pressedText = Integer.parseInt(e.s("pressedText"), 16); boolean cps = e.b("showCps"); long now = System.currentTimeMillis();
         ctx.push(); ctx.translate(e.pos[0], e.pos[1]); ctx.scale(e.scale);
-        if (e.bg) ctx.fill(0, 0, bw, bh, HudKit.argb(0x0C0F16, e.bgPct * e.opacity / 100 / 2, fade));
-        int px = e.style.padX, py = e.style.padY;
-        int[][] lay = {{20, 0, 18}, {0, 20, 18}, {20, 20, 18}, {40, 20, 18}, {0, 40, 28}, {30, 40, 28}, {0, mouse ? 60 : 40, 58}};
-        for (int k = 0; k < 7; k++) {
-            if ((k == 4 || k == 5) && !mouse) continue; if (k == 6 && !space) continue;
-            KEY_GLOW[k] = HudKit.keyGlow(KEY_GLOW[k], down[k], dt, anim); double g = KEY_GLOW[k]; int x = px + lay[k][0], y = py + lay[k][1], w = lay[k][2];
-            int bgc = HudKit.argb(mix(0x0C0F16, e.accent, g), (int) Math.round((55 + 30 * g) * e.opacity / 100.0), fade);
-            ctx.fill(x, y, x + w, y + 18, bgc);
-            String label = KEYS[k]; if (k == 4 && e.b("showCps")) label = left.cps(System.currentTimeMillis()) + " CPS"; if (k == 5 && e.b("showCps")) label = right.cps(System.currentTimeMillis()) + " CPS";
-            int lw = Gfx.width(label); ctx.text(label, x + (w - lw) / 2, y + 5, HudKit.argb(g > 0.5 ? 0x06141F : e.color, e.opacity, fade), false);
+        for (Keystrokes.Key k : lay.keys()) {
+            int in = k.input(); double g = KEY_GLOW[in] = HudKit.keyGlow(KEY_GLOW[in], maps[in].isDown(), dt, fadeS);
+            int x = px + k.x(), y = py + k.y(), restPct = e.bg ? e.bgPct : 0, pct = (int) Math.round(restPct + (pressedPct - restPct) * g);
+            if (pct > 0) rounded(ctx, x, y, k.w(), k.h(), e.radius, HudKit.argb(mix(e.bgColor, e.accent, g), pct * e.opacity / 100, fade));
+            if (e.border) outline(ctx, x, y, k.w(), k.h(), e.radius, HudKit.argb(e.accent, 55 * e.opacity / 100, fade));
+            if (in == Keystrokes.JUMP && !"text".equals(ss)) { int lw = Math.max(4, k.w() * 2 / 5), lh = k.h() >= 12 ? 2 : 1; int c = HudKit.argb(mix(e.color, pressedText, g), e.opacity, fade);
+                ctx.fill(x + (k.w() - lw) / 2, y + (k.h() - lh) / 2, x + (k.w() + lw) / 2, y + (k.h() + lh) / 2, c); continue; }
+            String label = Keystrokes.label(mode, in, KEY_NAMES[in], ss);
+            boolean second = cps && (in == Keystrokes.ATTACK || in == Keystrokes.USE) && Keystrokes.cpsLine(k.h());
+            String sub = !cps || (in != Keystrokes.ATTACK && in != Keystrokes.USE) ? null : (in == Keystrokes.ATTACK ? left : right).cps(now) + " CPS";
+            if (sub != null && !second) { label = sub; sub = null; }
+            float sc = Keystrokes.fitScale(Gfx.width(label), k.w()); int th = Math.round(8 * sc) + (sub != null ? 7 : 0), ty = y + (k.h() - th + 1) / 2;
+            ctx.push(); ctx.translate(x + (k.w() - Gfx.width(label) * sc) / 2f, ty); ctx.scale(sc); text(ctx, e, label, 0, 0, e.color, fade, pressedText, g); ctx.pop();
+            if (sub != null) { float s2 = Math.min(0.75f, Keystrokes.fitScale(Gfx.width(sub), k.w())); ctx.push(); ctx.translate(x + (k.w() - Gfx.width(sub) * s2) / 2f, ty + Math.round(8 * sc) + 1); ctx.scale(s2);
+                text(ctx, e, sub, 0, 0, mix(e.color, e.bgColor, 0.25), fade, pressedText, g); ctx.pop(); }
         }
         ctx.pop();
     }

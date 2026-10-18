@@ -168,6 +168,21 @@ public final class Golden {
         int[][] sn = {{423, 100}, {300, 100}, {203, 50}, {849, 470}, {-20, 7}, {398, 233}};
         for (int[] p : sn) { int[] r = Hud.snap(p[0], p[1], 60, 12, 854, 480, 6, List.of(new int[]{200, 300, 100, 20})); f.add(arr(List.of(q("snap"), String.valueOf(p[0]), String.valueOf(p[1]), String.valueOf(r[0]), String.valueOf(r[1])))); }
         for (float[] d : new float[][]{{1, 50}, {1, -100}, {2.9f, 500}, {1.5f, 7}}) f.add(arr(List.of(q("scaleFromDrag"), n(d[0]), String.valueOf((int) d[1]), n(Hud.scaleFromDrag(d[0], (int) d[1], 100)))));
+        // Keystrokes layout, labels and glow; text colour modes; rounded boxes.
+        for (int size : new int[]{12, 18, 25, 32}) for (int gap : new int[]{0, 2, 5}) for (int mask = 0; mask < 16; mask++) { String ss = (mask & 8) > 0 ? "text" : "bar";
+            Keystrokes.Layout l = Keystrokes.layout(size, gap, (mask & 1) > 0, (mask & 2) > 0, (mask & 4) > 0, ss); List<String> ks = new ArrayList<>();
+            for (Keystrokes.Key k : l.keys()) ks.add(arr(List.of(String.valueOf(k.input()), String.valueOf(k.x()), String.valueOf(k.y()), String.valueOf(k.w()), String.valueOf(k.h()))));
+            f.add(arr(List.of(q("ksLayout"), String.valueOf(size), String.valueOf(gap), String.valueOf(mask), String.valueOf(l.w()), String.valueOf(l.h()), arr(ks)))); }
+        String[] bound = {"w", "Left Shift", "Left Button", "Button 5", "Keypad 7", "Not bound", "Space", "Scroll Lock", "Right Control", "Up Arrow", "Ü", null};
+        for (String mode : new String[]{"bound", "wasd", "arrows"}) for (String ss : new String[]{"bar", "text"}) for (int in = 0; in < Keystrokes.INPUTS; in++) for (String bn : bound)
+            f.add(arr(List.of(q("ksLabel"), q(mode), q(ss), String.valueOf(in), bn == null ? "null" : q(bn), q(Keystrokes.label(mode, in, bn, ss)))));
+        for (int[] tw : new int[][]{{0, 18}, {10, 18}, {28, 18}, {500, 18}, {33, 28}}) f.add(arr(List.of(q("ksFit"), String.valueOf(tw[0]), String.valueOf(tw[1]), n(Keystrokes.fitScale(tw[0], tw[1])))));
+        { List<String> kg2 = new ArrayList<>(); double g2 = 0; for (int k = 0; k < 12; k++) { g2 = HudKit.keyGlow(g2, k < 2, 0.05, 0.3); kg2.add(n(g2)); } f.add(arr(List.of(q("keyGlowFade"), arr(kg2)))); }
+        for (String mode : new String[]{"solid", "chroma", "gradient"}) for (double px : new double[]{0, 17, 90, 400}) for (double t : new double[]{0, 1.3, 7.75}) for (double sp : new double[]{0.5, 1, 3})
+            f.add(arr(List.of(q("textColor"), q(mode), n(px), n(t), n(sp), String.valueOf(HudKit.textColor(mode, 0x6FE3FF, 0xB58CFF, px, t, sp)))));
+        { int[] buf = HudKit.rectBuffer(); for (int r = 0; r <= HudKit.MAX_RADIUS; r++) for (int[] wh : new int[][]{{1, 1}, {2, 9}, {7, 5}, {20, 12}, {58, 18}, {120, 40}}) {
+            for (boolean outline : new boolean[]{false, true}) { int cnt = outline ? HudKit.roundOutline(wh[0], wh[1], r, buf) : HudKit.roundRect(wh[0], wh[1], r, buf); List<String> rs = new ArrayList<>(); for (int k = 0; k < cnt * 4; k++) rs.add(String.valueOf(buf[k]));
+                f.add(arr(List.of(q(outline ? "roundOutline" : "roundRect"), String.valueOf(wh[0]), String.valueOf(wh[1]), String.valueOf(r), arr(rs)))); } } }
         StringBuilder b = new StringBuilder("{\n  \"cases\": [\n    "); for (int k = 0; k < f.size(); k++) b.append(k > 0 ? ",\n    " : "").append(f.get(k)); return b.append("\n  ]\n}\n").toString();
     }
     /** The adapter table and feature list for the launcher's compatibility matrix. */

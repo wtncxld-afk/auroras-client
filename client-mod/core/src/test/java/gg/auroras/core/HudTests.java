@@ -62,6 +62,43 @@ public final class HudTests {
         check("now playing: the mod reads the launcher's file, including escaped quotes", np.title().equals("Song \"Live\"") && np.artist().equals("A, B") && np.playing() && np.durationMs() == 200000 && np.progressNow(2005) == 67000, np);
         check("now playing: progress stops at the end and doesn't move while paused", np.progressNow(10_000_000) == 200000 && NowPlaying.parse("{\"playing\":false,\"progressMs\":10,\"durationMs\":99,\"at\":0}").progressNow(5000) == 10);
         check("now playing: oversized files are refused", NowPlaying.parse("{\"title\":\"" + "x".repeat(9000) + "\"}").status().equals("unavailable"));
+        // ----- keystrokes -----
+        { Keystrokes.Layout l = Keystrokes.layout(18, 2, true, false, true, "bar");
+          check("keystrokes: default layout is W over A S D, mouse row, slim space bar", l.w() == 58 && l.h() == 18 * 3 + 2 * 3 + 9 && l.keys().size() == 7 && l.keys().get(0).x() == 20 && l.keys().get(3).x() == 40 && l.keys().get(6).h() == 9, l);
+          boolean inside = true, overlap = false; for (Keystrokes.Key k : l.keys()) { inside &= k.x() >= 0 && k.y() >= 0 && k.x() + k.w() <= l.w() && k.y() + k.h() <= l.h(); for (Keystrokes.Key o : l.keys()) if (o != k && k.x() < o.x() + o.w() && o.x() < k.x() + k.w() && k.y() < o.y() + o.h() && o.y() < k.y() + k.h()) overlap = true; }
+          check("keystrokes: keys stay inside the widget and never overlap", inside && !overlap);
+          boolean rows = true; for (int size = 12; size <= 32; size++) for (int gap = 0; gap <= 6; gap++) { Keystrokes.Layout q = Keystrokes.layout(size, gap, true, true, true, "text"); int right = 0; for (Keystrokes.Key k : q.keys()) if (k.input() >= 4) right = Math.max(right, k.x() + k.w()); rows &= right == q.w() && q.keys().get(4).w() + gap + q.keys().get(5).w() == q.w(); }
+          check("keystrokes: half-width rows span the full width at every key size and gap (odd pixels go right)", rows);
+          Keystrokes.Layout m = Keystrokes.layout(20, 3, false, true, false, "bar");
+          check("keystrokes: optional rows come and go, sneak and sprint are shorter keys", m.keys().size() == 6 && m.keys().get(4).input() == Keystrokes.SNEAK && m.keys().get(4).h() == 15 && m.h() == 20 * 2 + 3 * 2 + 15, m);
+          check("keystrokes: a text space bar is a full-height key", Keystrokes.spaceHeight(18, "text") == 18 && Keystrokes.spaceHeight(18, "bar") == 9 && Keystrokes.spaceHeight(8, "bar") == 6); }
+        check("keystrokes: labels follow the player's own key binds, shortened", Keystrokes.label("bound", Keystrokes.FORWARD, "e", "bar").equals("E") && Keystrokes.label("bound", Keystrokes.SNEAK, "Left Shift", "bar").equals("LShift")
+            && Keystrokes.label("bound", Keystrokes.ATTACK, "Left Button", "bar").equals("LMB") && Keystrokes.label("bound", Keystrokes.USE, "Button 4", "bar").equals("M4") && Keystrokes.label("bound", Keystrokes.LEFT, "Keypad 4", "bar").equals("Num4"));
+        check("keystrokes: wasd and arrow label modes, unbound keys and the slim space bar", Keystrokes.label("wasd", Keystrokes.RIGHT, "Up", "bar").equals("D") && Keystrokes.label("arrows", Keystrokes.FORWARD, null, "bar").equals("▲")
+            && Keystrokes.label("bound", Keystrokes.FORWARD, "Not bound", "bar").equals("—") && Keystrokes.label("bound", Keystrokes.JUMP, "Space", "bar").isEmpty() && Keystrokes.label("bound", Keystrokes.JUMP, "Space", "text").equals("Space") && Keystrokes.shortName("Scroll Lock").equals("Scrol…"));
+        check("keystrokes: long labels shrink to fit their key, short ones keep full size", Keystrokes.fitScale(10, 18) == 1f && Math.abs(Keystrokes.fitScale(28, 18) - 0.5f) < 1e-6 && Keystrokes.fitScale(500, 18) == 0.4f && Keystrokes.cpsLine(16) && !Keystrokes.cpsLine(15));
+        { double g = HudKit.keyGlow(0, true, 0.016, 0.3); double g1 = HudKit.keyGlow(g, false, 0.15, 0.3), g0 = HudKit.keyGlow(g, false, 0.016, 0.0);
+          check("keystrokes: press lights at once, release fades over the chosen time, 0 ms is instant", g == 1 && Math.abs(g1 - 0.5) < 1e-9 && g0 == 0 && HudKit.keyGlow(1, false, 0.06, true) == HudKit.keyGlow(1, false, 0.06, 0.12)); }
+        // ----- shared widget styling -----
+        check("text colour: solid keeps the colour; chroma and gradient move with time and position", HudKit.textColor("solid", 0x123456, 0xFFFFFF, 50, 9, 1) == 0x123456
+            && HudKit.textColor("chroma", 0, 0, 0, 0, 1) != HudKit.textColor("chroma", 0, 0, 40, 0, 1) && HudKit.textColor("chroma", 0, 0, 0, 0, 1) == HudKit.textColor("chroma", 0, 0, 0, 4, 1)
+            && HudKit.textColor("gradient", 0xFF0000, 0x0000FF, 0, 0, 1) != HudKit.textColor("gradient", 0xFF0000, 0x0000FF, 0, 0.4, 1) && HudKit.perChar("chroma") && !HudKit.perChar("solid"));
+        check("hsv: primaries and wrap-around", HudKit.hsv(0, 1, 1) == 0xFF0000 && HudKit.hsv(1.0 / 3, 1, 1) == 0x00FF00 && HudKit.hsv(2.0 / 3, 1, 1) == 0x0000FF && HudKit.hsv(-1, 1, 1) == 0xFF0000 && HudKit.hsv(0.5, 0, 1) == 0xFFFFFF);
+        { int[] buf = HudKit.rectBuffer(); boolean ok = true; String why = null;
+          for (int rr = 0; rr <= HudKit.MAX_RADIUS && ok; rr++) for (int w = 1; w <= 40 && ok; w += 3) for (int h = 1; h <= 30 && ok; h += 2) {
+            int[][] fill = new int[h][w], line = new int[h][w]; int n = HudKit.roundRect(w, h, rr, buf);
+            for (int k = 0; k < n; k++) for (int y = buf[k * 4 + 1]; y < buf[k * 4 + 3]; y++) for (int x = buf[k * 4]; x < buf[k * 4 + 2]; x++) fill[y][x]++;
+            n = HudKit.roundOutline(w, h, rr, buf); for (int k = 0; k < n; k++) for (int y = buf[k * 4 + 1]; y < buf[k * 4 + 3]; y++) for (int x = buf[k * 4]; x < buf[k * 4 + 2]; x++) line[y][x]++;
+            for (int y = 0; y < h && ok; y++) for (int x = 0; x < w && ok; x++) {
+              if (fill[y][x] > 1 || line[y][x] > 1) { ok = false; why = "overlap r" + r + " " + w + "x" + h + " at " + x + "," + y; }
+              if (fill[y][x] != fill[y][w - 1 - x] || fill[y][x] != fill[h - 1 - y][x]) { ok = false; why = "not symmetric r" + r + " " + w + "x" + h; }
+              boolean edge = fill[y][x] == 1 && (x == 0 || y == 0 || x == w - 1 || y == h - 1 || fill[y][x - 1] == 0 || fill[y][x + 1] == 0 || fill[y - 1][x] == 0 || fill[y + 1][x] == 0);
+              if ((line[y][x] == 1) != edge) { ok = false; why = "outline r" + r + " " + w + "x" + h + " at " + x + "," + y; } }
+            if (ok && rr == 0 && fill[0][0] != 1) { ok = false; why = "square corner"; } }
+          check("rounded boxes: fills never overlap, are symmetric, and the outline is exactly the edge, at every radius and size", ok, why);
+          int n = HudKit.roundRect(40, 20, 3, buf); check("rounded boxes: corners are cut and tiny boxes stay square", n == 7 && buf[0] == 3 && HudKit.fitRadius(6, 8, 8) == 2 && HudKit.roundRect(2, 2, 6, buf) == 1); }
+        { Config.Registry r2 = new Config.Registry(); boolean allSt = true; for (Config.Module mm : r2.modules()) if (HudKit.positionable(mm)) for (String k : List.of("bgColor", "radius", "textMode", "chromaSpeed")) allSt &= mm.setting(k) != null;
+          check("every HUD element has background colour, corner radius and text colour mode settings, saved in layouts", allSt && HudKit.LAYOUT_KEYS.containsAll(List.of("bgColor", "radius", "textMode", "chromaSpeed"))); }
         check("golden: visuals/hud-golden.json is up to date (run Golden after changing HUD code)", Files.readString(dir.resolve("hud-golden.json")).equals(Golden.hud()));
         System.out.println("\n" + pass + " passed, " + fail + " failed"); if (fail > 0) System.exit(1);
     }

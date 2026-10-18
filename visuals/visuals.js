@@ -389,11 +389,74 @@
     progressFrac: (p, d) => (d <= 0 ? 0 : clamp(p / d, 0, 1)),
     Smooth() { let init = false; const S = { value: 0, update(t, dt, tau, rm) { if (!init || rm || tau <= 0) { S.value = t; init = true; return t; } S.value += (t - S.value) * (1 - Math.exp(-Math.max(0, dt) / tau)); if (Math.abs(t - S.value) < 1e-3) S.value = t; return S.value; } }; return S; },
     Fade() { const F = { alpha: 0, update(vis, dt, dur, rm) { if (rm || dur <= 0) return (F.alpha = vis ? 1 : 0); const st = Math.max(0, dt) / dur; F.alpha = vis ? Math.min(1, F.alpha + st) : Math.max(0, F.alpha - st); return F.alpha; } }; return F; },
-    keyGlow: (cur, pressed, dt, anim) => (pressed ? 1 : anim ? Math.max(0, cur - dt / 0.12) : 0),
+    keyGlow: (cur, pressed, dt, anim) => H.keyGlowFade(cur, pressed, dt, anim ? 0.12 : 0),
+    keyGlowFade: (cur, pressed, dt, fadeS) => (pressed ? 1 : fadeS > 0 ? Math.max(0, cur - Math.max(0, dt) / fadeS) : 0),
+    hsv(hue, sat, val) {
+      const h = (((hue % 1) + 1) % 1) * 6, c = val * sat, x = c * (1 - Math.abs((h % 2) - 1)), m = val - c, i = Math.trunc(h);
+      const [r, g, b] = i === 0 ? [c, x, 0] : i === 1 ? [x, c, 0] : i === 2 ? [0, c, x] : i === 3 ? [0, x, c] : i === 4 ? [x, 0, c] : [c, 0, x];
+      return (Math.round((r + m) * 255) << 16) | (Math.round((g + m) * 255) << 8) | Math.round((b + m) * 255);
+    },
+    /** HudKit.textColor: solid, chroma (flowing rainbow) or gradient (colour and accent in a sliding wave). */
+    textColor(mode, color, accent, px, sec, speed) {
+      if (mode === "chroma") return H.hsv(px / 160 - (sec * speed) / 4, 0.62, 1);
+      if (mode === "gradient") return mix(color, accent, 0.5 + 0.5 * Math.sin(px / 24 - sec * speed * 2));
+      return color;
+    },
+    perChar: (mode) => mode === "chroma" || mode === "gradient",
+    MAX_RADIUS: 6,
+    cornerInset: (r, i) => (i >= r ? 0 : r - Math.floor(Math.sqrt(r * r - (r - i) * (r - i)))),
+    fitRadius: (r, w, h) => Math.max(0, Math.min(r, idiv(Math.min(w, h), 3))),
+    /** HudKit.roundRect: a rounded box as non-overlapping rectangles [x0, y0, x1, y1, ...]. */
+    roundRect(w, h, r) {
+      r = H.fitRadius(r, w, h); const o = [], put = (a, b, c, d) => { if (c > a && d > b) o.push(a, b, c, d); };
+      if (r === 0) { put(0, 0, w, h); return o; }
+      for (let i = 0; i < r; i++) { const n = H.cornerInset(r, i); put(n, i, w - n, i + 1); put(n, h - 1 - i, w - n, h - i); }
+      put(0, r, w, h - r); return o;
+    },
+    /** HudKit.roundOutline: the 1 px edge of the same box. */
+    roundOutline(w, h, r) {
+      r = H.fitRadius(r, w, h); const o = [], put = (a, b, c, d) => { if (c > a && d > b) o.push(a, b, c, d); };
+      if (w <= 2 || h <= 2) { put(0, 0, w, h); return o; }
+      if (r === 0) { put(0, 0, w, 1); put(0, h - 1, w, h); put(0, 1, 1, h - 1); put(w - 1, 1, w, h - 1); return o; }
+      const top = H.cornerInset(r, 0); put(top, 0, w - top, 1); put(top, h - 1, w - top, h);
+      for (let i = 1; i < r; i++) { const n = H.cornerInset(r, i), x1 = Math.max(n + 1, H.cornerInset(r, i - 1)); put(n, i, x1, i + 1); put(w - x1, i, w - n, i + 1); put(n, h - 1 - i, x1, h - i); put(w - x1, h - 1 - i, w - n, h - i); }
+      const last = H.cornerInset(r, r - 1); if (last > 1) { put(0, r, last, r + 1); put(w - last, r, w, r + 1); put(0, h - 1 - r, last, h - r); put(w - last, h - 1 - r, w, h - r); }
+      const y0 = last > 1 ? r + 1 : r, y1 = last > 1 ? h - r - 1 : h - r; put(0, y0, 1, y1); put(w - 1, y0, w, y1); return o;
+    },
     moduleList(list, sort) { const byName = (a, b) => cmp(a.name.toLowerCase(), b.name.toLowerCase()); return [...list].sort(sort === "name" ? byName : sort === "category" ? (a, b) => cmp(a.category, b.category) || byName(a, b) : (a, b) => b.width - a.width || byName(a, b)); },
     lineX: (colX, colW, lineW, right) => (right ? colX + colW - lineW : colX),
   };
-  const LAYOUT_KEYS = ["enabled", "anchor", "offX", "offY", "scale", "style", "color", "accent", "background", "bgOpacity", "border", "shadow", "opacity"];
+  const LAYOUT_KEYS = ["enabled", "anchor", "offX", "offY", "scale", "style", "color", "accent", "background", "bgOpacity", "border", "shadow", "opacity", "bgColor", "radius", "textMode", "chromaSpeed"];
+  // ----- Keystrokes widget (Keystrokes.java) -----
+  const KS = {
+    FORWARD: 0, LEFT: 1, BACK: 2, RIGHT: 3, ATTACK: 4, USE: 5, JUMP: 6, SNEAK: 7, SPRINT: 8, INPUTS: 9,
+    spaceHeight: (size, ss) => (ss === "text" ? size : Math.max(6, Math.round(size * 0.5))),
+    layout(size, gap, mouse, modifiers, space, ss) {
+      size = Math.max(8, size); gap = Math.max(0, gap); const w = size * 3 + gap * 2, half = idiv(w - gap, 2), k = [], key = (input, x, y, kw, kh) => k.push({ input, x, y, w: kw, h: kh }); let y = 0;
+      key(0, size + gap, y, size, size); y += size + gap;
+      key(1, 0, y, size, size); key(2, size + gap, y, size, size); key(3, (size + gap) * 2, y, size, size); y += size + gap;
+      if (mouse) { key(4, 0, y, half, size); key(5, half + gap, y, w - half - gap, size); y += size + gap; }
+      if (modifiers) { const mh = Math.max(8, Math.round(size * 0.75)); key(7, 0, y, half, mh); key(8, half + gap, y, w - half - gap, mh); y += mh + gap; }
+      if (space) { const sh = KS.spaceHeight(size, ss); key(6, 0, y, w, sh); y += sh + gap; }
+      return { keys: k, w, h: y - gap };
+    },
+    WASD: ["W", "A", "S", "D", "LMB", "RMB", "Space", "Sneak", "Sprint"], ARROWS: ["▲", "◀", "▼", "▶", "LMB", "RMB", "Space", "Sneak", "Sprint"],
+    SHORT: { "left button": "LMB", "right button": "RMB", "middle button": "MMB", "left shift": "LShift", "right shift": "RShift", "left control": "LCtrl", "right control": "RCtrl", "left ctrl": "LCtrl", "right ctrl": "RCtrl",
+      "left alt": "LAlt", "right alt": "RAlt", "caps lock": "Caps", space: "Space", "not bound": "—", "up arrow": "▲", "down arrow": "▼", "left arrow": "◀", "right arrow": "▶", up: "▲", down: "▼", left: "◀", right: "▶", enter: "Enter", tab: "Tab", backspace: "Bksp" },
+    shortName(name) {
+      const n = name.trim(), low = n.toLowerCase();
+      if (Object.prototype.hasOwnProperty.call(KS.SHORT, low)) return KS.SHORT[low];
+      if (low.startsWith("button ")) return "M" + n.slice(7).trim(); if (low.startsWith("mouse button ")) return "M" + n.slice(13).trim(); if (low.startsWith("keypad ")) return "Num" + n.slice(7).trim();
+      if ([...n].length === 1) return n.toUpperCase(); return n.length <= 6 ? n : n.slice(0, 5) + "…";
+    },
+    label(mode, input, bound, ss) {
+      if (input === 6 && ss !== "text") return "";
+      if (mode === "bound" && bound != null && bound.trim()) { const s = KS.shortName(bound); return s; }
+      return (mode === "arrows" ? KS.ARROWS : KS.WASD)[input];
+    },
+    fitScale: (tw, kw) => (tw <= 0 ? 1 : Math.min(1, Math.max(Math.fround(0.4), Math.fround((kw - 4) / tw)))),
+    cpsLine: (h) => h >= 16,
+  };
   function captureLayout(registry, values) { const out = {}; for (const m of registry.modules) if (m.settings.some((s) => s.key === "anchor")) for (const k of LAYOUT_KEYS) if (m.settings.some((s) => s.key === k)) out[m.id + "." + k] = values[m.id + "." + k]; return out; }
   function exportLayout(name, layout) { return "auroras-hudlayout=1\nname=" + name + "\n" + Object.keys(layout).sort(cmp).map((k) => k + "=" + layout[k] + "\n").join(""); }
   function importLayout(registry, rules, text) {
@@ -412,6 +475,6 @@
     FX_NONE, parseFx, FX_BUDGET, skyQuality, fxClock, fxU, SLOT, METEOR_FIELDS, meteors, petal, cloud, cloudColor, nebula, auroraWave, auroraShimmer, Constellations,
     clamp, THEME_IDS, hex, loadThemes, NONE, skyAngle, daylight, sunsetAmount, nightAmount, mix, adjust, skyColor, Rng, StarField, auroraElevation, themeFor,
     QUALITY, STYLE_IDS, Particles, Governor, CAPE_DESIGNS, CapeSim, capeScale, CAPE_FACES, totemPose, makeRules, exportProfile, importProfile, placeKey, PLACE, NAME,
-    FORMAT, ANCHORS, resolve, fromPosition, snap, scaledPx, scaleFromDrag, box, argb, styleOf, H, LAYOUT_KEYS, captureLayout, exportLayout, importLayout };
+    FORMAT, ANCHORS, resolve, fromPosition, snap, scaledPx, scaleFromDrag, box, argb, styleOf, H, KS, LAYOUT_KEYS, captureLayout, exportLayout, importLayout };
   if (typeof module !== "undefined" && module.exports) module.exports = V; else root.AurorasVisuals = V;
 })(typeof window !== "undefined" ? window : globalThis);

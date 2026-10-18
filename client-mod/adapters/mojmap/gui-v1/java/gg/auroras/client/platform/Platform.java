@@ -23,6 +23,10 @@ public final class Platform {
     public static KeyMapping key(String name, int glfwKey) {
         return KeyBindingHelper.registerKeyBinding(new KeyMapping(name, InputConstants.Type.KEYSYM, glfwKey < 0 ? InputConstants.UNKNOWN.getValue() : Keys.fromGlfw(glfwKey), CATEGORY));
     }
+    /** Moves an existing key mapping to a GLFW key code (-1 unbinds) and refreshes Minecraft's key lookup. */
+    public static void rebind(KeyMapping k, int glfwKey) {
+        k.setKey(glfwKey < 0 ? InputConstants.UNKNOWN : InputConstants.Type.KEYSYM.getOrCreate(Keys.fromGlfw(glfwKey))); KeyMapping.resetMapping();
+    }
     /** HUD: our layer (before chat), and the crosshair and boss bar wrapped so modules can replace or move them. */
     public static void hud() {
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, Identifier.fromNamespaceAndPath("auroras_client", "hud"), (g, tick) -> AurorasClient.renderHud(new Gfx(g)));

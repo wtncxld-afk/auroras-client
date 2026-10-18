@@ -50,8 +50,7 @@ final class SpotifyHud {
         trackIn = Math.min(1, trackIn + dt / 0.25); double a = fade * (0.35 + 0.65 * trackIn); int op = e.opacity;
         double sec = (System.nanoTime() - T0) / 1e9;
         ctx.push(); ctx.translate(e.pos[0], e.pos[1]); ctx.scale(e.scale);
-        if (e.bg) ctx.fill(0, 0, c.w(), c.h(), HudKit.argb(0x0C0F16, e.bgPct * op / 100, fade));
-        if (e.border) { int bc = HudKit.argb(e.accent, 55 * op / 100, fade); ctx.fill(0, 0, c.w(), 1, bc); ctx.fill(0, c.h() - 1, c.w(), c.h(), bc); ctx.fill(0, 0, 1, c.h(), bc); ctx.fill(c.w() - 1, 0, c.w(), c.h(), bc); }
+        HudRenderer.panel(ctx, e, c.w(), c.h(), fade);
         if (c.art() > 0) {
             int x = c.pad(), y = c.pad(), s = c.art();
             if (artReady && has) ctx.texture(ART, x, y, s, s, HudKit.argb(0xFFFFFF, op, a));

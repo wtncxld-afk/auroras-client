@@ -36,9 +36,9 @@ function kitWire(root,onChange){
 
 /* ----- Settings, generated from the game's own registry, with a control chosen for each setting's type ----- */
 const OPT_LABEL={off:"Off (vanilla)",auto:"Auto",LOW:"Low",BALANCED:"Balanced",HIGH:"High",TL:"Top left",TC:"Top centre",TR:"Top right",CL:"Centre left",C:"Centre",CR:"Centre right",BL:"Bottom left",BC:"Bottom centre",BR:"Bottom right",
-  minimal:"Minimal",compact:"Compact",expanded:"Expanded",percent:"Percent",numeric:"Numbers",bar:"Bar",vertical:"Vertical",horizontal:"Horizontal",back:"Back",chest:"Chest",shoulder:"Shoulder",length:"Length",name:"Name",category:"Category"};
+  minimal:"Minimal",compact:"Compact",expanded:"Expanded",percent:"Percent",numeric:"Numbers",bar:"Bar",vertical:"Vertical",horizontal:"Horizontal",back:"Back",chest:"Chest",shoulder:"Shoulder",length:"Length",name:"Name",category:"Category",solid:"Solid",chroma:"Chroma",gradient:"Gradient",bound:"My key binds",wasd:"W A S D",arrows:"Arrows",text:"Word"};
 const optLabel=o=>OPT_LABEL[o]||(typeof SKY_THEMES!=="undefined"&&SKY_THEMES[o]?SKY_THEMES[o].name:label(o));
-const HUD_APPEAR=["style","color","accent","opacity","background","bgOpacity","border","shadow"],HUD_POS=["anchor","offX","offY","scale"];
+const HUD_APPEAR=["style","color","textMode","chromaSpeed","accent","opacity","background","bgColor","bgOpacity","radius","border","shadow"],HUD_POS=["anchor","offX","offY","scale"];
 /** Groups a module's settings into named sections. Anything not listed lands in the first section. */
 function sectionsFor(m,exclude=[]){const keys=m.settings.map(s=>s.key).filter(k=>k!=="enabled"&&!exclude.includes(k)),has=k=>keys.includes(k);
   const G={sky:[[exclude.includes("theme")?"Other dimensions":"Theme",["theme","netherTheme","endTheme"],!exclude.includes("theme")],["Color and light",["brightness","saturation","contrast","tint","tintStrength"],true],["Animation",["animate","animSpeed","effectsOpacity","shootingStars","aurora","auroraWaves","nebula","nebulaSpeed","clouds","petals"],true],

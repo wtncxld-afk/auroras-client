@@ -7,17 +7,23 @@ Network: Mojang, Fabric, NeoForge, Forge, Modrinth, Spotify, Gradle and Maven we
 | Suite | Command | Result |
 |---|---|---|
 | Java core logic (registry, settings, profiles, migration) | `java -cp out gg.auroras.core.Tests ../../visuals` | 91 passed, 0 failed |
-| Java modules (direction, information readouts, frame graph, session, toggles, zoom scroll, freelook, perspective, crosshair, particles, fullbright, hit color, boss bar, totem effects, menu speed) | `java -cp out gg.auroras.core.ModuleTests ../../visuals` | 44 passed, 0 failed |
+| Java modules (direction, information readouts, frame graph, session, toggles, zoom scroll, freelook, perspective, crosshair, particles, fullbright, hit color, boss bar, totem effects, menu speed) | `java -cp out gg.auroras.core.ModuleTests ../../visuals` | 46 passed, 0 failed |
 | Java radial menu and Auroras font (layout on 9 screen sizes, anti-aliased art, hit testing, open/hover/press/close animation, sections, client settings page, font atlas) | `java -cp out gg.auroras.core.RadialTests ../../visuals` | 30 passed, 0 failed |
 | Java versions, adapters, performance and allocation | `java -cp out gg.auroras.core.PerfTests ../../visuals` | 21 passed, 0 failed |
 | Java visuals (sky, animated sky effects, particles, cosmetics, golden files) | `java -cp out gg.auroras.core.VisualTests ../../visuals` | 65 passed, 0 failed |
-| Java HUD (placement, snapping, styles, formatters, animations, layouts, now playing) | `java -cp out gg.auroras.core.HudTests ../../visuals` | 30 passed, 0 failed |
+| Java HUD (placement, snapping, styles, formatters, animations, layouts, now playing) | `java -cp out gg.auroras.core.HudTests ../../visuals` | 44 passed, 0 failed |
 | Java emotes (format, validation, sampling, controller, wheel, custom files) | `java -cp out gg.auroras.core.EmoteTests ../../visuals` | 30 passed, 0 failed |
 | Java UI (design tokens and contrast, UI kit maths, in-game module menu model) | `java -cp out gg.auroras.core.UiTests ../../visuals` | 38 passed, 0 failed |
 | Node (updater, versions incl. filters and stable/snapshot rules, launch plan, installer incl. retries, launch incl. offline, Java checks, snapshots and quick-play Join, visuals parity, mod settings incl. the in-game cape file, jars, compatibility, HUD incl. Spotify card, Spotify incl. cover art, sky effects, emotes, server status) | `npm test` | 116 passed, 0 failed, 0 skipped |
 | Launcher interface (headless Chromium, mocked desktop bridge), incl. the quality checks, version filters and changing an instance's version, Cape Studio > Use in game | `npm run test:ui` | 126 passed, 0 failed |
-| Fabric adapter for 1.21.11 and 26.x | `java ParseCheck.java adapters/mojmap`, plus a compile against stand-in Minecraft classes (both GUI variants) | syntax: 32 files, 0 problems; stand-in compile: 0 errors |
+| Fabric adapter for 1.21.11 and 26.x | `java ParseCheck.java adapters/mojmap`, plus a compile against stand-in Minecraft classes (both GUI variants) | syntax: 32 files, 0 problems (2026-10-18 widget pass: syntax only; the stand-in classes aren't in the repository, so the stand-in compile wasn't re-run) |
 | Fabric adapter for 1.21.4 (older) | `java ParseCheck.java adapters/fabric-1.21.4/src` | syntax only: 26 files, 0 problems |
+
+## Widget and module polish (2026-10-18, later)
+- **Keystrokes rebuilt:** layout, labels and press fade are core `Keystrokes` (tested, mirrored in the launcher and golden-checked). New settings: key size, key gap, labels from your own key binds (or W A S D, or arrows), slim or full space bar, sneak and sprint keys, CPS under the mouse buttons, release fade time, pressed opacity and pressed text colour. Long labels shrink to fit their key.
+- **Every HUD element** gained a background colour, a corner radius (rounded boxes drawn as the same rectangles in game and in the launcher, tested pixel by pixel) and a text colour mode: solid, chroma (flowing rainbow) or gradient (text colour to accent). Reduced motion holds chroma still. These settings are saved in HUD layouts.
+- **Modules:** zoom now eases every frame instead of 20 times a second, and changing zoom settings mid-zoom no longer jumps; the dynamic crosshair's spread is smoothed; key binds changed in Auroras settings (zoom, sprint, sneak, freelook, front view, menu key, emote wheel) apply at once instead of after a restart; HUD elements read their settings from a per-element cache instead of building strings every frame; setting labels no longer rebuild a table on every call.
+- **Not verified:** none of this has run inside Minecraft yet. The in-game drawing compiles only as far as a syntax check; the first real `gradle build` per target is still the next step.
 
 ## Version support from 1.21 on (this round)
 - **Discovery:** the list comes only from Mojang's `version_manifest_v2.json`; no version is hard-coded. Tested with fixture manifests shaped like Mojang's (Mojang was unreachable here), including 1.21 to 1.21.x hotfixes, year-based 26.x releases, pre-releases, release candidates, week-style and year-style snapshots, an April Fools build, and a snapshot-typed entry whose id looks like a release (it stays a snapshot).

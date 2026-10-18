@@ -35,6 +35,14 @@ test(`all ${G.length} HUD cases from the game match`, () => {
   for (const c of of("resolve")) { const r = V.resolve(c[3], c[4], c[5], 80, 13, c[1], c[2]), b = V.fromPosition(r[0], r[1], 80, 13, c[1], c[2]); eq(c, [r[0], r[1], b.anchor, b.offX, b.offY], c.slice(6)); }
   for (const c of of("snap")) eq(c, V.snap(c[1], c[2], 60, 12, 854, 480, 6, [[200, 300, 100, 20]]).slice(0, 2), [c[3], c[4]]);
   for (const c of of("scaleFromDrag")) { const v = V.scaleFromDrag(c[1], c[2], 100); if (Math.abs(v - c[3]) > 1e-6) bad.push([c, v]); }
+  for (const c of of("ksLayout")) { const m = c[3], l = V.KS.layout(c[1], c[2], (m & 1) > 0, (m & 2) > 0, (m & 4) > 0, (m & 8) > 0 ? "text" : "bar"); eq(c, [l.w, l.h, l.keys.map((k) => [k.input, k.x, k.y, k.w, k.h])], c.slice(4)); }
+  for (const c of of("ksLabel")) eq(c, V.KS.label(c[1], c[3], c[4], c[2]), c[5]);
+  for (const c of of("ksFit")) eq(c, V.KS.fitScale(c[1], c[2]), c[3]);
+  let g2 = 0; of("keyGlowFade")[0][1].forEach((v, i) => { g2 = H.keyGlowFade(g2, i < 2, 0.05, 0.3); if (Math.abs(v - g2) > 1e-9) bad.push(["keyGlowFade", i]); });
+  for (const c of of("textColor")) eq(c, H.textColor(c[1], 0x6fe3ff, 0xb58cff, c[2], c[3], c[4]), c[5]);
+  for (const c of of("roundRect")) eq(c, H.roundRect(c[1], c[2], c[3]), c[4]);
+  for (const c of of("roundOutline")) eq(c, H.roundOutline(c[1], c[2], c[3]), c[4]);
+  assert.ok(of("ksLayout").length === 192 && of("ksLabel").length === 648 && of("textColor").length === 108 && of("roundRect").length === 42, "keystrokes and styling cases are in the golden file");
   assert.deepStrictEqual(bad.slice(0, 8), []);
 });
 test("snap reports which line it snapped to, for alignment guides", () => {

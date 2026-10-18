@@ -134,7 +134,60 @@ public final class HudKit {
         }
     }
     /** Key highlight that lights instantly when pressed and fades over 120 ms when released. */
-    public static double keyGlow(double current, boolean pressed, double dt, boolean animate) { return pressed ? 1 : animate ? Math.max(0, current - dt / 0.12) : 0; }
+    public static double keyGlow(double current, boolean pressed, double dt, boolean animate) { return keyGlow(current, pressed, dt, animate ? 0.12 : 0); }
+    /** Same, with the release fade length in seconds (0 = no fade). */
+    public static double keyGlow(double current, boolean pressed, double dt, double fadeSeconds) { return pressed ? 1 : fadeSeconds > 0 ? Math.max(0, current - Math.max(0, dt) / fadeSeconds) : 0; }
+
+    // ----- text colour modes (every HUD element: solid, chroma, gradient) -----
+    /** RGB from hue (turns, any value), saturation and value (0..1). */
+    public static int hsv(double hue, double sat, double val) {
+        double h = ((hue % 1) + 1) % 1 * 6, c = val * sat, x = c * (1 - Math.abs(h % 2 - 1)), m = val - c, r, g, b; int i = (int) h;
+        switch (i) { case 0 -> { r = c; g = x; b = 0; } case 1 -> { r = x; g = c; b = 0; } case 2 -> { r = 0; g = c; b = x; } case 3 -> { r = 0; g = x; b = c; } case 4 -> { r = x; g = 0; b = c; } default -> { r = c; g = 0; b = x; } }
+        return (int) Math.round((r + m) * 255) << 16 | (int) Math.round((g + m) * 255) << 8 | (int) Math.round((b + m) * 255);
+    }
+    /**
+     * Colour of the text at horizontal position px (GUI pixels from the element's left edge) at time seconds.
+     * solid: the element's colour. chroma: a rainbow that flows sideways, one full cycle every 160 px and every 4 s / speed.
+     * gradient: the colour and the accent, blended in a wave that slides across the text.
+     */
+    public static int textColor(String mode, int color, int accent, double px, double seconds, double speed) {
+        if ("chroma".equals(mode)) return hsv(px / 160.0 - seconds * speed / 4.0, 0.62, 1.0);
+        if ("gradient".equals(mode)) return Sky.mix(color, accent, 0.5 + 0.5 * Math.sin(px / 24.0 - seconds * speed * 2.0));
+        return color;
+    }
+    /** Solid text is drawn as one string; the other modes colour each character. */
+    public static boolean perChar(String mode) { return "chroma".equals(mode) || "gradient".equals(mode); }
+
+    // ----- rounded boxes, drawn as a few rectangles so the game and the launcher get the same pixels -----
+    /** How far row i (0 = the outermost) of a corner of radius r is pulled in. */
+    public static int cornerInset(int r, int i) { return i >= r ? 0 : r - (int) Math.floor(Math.sqrt(r * r - (double) (r - i) * (r - i))); }
+    /** Radius actually used for a w x h box: at most a third of the shorter side, so small boxes stay boxes. */
+    public static int fitRadius(int r, int w, int h) { return Math.max(0, Math.min(r, Math.min(w, h) / 3)); }
+    /**
+     * Fills: rectangles {x0, y0, x1, y1} covering a w x h box with rounded corners, written to out (4 ints each, at least
+     * (2r + 1) * 4 long). Returns the number of rectangles. Nothing overlaps, so translucent fills stay even.
+     */
+    public static int roundRect(int w, int h, int r, int[] out) {
+        r = fitRadius(r, w, h); int n = 0;
+        if (r == 0) { out[0] = 0; out[1] = 0; out[2] = w; out[3] = h; return 1; }
+        for (int i = 0; i < r; i++) { int in = cornerInset(r, i); n = put(out, n, in, i, w - in, i + 1); n = put(out, n, in, h - 1 - i, w - in, h - i); }
+        return put(out, n, 0, r, w, h - r);
+    }
+    /** A 1 px outline of the same rounded box (at most (4r + 4) * 4 ints). Returns the number of rectangles. */
+    public static int roundOutline(int w, int h, int r, int[] out) {
+        r = fitRadius(r, w, h); int n = 0;
+        if (w <= 2 || h <= 2) return put(out, 0, 0, 0, w, h);
+        if (r == 0) { n = put(out, n, 0, 0, w, 1); n = put(out, n, 0, h - 1, w, h); n = put(out, n, 0, 1, 1, h - 1); return put(out, n, w - 1, 1, w, h - 1); }
+        int top = cornerInset(r, 0); n = put(out, n, top, 0, w - top, 1); n = put(out, n, top, h - 1, w - top, h);
+        for (int i = 1; i < r; i++) { int in = cornerInset(r, i), prev = cornerInset(r, i - 1), x1 = Math.max(in + 1, prev);
+            n = put(out, n, in, i, x1, i + 1); n = put(out, n, w - x1, i, w - in, i + 1); n = put(out, n, in, h - 1 - i, x1, h - i); n = put(out, n, w - x1, h - 1 - i, w - in, h - i); }
+        int last = cornerInset(r, r - 1); if (last > 1) { n = put(out, n, 0, r, last, r + 1); n = put(out, n, w - last, r, w, r + 1); n = put(out, n, 0, h - 1 - r, last, h - r); n = put(out, n, w - last, h - 1 - r, w, h - r); }
+        int y0 = last > 1 ? r + 1 : r, y1 = last > 1 ? h - r - 1 : h - r; n = put(out, n, 0, y0, 1, y1); return put(out, n, w - 1, y0, w, y1);
+    }
+    private static int put(int[] o, int n, int x0, int y0, int x1, int y1) { if (x1 <= x0 || y1 <= y0) return n; int k = n * 4; o[k] = x0; o[k + 1] = y0; o[k + 2] = x1; o[k + 3] = y1; return n + 1; }
+    /** Buffer big enough for roundRect / roundOutline at the largest radius the settings allow. */
+    public static int[] rectBuffer() { return new int[(4 * MAX_RADIUS + 8) * 4]; }
+    public static final int MAX_RADIUS = 6;
 
     // ----- module list -----
     public record Entry(String id, String name, String category, int width) {}
@@ -149,7 +202,7 @@ public final class HudKit {
 
     // ----- layout presets -----
     /** Setting keys a HUD layout stores for each element. */
-    public static final List<String> LAYOUT_KEYS = List.of("enabled", "anchor", "offX", "offY", "scale", "style", "color", "accent", "background", "bgOpacity", "border", "shadow", "opacity");
+    public static final List<String> LAYOUT_KEYS = List.of("enabled", "anchor", "offX", "offY", "scale", "style", "color", "accent", "background", "bgOpacity", "border", "shadow", "opacity", "bgColor", "radius", "textMode", "chromaSpeed");
     /** Snapshot of the HUD part of a profile. */
     public static Map<String, String> captureLayout(Config.Registry reg, Config.ProfileManager pm) {
         Map<String, String> out = new TreeMap<>();

@@ -52,7 +52,7 @@ public final class AurorasModules {
 
     static void refresh() {
         Config.ProfileManager pm = AurorasClient.PM; if (pm.revision() == seen) return; seen = pm.revision();
-        zoomOn = pm.enabled("zoom"); zoom = new Calc.Zoom(d("zoom.factor"), d("zoom.smoothing")); zoomScaleSens = b("zoom.scaleSensitivity"); zoomScroll = b("zoom.scrollAdjust");
+        zoomOn = pm.enabled("zoom"); zoom = zoom.withSettings(d("zoom.factor"), d("zoom.smoothing")); zoomScaleSens = b("zoom.scaleSensitivity"); zoomScroll = b("zoom.scrollAdjust");
         sprintOn = pm.enabled("sprint"); sprintStatus = b("sprint.showStatus"); sneakOn = pm.enabled("sneak"); sneakStatus = b("sneak.showStatus");
         freelookOn = pm.enabled("freelook"); freelookMode = pm.get("freelook.mode"); freelookSens = d("freelook.sensitivity");
         perspOn = pm.enabled("perspective"); skipFront = b("perspective.skipFront");
@@ -66,6 +66,15 @@ public final class AurorasModules {
         totemOn = pm.enabled("totemfx"); totemParticles = b("totemfx.particles"); totemColor = Integer.parseInt(pm.get("totemfx.particleColor"), 16);
         TOTEM.density = d("totemfx.density"); TOTEM.duration = d("totemfx.duration"); TOTEM.overlay = b("totemfx.overlay"); TOTEM.overlayIntensity = d("totemfx.overlayIntensity"); TOTEM.overlayDuration = d("totemfx.overlayDuration");
         menuOn = pm.enabled("menuanim"); menuSpeed = d("menuanim.speed");
+        // keys changed in the Auroras menu or the launcher apply at once (Minecraft's Controls screen still works too)
+        rebind(zoomKey, "zoom.key"); rebind(sprintKey, "sprint.key"); rebind(sneakKey, "sneak.key"); rebind(freelookKey, "freelook.key"); rebind(frontKey, "perspective.frontKey");
+        rebind(AurorasClient.guiKey, Config.Registry.GUI_KEY); rebind(AurorasClient.emoteKey, "emotes.wheelKey");
+    }
+    static final java.util.Map<KeyMapping, String> BOUND = new java.util.IdentityHashMap<>();
+    /** Moves a key mapping to the code saved in a setting when that setting changed (not when the player rebinds in Controls). */
+    static void rebind(KeyMapping k, String setting) {
+        if (k == null) return; String code = AurorasClient.PM.get(setting), was = BOUND.put(k, code);
+        if (was != null && !was.equals(code)) Platform.rebind(k, Integer.parseInt(code));
     }
     static boolean b(String k) { return "true".equals(AurorasClient.PM.get(k)); }
     static int i(String k) { return Integer.parseInt(AurorasClient.PM.get(k)); }
@@ -80,8 +89,7 @@ public final class AurorasModules {
     static void tick(Minecraft mc) {
         refresh();
         if (mc.player == null) { FREELOOK.active = false; return; }
-        // zoom eases toward 1/factor while the key is held (20 ticks a second, like vanilla FOV changes)
-        zoom.tick(zoomOn && zoomKey.isDown() && mc.screen == null);
+        // zoom eases every frame in fov(), so it glides at any frame rate
         // toggle sprint: hold Minecraft's own sprint key for the player, so the game's rules (hunger, sneaking, blindness) still decide
         boolean forward = mc.player.input != null && mc.player.input.keyPresses.forward();
         boolean sprint = sprintOn && SPRINT.update(sprintKey.isDown(), forward, mc.player.isShiftKeyDown(), mc.player.getFoodData().getFoodLevel() > 6 || mc.player.getAbilities().mayfly);
@@ -112,8 +120,16 @@ public final class AurorasModules {
         }
     }
 
-    /** Frame-rate easing for zoom, from GameRenderer#getFov. */
-    public static float fov(float fov) { return zoom.active() ? (float) (fov * zoom.fovMultiplier()) : fov; }
+    static long zoomLast = System.nanoTime();
+    /**
+     * GameRenderer#getFov: eases the zoom by the real time since the last call (several calls in one frame add up to
+     * that frame's time), then applies it.
+     */
+    public static float fov(float fov) {
+        long now = System.nanoTime(); double dt = (now - zoomLast) / 1e9; zoomLast = now; Minecraft mc = Minecraft.getInstance();
+        zoom.frame(zoomOn && zoomKey != null && zoomKey.isDown() && mc.screen == null && mc.player != null, dt);
+        return zoom.active() ? (float) (fov * zoom.fovMultiplier()) : fov;
+    }
     /** Mouse look (MouseMixin): freelook turns the camera instead of the player; zoom slows the mouse. Returns true when handled. */
     public static boolean look(double dx, double dy, double[] out) {
         if (FREELOOK.active) { FREELOOK.look(dx, dy, freelookSens); return true; }
@@ -130,13 +146,15 @@ public final class AurorasModules {
     public static boolean crosshair(Gfx ctx, Minecraft mc) {
         if (!crossOn || mc.player == null || mc.player.isSpectator()) return false;
         if (!mc.options.getCameraType().isFirstPerson() && crossHide3p) return true;
-        double spread = crossDynamic ? Sky.clamp(mc.player.getDeltaMovement().horizontalDistance() / 0.28, 0, 1) : 0;
+        long now = System.nanoTime(); double dt = (now - crossLast) / 1e9; crossLast = now;
+        double spread = CROSS_SPREAD.update(crossDynamic ? Sky.clamp(mc.player.getDeltaMovement().horizontalDistance() / 0.28, 0, 1) : 0, dt, 0.08, false);
         List<int[]> pieces = GameLogic.crosshair(crossStyle, crossSize, crossThick, crossGap, crossDot, spread);
         int cx = ctx.w() / 2, cy = ctx.h() / 2;
         if (crossOutline) for (int[] p : GameLogic.outline(pieces)) ctx.fill(cx + p[0], cy + p[1], cx + p[0] + p[2], cy + p[1] + p[3], (crossColor >>> 24) * 2 / 3 << 24);
         for (int[] p : pieces) ctx.fill(cx + p[0], cy + p[1], cx + p[0] + p[2], cy + p[1] + p[3], crossColor);
         return true;
     }
+    static final HudKit.Smooth CROSS_SPREAD = new HudKit.Smooth(); static long crossLast = System.nanoTime();
     public static boolean particles() { return partOn; }
     public static boolean keepParticle(String typeId) { return PARTICLES.keep(typeId); }
     public static boolean hideBlockBreak() { return partOn && PARTICLES.hidden.contains("minecraft:block"); }
