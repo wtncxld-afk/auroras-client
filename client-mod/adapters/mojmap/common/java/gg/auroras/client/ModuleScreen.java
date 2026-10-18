@@ -20,8 +20,14 @@ public class ModuleScreen extends AScreen {
     private double openAnim, contentAnim = 1; private long last = System.nanoTime();
     private final Map<String, Double> knob = new HashMap<>(); private String dragging, listening; private int focus = -1;
     private static String lastCategory = "All";
+    private final net.minecraft.client.gui.screens.Screen parent; private final String section;
 
-    public ModuleScreen() { super("Auroras Client"); menu.setCategory(lastCategory); }
+    public ModuleScreen() { this("All modules", null, null); menu.setCategory(lastCategory); }
+    private ModuleScreen(String section, java.util.List<String> cats, net.minecraft.client.gui.screens.Screen parent) { super("Auroras Client"); this.section = section; this.parent = parent; menu.group(cats); }
+    /** One section of the radial menu (its categories only); Esc goes back to the radial menu. */
+    public static ModuleScreen section(String title, java.util.List<String> cats, net.minecraft.client.gui.screens.Screen parent) { return new ModuleScreen(title, cats, parent); }
+    /** The client's own settings (menu key, visual quality). */
+    public static ModuleScreen settings(net.minecraft.client.gui.screens.Screen parent) { ModuleScreen s = new ModuleScreen("Settings", null, parent); s.menu.openSettings(ModuleMenu.CLIENT.id()); return s; }
 
     @Override protected void init() { L = menu.layout(width, height); }
     /** The search box is drawn and edited here (no vanilla text field), so it looks and behaves the same in every version. */
@@ -39,8 +45,10 @@ public class ModuleScreen extends AScreen {
         AUi.box(c, p.x() + 1, p.y() + 1, ModuleMenu.RAIL - 1, p.h() - 2, AUi.fade(t.argb("side", t.panelAlpha), a), 0, 2);
         c.fill(p.x() + ModuleMenu.RAIL, p.y() + 1, p.x() + ModuleMenu.RAIL + 1, p.bottom() - 1, AUi.fade(t.opaque("line"), a));
         // rail: wordmark, categories, profile
-        c.text("Auroras", p.x() + 10, p.y() + 10, t.opaque("text"), false);
-        c.fill(p.x() + 10 + Gfx.width("Auroras") + 3, p.y() + 13, p.x() + 13 + Gfx.width("Auroras") + 3, p.y() + 16, t.opaque("acc"));
+        // the Auroras logo and name stay visible on every Auroras screen
+        c.texture(HudRenderer.LOGO, p.x() + 8, p.y() + 7, 12, 12, 0xFFFFFFFF);
+        c.text("Auroras", p.x() + 24, p.y() + 9, t.opaque("text"), false);
+        AUi.textFit(c, section, p.x() + 24, p.y() + 19, ModuleMenu.RAIL - 30, t.opaque("faint"));
         for (int k = 0; k < L.cats().size(); k++) {
             ModuleMenu.Rect r = L.catRects().get(k); String cat = L.cats().get(k); boolean on = cat.equals(menu.category) && menu.open == null, hov = r.contains(mx, my - lift);
             if (on || hov) AUi.box(c, r.x(), r.y(), r.w(), r.h(), on ? t.opaque("s2") : t.argb("s2", 0.5), 0, 2);
@@ -94,7 +102,7 @@ public class ModuleScreen extends AScreen {
         AUi.textFit(c, m.impact().label, b.x() + 21, y0 + 18, b.w() - 30, t.opaque("faint"));
         AUi.textFit(c, m.available() ? "In game · experimental" : "Not in the game yet: " + m.note(), b.x() + 21, y0 + 28, b.w() - 30, m.available() ? t.opaque("ok") : t.opaque("warn"));
         double k = knob.merge("head:" + m.id(), AurorasClient.PM.enabled(m.id()) ? 1.0 : 0.0, (o, n) -> reduced() ? n : UiKit.approach(o, n, 1 / 60.0, AurorasModules.tau(0.04)));
-        AUi.toggle(c, L.headSwitch().x(), y0 + 3, k, L.headSwitch().contains(mx, my), m.available());
+        if (m != ModuleMenu.CLIENT) AUi.toggle(c, L.headSwitch().x(), y0 + 3, k, L.headSwitch().contains(mx, my), m.available());
         if (L.hudLink() != null) { ModuleMenu.Rect r = L.hudLink(); boolean h = r.contains(mx, my); AUi.icon(c, "hud", r.x() + 4, r.y() + 7 + fadeIn, t.opaque("acc"));
             c.text("Position and size: open the HUD editor", r.x() + 16, r.y() + 7 + fadeIn, h ? t.opaque("acc") : t.opaque("mute"), false); }
         int idx = 0;
@@ -139,7 +147,7 @@ public class ModuleScreen extends AScreen {
             }
             return true;
         }
-        if (L.back() != null && L.back().contains(mx, my + menu.scroll)) { menu.back(); contentAnim = 0; return true; }
+        if (L.back() != null && L.back().contains(mx, my + menu.scroll)) { if (parent != null && ModuleMenu.CLIENT.id().equals(menu.open)) { closeScreen(); return true; } menu.back(); contentAnim = 0; return true; }
         if (L.headSwitch().contains(mx, my + menu.scroll)) { menu.toggle(menu.open); AurorasClient.save(); return true; }
         if (L.hudLink() != null && L.hudLink().contains(mx, my)) { minecraft.setScreen(new HudEditorScreen(this)); return true; }
         for (ModuleMenu.Row r : L.rows()) {
@@ -170,7 +178,7 @@ public class ModuleScreen extends AScreen {
     @Override protected boolean key(int key) {
         // keys are GLFW codes here (Keys converts), the format settings files store
         if (listening != null) { for (ModuleMenu.Row r : L.rows()) if (r.d().key().equals(listening)) menu.set(r.d(), String.valueOf(key == Keys.ESCAPE ? -1 : key)); listening = null; return true; }
-        if (key == Keys.ESCAPE) { if (searching) { searching = false; focus = -1; return true; } if (menu.open != null) { menu.back(); contentAnim = 0; return true; } closeScreen(); return true; }
+        if (key == Keys.ESCAPE) { if (searching) { searching = false; focus = -1; return true; } if (menu.open != null && !(parent != null && ModuleMenu.CLIENT.id().equals(menu.open))) { menu.back(); contentAnim = 0; return true; } closeScreen(); return true; }
         if (searching) { if (key == Keys.BACKSPACE && !menu.query.isEmpty()) setQuery(menu.query.substring(0, menu.query.length() - 1)); else if (key == Keys.ENTER || key == Keys.TAB) { searching = false; focus = 2 + L.cats().size(); } return true; }
         if (key == Integer.parseInt(AurorasClient.PM.get(Config.Registry.GUI_KEY))) { closeScreen(); return true; }
         int n = menu.focusCount(L);
@@ -203,4 +211,5 @@ public class ModuleScreen extends AScreen {
         if (r != null) menu.scroll = UiKit.clampScroll(UiKit.scrollTo(menu.scroll, (int) (r.y() - L.body().y() + menu.scroll), r.h(), L.body().h()), L.content(), L.body().h());
     }
     @Override protected void onClosing() { AurorasClient.save(); }
+    @Override public void onClose() { AurorasClient.save(); if (parent != null) minecraft.setScreen(parent); else super.onClose(); }
 }

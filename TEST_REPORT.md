@@ -8,14 +8,15 @@ Network: Mojang, Fabric, NeoForge, Forge, Modrinth, Spotify, Gradle and Maven we
 |---|---|---|
 | Java core logic (registry, settings, profiles, migration) | `java -cp out gg.auroras.core.Tests ../../visuals` | 91 passed, 0 failed |
 | Java modules (direction, information readouts, frame graph, session, toggles, zoom scroll, freelook, perspective, crosshair, particles, fullbright, hit color, boss bar, totem effects, menu speed) | `java -cp out gg.auroras.core.ModuleTests ../../visuals` | 44 passed, 0 failed |
+| Java radial menu and Auroras font (layout on 9 screen sizes, anti-aliased art, hit testing, open/hover/press/close animation, sections, client settings page, font atlas) | `java -cp out gg.auroras.core.RadialTests ../../visuals` | 30 passed, 0 failed |
 | Java versions, adapters, performance and allocation | `java -cp out gg.auroras.core.PerfTests ../../visuals` | 21 passed, 0 failed |
 | Java visuals (sky, animated sky effects, particles, cosmetics, golden files) | `java -cp out gg.auroras.core.VisualTests ../../visuals` | 65 passed, 0 failed |
 | Java HUD (placement, snapping, styles, formatters, animations, layouts, now playing) | `java -cp out gg.auroras.core.HudTests ../../visuals` | 30 passed, 0 failed |
 | Java emotes (format, validation, sampling, controller, wheel, custom files) | `java -cp out gg.auroras.core.EmoteTests ../../visuals` | 30 passed, 0 failed |
 | Java UI (design tokens and contrast, UI kit maths, in-game module menu model) | `java -cp out gg.auroras.core.UiTests ../../visuals` | 38 passed, 0 failed |
-| Node (updater, versions incl. filters and stable/snapshot rules, launch plan, installer incl. retries, launch incl. offline, Java checks, snapshots and quick-play Join, visuals parity, mod settings incl. the in-game cape file, jars, compatibility, HUD incl. Spotify card, Spotify incl. cover art, sky effects, emotes, server status) | `npm test` | 115 passed, 0 failed, 0 skipped |
+| Node (updater, versions incl. filters and stable/snapshot rules, launch plan, installer incl. retries, launch incl. offline, Java checks, snapshots and quick-play Join, visuals parity, mod settings incl. the in-game cape file, jars, compatibility, HUD incl. Spotify card, Spotify incl. cover art, sky effects, emotes, server status) | `npm test` | 116 passed, 0 failed, 0 skipped |
 | Launcher interface (headless Chromium, mocked desktop bridge), incl. the quality checks, version filters and changing an instance's version, Cape Studio > Use in game | `npm run test:ui` | 126 passed, 0 failed |
-| Fabric adapter for 1.21.11 and 26.x | `java ParseCheck.java adapters/mojmap`, plus a compile against stand-in Minecraft classes (both GUI variants) | syntax: 29 files, 0 problems; stand-in compile: 0 errors |
+| Fabric adapter for 1.21.11 and 26.x | `java ParseCheck.java adapters/mojmap`, plus a compile against stand-in Minecraft classes (both GUI variants) | syntax: 32 files, 0 problems; stand-in compile: 0 errors |
 | Fabric adapter for 1.21.4 (older) | `java ParseCheck.java adapters/fabric-1.21.4/src` | syntax only: 26 files, 0 problems |
 
 ## Version support from 1.21 on (this round)

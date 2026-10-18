@@ -62,13 +62,15 @@ public class AurorasClient implements ClientModInitializer {
         benchKey = Platform.key("key.auroras.benchmark", -1);
         AurorasModules.register();
         ClientTickEvents.END_CLIENT_TICK.register(c -> {
-            while (guiKey.consumeClick()) c.setScreen(new ModuleScreen());
+            while (guiKey.consumeClick()) if (c.screen == null) c.setScreen(new RadialScreen());
             while (hudEditKey.consumeClick()) c.setScreen(new HudEditorScreen(null));
             // the wheel key opens the wheel; pressed again while an emote plays, it stops the emote
             while (emoteKey.consumeClick()) if (PM.enabled("emotes") && c.screen == null) { if (AurorasEmotes.playing()) AurorasEmotes.cancelAll("cancelled"); else c.setScreen(new EmoteWheelScreen()); }
             while (benchKey.consumeClick()) startBenchmark(c);
             AurorasEmotes.tick(c);
             AurorasModules.tick(c);
+            // bake the radial menu's art in the background for this window size, so Right Shift opens instantly
+            if (c.player != null && c.screen == null) RadialArt.prepare(Gfx.screenW(), Gfx.screenH(), Gfx.guiScale());
         });
         // Per-server and per-world profiles: use the assigned profile while connected, then switch back.
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> client.execute(() -> {

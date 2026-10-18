@@ -93,6 +93,8 @@ describe("home: accounts and Play", () => {
     const sent = await s.page.evaluate("__launch[0].inst");
     assert.deepStrictEqual([sent.loader, sent.loaderVersion, sent.mem, sent.java], ["Fabric", "0.16.10", 4, { mode: "auto" }], "loader version is resolved from metadata before launching");
     assert.strictEqual(await s.page.evaluate("cur().loaderVersion"), "0.16.10", "and remembered on the instance");
+    const face = await s.page.evaluate(`new Promise(r=>{const im=new Image();im.onload=()=>r([im.width,im.height,__launch[0].face.slice(0,22)]);im.src=__launch[0].face})`);
+    assert.deepStrictEqual(face, [8, 8, "data:image/png;base64,"], "the account's 8x8 face is sent for the in-game menu");
     for (const [st, pct, txt] of [["downloading", 42, "Downloading 42%"], ["launching", 0, "Launching"], ["playing", 0, "Playing"]]) {
       await s.page.evaluate(`__ev.launch({instId:cur().id,state:'${st}',pct:${pct}})`); await wait(s.page, 20);
       assert.ok((await t("#play")).includes(txt), st); assert.strictEqual(await s.page.locator("#play").getAttribute("data-state"), st);

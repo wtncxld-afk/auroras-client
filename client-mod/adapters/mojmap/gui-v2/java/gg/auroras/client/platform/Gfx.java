@@ -20,6 +20,12 @@ public final class Gfx {
     public void scale(float s) { g.pose().scale(s, s); }
     /** The whole texture drawn into w x h, tinted by argb (alpha fades it). */
     public void texture(Identifier id, int x, int y, int w, int h, int argb) { g.blit(RenderPipelines.GUI_TEXTURED, id, x, y, 0f, 0f, w, h, w, h, argb); }
+    /** A uw x vh region of a texW x texH texture at (u, v), drawn into w x h (font glyphs). */
+    public void region(Identifier id, int x, int y, int w, int h, int u, int v, int uw, int vh, int texW, int texH, int argb) { g.blit(RenderPipelines.GUI_TEXTURED, id, x, y, (float) u, (float) v, w, h, uw, vh, texW, texH, argb); }
+    /** GUI scale (screen pixels per GUI unit), for drawing at the screen's real resolution. */
+    public static double guiScale() { return Minecraft.getInstance().getWindow().getGuiScale(); }
+    public static int screenW() { return Minecraft.getInstance().getWindow().getWidth(); }
+    public static int screenH() { return Minecraft.getInstance().getWindow().getHeight(); }
     public void scissor(int x0, int y0, int x1, int y1) { g.enableScissor(x0, y0, x1, y1); }
     public void noScissor() { g.disableScissor(); }
     public int w() { return g.guiWidth(); }

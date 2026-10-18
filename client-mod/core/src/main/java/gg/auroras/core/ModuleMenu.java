@@ -27,9 +27,18 @@ public final class ModuleMenu {
     /** Keys edited elsewhere: the switch in the panel header, and HUD position (the HUD editor's job). */
     static final Set<String> HIDDEN = Set.of("enabled", "anchor", "offX", "offY");
 
-    public List<String> categories() { return UiKit.categories(reg.modules()); }
-    public List<Config.Module> visible() { return UiKit.filter(reg.modules(), category, query); }
-    public Config.Module openModule() { return open == null ? null : reg.get(open); }
+    /**
+     * A section of the radial menu: only these categories are listed (null = all). The rail's "All" then means all of
+     * the section.
+     */
+    public List<String> group = null;
+    public ModuleMenu group(List<String> cats) { group = cats == null || cats.isEmpty() ? null : List.copyOf(cats); category = "All"; scroll = 0; return this; }
+    /** The client's own settings (menu key, visual quality), shown like a module's settings page. Keys are "settings.*". */
+    public static final Config.Module CLIENT = new Config.Module("settings", "Client settings", Config.Category.ANIMATIONS, Config.Impact.COSMETIC, true,
+        "Applies to every profile", List.of(new Config.SettingDef("guiKey", Config.Type.KEY, "344", 0, 0, List.of()), new Config.SettingDef("quality", Config.Type.ENUM, "BALANCED", 0, 0, List.of("LOW", "BALANCED", "HIGH"))));
+    public List<String> categories() { List<String> all = UiKit.categories(reg.modules()); return group == null ? all : all.stream().filter(c -> c.equals("All") || group.contains(c)).toList(); }
+    public List<Config.Module> visible() { List<Config.Module> v = UiKit.filter(reg.modules(), category, query); return group == null ? v : v.stream().filter(m -> group.contains(m.cat().label)).toList(); }
+    public Config.Module openModule() { return open == null ? null : open.equals(CLIENT.id()) ? CLIENT : reg.get(open); }
     public List<Config.SettingDef> settings(Config.Module m) { List<Config.SettingDef> o = new ArrayList<>(); for (Config.SettingDef d : m.settings()) if (!HIDDEN.contains(d.key())) o.add(d); return o; }
 
     public Layout layout(int sw, int sh) {

@@ -30,6 +30,10 @@ public final class Platform {
         HudElementRegistry.replaceElement(VanillaHudElements.BOSS_BAR, vanilla -> (g, tick) -> {
             Gfx x = new Gfx(g); if (AurorasClient.bossBarBefore(x)) { vanilla.extractRenderState(g, tick); AurorasClient.bossBarAfter(x); } });
     }
+    /** Uploads straight-ARGB pixels (w x h) as a GUI texture. Safe to call only on the render thread. */
+    public static void texture(Identifier id, int[] argb, int w, int h) { texture(id, image(argb, w, h)); }
+    /** Builds the image off the render thread if wanted; uploading happens in texture(). */
+    public static NativeImage image(int[] argb, int w, int h) { NativeImage img = new NativeImage(w, h, false); for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) img.setPixel(x, y, argb[y * w + x]); return img; }
     /** Uploads an image as a GUI texture (Spotify cover art). Call on the render thread. */
     public static void texture(Identifier id, NativeImage img) { Minecraft.getInstance().getTextureManager().register(id, new DynamicTexture(id::toString, img)); }
 }

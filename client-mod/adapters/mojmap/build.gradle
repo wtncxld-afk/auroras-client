@@ -45,4 +45,8 @@ processResources {
     filesMatching(['fabric.mod.json', 'auroras.mixins.json']) { expand props }
     // One copy of the sky themes, built-in emotes and design tokens, shared with the launcher.
     from('../../../visuals') { include 'themes.json', 'emotes.json', 'design-tokens.json'; into 'assets/auroras_client' }
+    // The Auroras font (Inter, SIL OFL; baked by scripts/bake-font.py) and the radial menu's icons (scripts/draw-icons.py).
+    from('../../../visuals/font') { include 'auroras-font.png', 'auroras-font.json'; into 'assets/auroras_client/textures/font' }
+    from('../../../visuals/icons') { include '*.a8'; into 'assets/auroras_client/icons' }
+    from('../../fonts') { include 'Inter-OFL.txt'; into 'assets/auroras_client/textures/font' }
 }

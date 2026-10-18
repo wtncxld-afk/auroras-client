@@ -72,6 +72,8 @@ public final class AurorasModules {
     static double d(String k) { return Double.parseDouble(AurorasClient.PM.get(k)); }
 
     /** Menu easing time constant, scaled by Menu Animations' speed when that module is on. */
+    /** Speed factor for menu animations (Menu Animations module), 1 when it is off. */
+    public static double menuSpeed() { return menuOn ? Math.max(0.25, Math.min(2, menuSpeed)) : 1; }
     public static double tau(double base) { return menuOn ? GameLogic.animTau(base, menuSpeed, false) : base; }
 
     /** END_CLIENT_TICK: keys, toggles, freelook and perspective, session counters, totem particles. */

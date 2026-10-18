@@ -86,4 +86,12 @@ function writeCape(dir, png) {
   return { ok: true, bytes: b.length };
 }
 function clearCape(dir) { try { fs.unlinkSync(path.join(dir, "cape.png")); } catch {} return { ok: true }; }
-module.exports = { writeCape, clearCape, registry, rules, read, update, assignPlace, listLayouts, saveLayout, deleteLayout, EMOTE_LIB, listEmotes, saveEmote, deleteEmote, saveWheel };
+/** The player's face for the in-game menu: an 8x8 PNG (face plus hat layer), checked before writing. */
+function writeFace(dir, png) {
+  const b = Buffer.isBuffer(png) ? png : Buffer.from(String(png).replace(/^data:image\/png;base64,/, ""), "base64");
+  if (b.length < 33 || b.length > 8192 || !b.subarray(0, 8).equals(PNG_SIG) || b.toString("latin1", 12, 16) !== "IHDR") throw new Error("That isn’t a small PNG image.");
+  if (b.readUInt32BE(16) !== 8 || b.readUInt32BE(20) !== 8) throw new Error("The face image must be 8x8.");
+  fs.mkdirSync(dir, { recursive: true }); const tmp = path.join(dir, "face.png.tmp" + process.pid); fs.writeFileSync(tmp, b); fs.renameSync(tmp, path.join(dir, "face.png"));
+  return { ok: true };
+}
+module.exports = { writeFace, writeCape, clearCape, registry, rules, read, update, assignPlace, listLayouts, saveLayout, deleteLayout, EMOTE_LIB, listEmotes, saveEmote, deleteEmote, saveWheel };

@@ -386,7 +386,7 @@ async function mcAuthFor(uuid) {
 const lastModStatus = new Map();
 ipcMain.handle("mod:status", (_e, id) => lastModStatus.get(String(id)) || null);
 ipcMain.handle("release:check", async () => { try { return await clientmod.launcherUpdate(RELEASES, app.getVersion()); } catch (e) { return { configured: true, error: e.message }; } });
-ipcMain.handle("launch", async (e, { inst: I, uuid }) => {
+ipcMain.handle("launch", async (e, { inst: I, uuid, face }) => {
   const key = String(I && I.id); if (!I || !/^\d+$/.test(key)) throw new Error("Unknown instance");
   if (running.has(key)) throw new Error("This instance is already starting or running.");
   running.add(key);
@@ -394,6 +394,8 @@ ipcMain.handle("launch", async (e, { inst: I, uuid }) => {
   try {
     const auth = await mcAuthFor(String(uuid)), gameDir = instDir(I.id);
     if (String(I.loader) === "Fabric") lastModStatus.set(key, await prepareAuroras(I, gameDir, send));
+    // Your face for the in-game Auroras menu (8x8 PNG from your skin, made by the launcher page). Never blocks the launch.
+    if (typeof face === "string") try { modconfig.writeFace(path.join(gameDir, "config", "auroras"), face); } catch (x) { console.log("[auroras] face not saved: " + x.message); }
     const cmd = await launcher.prepare({
       inst: { id: I.id, mc: String(I.mc), loader: String(I.loader), loaderVersion: I.loaderVersion ? String(I.loaderVersion) : null, memMb: Math.max(512, Math.min(65536, Math.round((+I.mem || 4) * 1024))), args: String(I.args || ""), java: I.java && I.java.mode === "custom" ? { mode: "custom", path: String(I.java.path || "") } : { mode: "auto" }, server: I.server ? String(I.server) : null },
       auth: { name: auth.name, uuid: String(uuid), token: auth.token, xuid: "", clientId: readSettings().msClientId, userType: "msa" } },
