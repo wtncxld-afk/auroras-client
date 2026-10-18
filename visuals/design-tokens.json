@@ -1,0 +1,81 @@
+{
+ "schema": 1,
+ "note": "Auroras design tokens: the one source for the launcher (CSS variables, generated at build time) and the in-game GUI (client-mod core UiTokens). Colors are the Aurora Dark theme; other launcher themes override colors only.",
+ "color": {
+  "bg": "#0b0d12",
+  "side": "#0f1218",
+  "s1": "#141821",
+  "s2": "#1a1f2a",
+  "s3": "#222836",
+  "line": "#232938",
+  "lineStrong": "#2f3747",
+  "text": "#e8ecf4",
+  "mute": "#8a93a6",
+  "faint": "#5d6577",
+  "acc": "#8fd3ff",
+  "accInk": "#06141f",
+  "acc2": "#5fd0d6",
+  "vio": "#a78bfa",
+  "ok": "#6fcf97",
+  "warn": "#e0b45a",
+  "err": "#e57373"
+ },
+ "space": {
+  "1": 4,
+  "2": 8,
+  "3": 12,
+  "4": 16,
+  "5": 20,
+  "6": 24,
+  "7": 32,
+  "8": 40
+ },
+ "radius": {
+  "s": 6,
+  "m": 10,
+  "l": 14
+ },
+ "font": {
+  "xs": 11,
+  "sm": 12,
+  "md": 13,
+  "lg": 15,
+  "xl": 20,
+  "xxl": 28
+ },
+ "weight": {
+  "regular": 400,
+  "medium": 500,
+  "semibold": 600
+ },
+ "motion": {
+  "fast": 120,
+  "base": 160,
+  "slow": 240,
+  "ease": [
+   0.2,
+   0.7,
+   0.2,
+   1
+  ]
+ },
+ "size": {
+  "control": 32,
+  "controlSm": 26,
+  "icon": 16,
+  "switchW": 34,
+  "switchH": 20,
+  "row": 44
+ },
+ "game": {
+  "panelAlpha": 0.92,
+  "scrimAlpha": 0.45,
+  "selectedAlpha": 0.16,
+  "guide": "#b58cff"
+ },
+ "shadow": {
+  "pop": "0 18px 50px -10px #000000aa",
+  "card": "0 1px 0 rgba(255,255,255,.025) inset",
+  "lift": "0 10px 30px -12px #000000"
+ }
+}

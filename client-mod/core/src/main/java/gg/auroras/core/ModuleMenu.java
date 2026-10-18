@@ -1,0 +1,112 @@
+package gg.auroras.core;
+
+import java.util.*;
+
+/**
+ * State, layout and editing rules of the in-game module menu (Right Shift). Pure Java so every rule is unit-tested; the
+ * adapter's ModuleScreen only draws what this returns and forwards input. Sizes are Minecraft GUI pixels.
+ *
+ * Layout: a centred panel with a category rail on the left, a top bar (search, HUD editor), and a body that shows either
+ * the module grid or one module's settings. Text never overflows: callers ellipsize to the widths given here.
+ */
+public final class ModuleMenu {
+    public final Config.Registry reg; public final Config.ProfileManager pm;
+    public String category = "All", query = "", open = null; public double scroll = 0; public String message = "";
+    public ModuleMenu(Config.Registry reg, Config.ProfileManager pm) { this.reg = reg; this.pm = pm; }
+
+    public record Rect(int x, int y, int w, int h) {
+        public boolean contains(double px, double py) { return px >= x && py >= y && px < x + w && py < y + h; }
+        public int right() { return x + w; } public int bottom() { return y + h; }
+    }
+    public record Card(Config.Module m, Rect r, Rect sw) {}
+    public record Row(Config.SettingDef d, Rect r, Rect ctl) {}
+    public record Layout(Rect panel, Rect rail, Rect top, Rect search, Rect hudBtn, Rect body, Rect back, List<String> cats, List<Rect> catRects,
+                         List<Card> cards, List<Row> rows, Rect headSwitch, Rect hudLink, int content) {}
+
+    public static final int RAIL = 104, TOP = 26, CARD_MIN = 132, CARD_H = 32, GAP = 6, ROW = 22, ROW_SLIDER = 28, PAD = 8, HEAD = 40;
+    /** Keys edited elsewhere: the switch in the panel header, and HUD position (the HUD editor's job). */
+    static final Set<String> HIDDEN = Set.of("enabled", "anchor", "offX", "offY");
+
+    public List<String> categories() { return UiKit.categories(reg.modules()); }
+    public List<Config.Module> visible() { return UiKit.filter(reg.modules(), category, query); }
+    public Config.Module openModule() { return open == null ? null : reg.get(open); }
+    public List<Config.SettingDef> settings(Config.Module m) { List<Config.SettingDef> o = new ArrayList<>(); for (Config.SettingDef d : m.settings()) if (!HIDDEN.contains(d.key())) o.add(d); return o; }
+
+    public Layout layout(int sw, int sh) {
+        int w = Math.min(sw - 16, 460), h = Math.min(sh - 16, 280), x = (sw - w) / 2, y = (sh - h) / 2;
+        Rect panel = new Rect(x, y, w, h), rail = new Rect(x, y, RAIL, h), top = new Rect(x + RAIL, y, w - RAIL, TOP);
+        Rect hudBtn = new Rect(top.right() - PAD - 64, y + 6, 64, 15), search = new Rect(top.x() + PAD, y + 6, Math.max(60, hudBtn.x() - top.x() - PAD * 2), 15);
+        Rect body = new Rect(top.x() + PAD, y + TOP + PAD, top.w() - PAD * 2, h - TOP - PAD * 2);
+        List<String> cats = categories(); List<Rect> cr = new ArrayList<>(); int cy = y + 30;
+        for (int k = 0; k < cats.size(); k++) { cr.add(new Rect(x + 6, cy, RAIL - 12, 15)); cy += 16; }
+        List<Card> cards = new ArrayList<>(); List<Row> rows = new ArrayList<>(); Rect back = null, headSwitch = null, hudLink = null; int content;
+        Config.Module m = openModule();
+        if (m == null) {
+            int cols = UiKit.columns(body.w(), CARD_MIN, GAP), cw = UiKit.cardWidth(body.w(), cols, GAP); List<Config.Module> vis = visible();
+            for (int i = 0; i < vis.size(); i++) { int cx = body.x() + (i % cols) * (cw + GAP), cyy = body.y() + (i / cols) * (CARD_H + GAP) - (int) Math.round(scroll);
+                Rect r = new Rect(cx, cyy, cw, CARD_H); cards.add(new Card(vis.get(i), r, new Rect(r.right() - 24, cyy + (CARD_H - 10) / 2, 18, 10))); }
+            content = vis.isEmpty() ? 0 : ((vis.size() + cols - 1) / cols) * (CARD_H + GAP) - GAP;
+        } else {
+            back = new Rect(body.x(), body.y(), 15, 15); headSwitch = new Rect(body.right() - 18, body.y() + 3, 18, 10);
+            int ry = body.y() + HEAD - (int) Math.round(scroll), ctlW = Math.min(150, body.w() / 2);
+            if (HudKit.positionable(m)) { hudLink = new Rect(body.x(), ry, body.w(), ROW); ry += ROW; }
+            for (Config.SettingDef d : settings(m)) {
+                int rh = UiKit.controlFor(d) == UiKit.Control.SLIDER ? ROW_SLIDER : ROW; Rect r = new Rect(body.x(), ry, body.w(), rh);
+                Rect ctl = UiKit.controlFor(d) == UiKit.Control.SLIDER ? new Rect(body.x() + 4, ry + 15, body.w() - 8, 10) : new Rect(body.right() - ctlW, ry + 4, ctlW, 14);
+                rows.add(new Row(d, r, ctl)); ry += rh;
+            }
+            content = HEAD + (hudLink != null ? ROW : 0) + rows.stream().mapToInt(r -> r.r().h()).sum();
+        }
+        return new Layout(panel, rail, top, search, hudBtn, body, back, cats, cr, cards, rows, headSwitch, hudLink, content);
+    }
+    public void scrollBy(Layout l, double amount) { scroll = UiKit.clampScroll(scroll - amount * 16, l.content(), l.body().h()); }
+
+    public void setCategory(String c) { category = c; scroll = 0; }
+    public void setQuery(String q) { query = q == null ? "" : q; scroll = 0; }
+    public void openSettings(String id) { open = id; scroll = 0; message = ""; }
+    public void back() { open = null; scroll = 0; message = ""; }
+
+    /** Turns a module on or off. Unavailable modules can't be switched on; the reason is kept in message. */
+    public boolean toggle(String id) {
+        Config.Module m = reg.get(id); if (m == null) return false;
+        if (!m.available()) { message = m.name() + " isn't in the game yet."; return false; }
+        pm.setEnabled(id, !pm.enabled(id)); message = ""; return true;
+    }
+    public String key(Config.SettingDef d) { return open + "." + d.key(); }
+    public String value(Config.SettingDef d) { return pm.get(key(d)); }
+    public boolean changed(Config.SettingDef d) {
+        String v = value(d); if (d.type() == Config.Type.DOUBLE || d.type() == Config.Type.INT) return Double.parseDouble(v) != Double.parseDouble(d.def()); return !v.equals(d.def());
+    }
+    public void set(Config.SettingDef d, String v) { pm.set(key(d), v); }
+    public void reset(Config.SettingDef d) { set(d, d.def()); }
+    /** Slider drag: the value under the mouse on the track, snapped to the launcher's step. */
+    public void slide(Config.SettingDef d, double mouseX, Rect track) { set(d, UiKit.formatSetting(d, UiKit.sliderValue(mouseX, track.x(), track.w(), d.min(), d.max(), UiKit.stepFor(d)))); }
+    /** Keyboard or scroll: one step (shift: ten) for sliders, next option for choices, flip for switches, next swatch for colors. */
+    public void nudge(Config.SettingDef d, int dir, boolean big) {
+        switch (UiKit.controlFor(d)) {
+            case SWITCH -> set(d, String.valueOf(!Boolean.parseBoolean(value(d))));
+            case SLIDER -> set(d, UiKit.formatSetting(d, UiKit.sliderNudge(Double.parseDouble(value(d)), d.min(), d.max(), UiKit.stepFor(d), dir, big)));
+            case SEGMENTED, DROPDOWN -> set(d, UiKit.cycle(d.options(), value(d), dir));
+            case COLOR -> set(d, cycleColor(value(d), dir));
+            default -> { }
+        }
+    }
+    /** Colors offered in game (the launcher has a full picker): the design accents plus neutrals. */
+    public static final List<String> PALETTE = List.of("FFFFFF", "E8ECF4", "8A93A6", "8FD3FF", "6FE3FF", "5FD0D6", "A78BFA", "B58CFF", "FFB7CF", "6FCF97", "E0B45A", "E57373");
+    public static String cycleColor(String cur, int dir) { int i = PALETTE.indexOf(cur.toUpperCase(Locale.ROOT)); return i < 0 ? PALETTE.get(0) : PALETTE.get(Math.floorMod(i + dir, PALETTE.size())); }
+
+    /** What a row shows as its value (sliders show the number; choices their label). */
+    public String display(Config.SettingDef d) {
+        String v = value(d);
+        return switch (d.type()) { case ENUM -> UiKit.optionLabel(v); case BOOL -> v.equals("true") ? "On" : "Off"; case DOUBLE -> Calc.num(Double.parseDouble(v), UiKit.stepFor(d) >= 1 ? 0 : UiKit.stepFor(d) >= 0.1 ? 1 : 2); default -> v; };
+    }
+    /** Human label for a setting key: "bgOpacity" -> "Background opacity". */
+    public static String label(String key) {
+        Map<String, String> L = Map.ofEntries(Map.entry("bgOpacity", "Background opacity"), Map.entry("offX", "Horizontal offset"), Map.entry("offY", "Vertical offset"), Map.entry("tintStrength", "Tint strength"),
+            Map.entry("showArt", "Cover art"), Map.entry("showProgress", "Progress bar"), Map.entry("marquee", "Scroll long titles"), Map.entry("skyQuality", "Sky quality"), Map.entry("h24", "24-hour clock"), Map.entry("windowMs", "Window (ms)"),
+            Map.entry("scrollAdjust", "Scroll to change zoom"), Map.entry("skipFront", "Skip front view with F5"), Map.entry("hideRain", "Hide rain splashes"), Map.entry("multiplier", "Amount kept"), Map.entry("level", "Brightness"), Map.entry("graphWidth", "Graph width (px)"), Map.entry("showGraph", "Frame graph"), Map.entry("dynamic", "Widen while moving"));
+        if (L.containsKey(key)) return L.get(key); String s = key.replaceAll("([A-Z])", " $1").toLowerCase(Locale.ROOT); return Character.toUpperCase(s.charAt(0)) + s.substring(1);
+    }
+    /** Focus order for keyboard users: search, categories, then cards (grid) or rows (settings). */
+    public int focusCount(Layout l) { return 2 + l.cats().size() + (open == null ? l.cards().size() : l.rows().size() + 1); }
+}

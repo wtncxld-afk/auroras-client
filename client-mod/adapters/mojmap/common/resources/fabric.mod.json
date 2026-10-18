@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "auroras_client",
+  "version": "${version}",
+  "name": "Auroras Client",
+  "description": "Auroras Client modules, HUD and emotes.",
+  "icon": "assets/auroras_client/textures/gui/logo.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "gg.auroras.client.AurorasClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "${minecraft_dep}",
+    "java": ">=${java}",
+    "fabric-api": "*"
+  },
+  "mixins": [
+    "auroras.mixins.json"
+  ]
+}

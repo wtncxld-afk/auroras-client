@@ -1,0 +1,10 @@
+node_modules/
+dist/
+out/
+update-private-key.pem
+renderer/vendor/
+client-mod/core/out/
+client-mod/adapters/*/build/
+client-mod/adapters/*/.gradle/
+.gradle/
+test-results/

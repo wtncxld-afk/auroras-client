@@ -1,0 +1,170 @@
+{
+ "_note": "SAMPLE manifest for offline builds and tests, written by hand in Mojang's version_manifest_v2 shape. It is not Mojang's list. Run `node scripts/compat-matrix.js` with network access to use the official one.",
+ "latest": {
+  "release": "26.1",
+  "snapshot": "26.1"
+ },
+ "versions": [
+  {
+   "id": "26.1",
+   "type": "release",
+   "url": "",
+   "time": "2026-03-24T10:00:00+00:00",
+   "releaseTime": "2026-03-24T10:00:00+00:00"
+  },
+  {
+   "id": "26.1-rc-1",
+   "type": "snapshot",
+   "url": "",
+   "time": "2026-03-17T10:00:00+00:00",
+   "releaseTime": "2026-03-17T10:00:00+00:00"
+  },
+  {
+   "id": "26.1-pre-1",
+   "type": "snapshot",
+   "url": "",
+   "time": "2026-03-03T10:00:00+00:00",
+   "releaseTime": "2026-03-03T10:00:00+00:00"
+  },
+  {
+   "id": "26.1-snapshot-1",
+   "type": "snapshot",
+   "url": "",
+   "time": "2026-01-13T10:00:00+00:00",
+   "releaseTime": "2026-01-13T10:00:00+00:00"
+  },
+  {
+   "id": "1.21.11",
+   "type": "release",
+   "url": "",
+   "time": "2025-12-09T10:00:00+00:00",
+   "releaseTime": "2025-12-09T10:00:00+00:00"
+  },
+  {
+   "id": "1.21.11-rc1",
+   "type": "snapshot",
+   "url": "",
+   "time": "2025-12-02T10:00:00+00:00",
+   "releaseTime": "2025-12-02T10:00:00+00:00"
+  },
+  {
+   "id": "1.21.10",
+   "type": "release",
+   "url": "",
+   "time": "2025-10-07T10:00:00+00:00",
+   "releaseTime": "2025-10-07T10:00:00+00:00"
+  },
+  {
+   "id": "1.21.9",
+   "type": "release",
+   "url": "",
+   "time": "2025-09-30T10:00:00+00:00",
+   "releaseTime": "2025-09-30T10:00:00+00:00"
+  },
+  {
+   "id": "1.21.8",
+   "type": "release",
+   "url": "",
+   "time": "2025-07-17T10:00:00+00:00",
+   "releaseTime": "2025-07-17T10:00:00+00:00"
+  },
+  {
+   "id": "1.21.7",
+   "type": "release",
+   "url": "",
+   "time": "2025-06-30T10:00:00+00:00",
+   "releaseTime": "2025-06-30T10:00:00+00:00"
+  },
+  {
+   "id": "1.21.6",
+   "type": "release",
+   "url": "",
+   "time": "2025-06-17T10:00:00+00:00",
+   "releaseTime": "2025-06-17T10:00:00+00:00"
+  },
+  {
+   "id": "25w20a",
+   "type": "snapshot",
+   "url": "",
+   "time": "2025-05-13T10:00:00+00:00",
+   "releaseTime": "2025-05-13T10:00:00+00:00"
+  },
+  {
+   "id": "1.21.5",
+   "type": "release",
+   "url": "",
+   "time": "2025-03-25T10:00:00+00:00",
+   "releaseTime": "2025-03-25T10:00:00+00:00"
+  },
+  {
+   "id": "1.21.5-rc1",
+   "type": "snapshot",
+   "url": "",
+   "time": "2025-03-18T10:00:00+00:00",
+   "releaseTime": "2025-03-18T10:00:00+00:00"
+  },
+  {
+   "id": "1.21.5-pre1",
+   "type": "snapshot",
+   "url": "",
+   "time": "2025-03-04T10:00:00+00:00",
+   "releaseTime": "2025-03-04T10:00:00+00:00"
+  },
+  {
+   "id": "25w02a",
+   "type": "snapshot",
+   "url": "",
+   "time": "2025-01-08T10:00:00+00:00",
+   "releaseTime": "2025-01-08T10:00:00+00:00"
+  },
+  {
+   "id": "1.21.4",
+   "type": "release",
+   "url": "",
+   "time": "2024-12-03T10:00:00+00:00",
+   "releaseTime": "2024-12-03T10:00:00+00:00"
+  },
+  {
+   "id": "1.21.3",
+   "type": "release",
+   "url": "",
+   "time": "2024-10-23T10:00:00+00:00",
+   "releaseTime": "2024-10-23T10:00:00+00:00"
+  },
+  {
+   "id": "1.21.2",
+   "type": "release",
+   "url": "",
+   "time": "2024-10-22T10:00:00+00:00",
+   "releaseTime": "2024-10-22T10:00:00+00:00"
+  },
+  {
+   "id": "1.21.1",
+   "type": "release",
+   "url": "",
+   "time": "2024-08-08T10:00:00+00:00",
+   "releaseTime": "2024-08-08T10:00:00+00:00"
+  },
+  {
+   "id": "1.21",
+   "type": "release",
+   "url": "",
+   "time": "2024-06-13T10:00:00+00:00",
+   "releaseTime": "2024-06-13T10:00:00+00:00"
+  },
+  {
+   "id": "1.20.6",
+   "type": "release",
+   "url": "",
+   "time": "2024-04-29T10:00:00+00:00",
+   "releaseTime": "2024-04-29T10:00:00+00:00"
+  },
+  {
+   "id": "24w14a",
+   "type": "snapshot",
+   "url": "",
+   "time": "2024-04-03T10:00:00+00:00",
+   "releaseTime": "2024-04-03T10:00:00+00:00"
+  }
+ ]
+}

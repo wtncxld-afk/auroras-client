@@ -1,0 +1,13 @@
+{
+  "category.auroras": "Auroras Client",
+  "key.auroras.gui": "Open Auroras menu",
+  "key.auroras.benchmark": "Auroras benchmark (60 s)",
+  "key.auroras.hudeditor": "Open HUD editor",
+  "key.auroras.emotes": "Emote wheel",
+  "key.auroras.zoom": "Zoom (hold)",
+  "key.auroras.sprint": "Toggle sprint",
+  "key.auroras.sneak": "Toggle sneak",
+  "key.auroras.freelook": "Freelook",
+  "key.auroras.frontview": "Front view",
+  "key.category.auroras_client.main": "Auroras Client"
+}

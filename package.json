@@ -1,0 +1,56 @@
+{
+  "name": "auroras-client",
+  "version": "0.1.0",
+  "description": "Auroras Client launcher",
+  "main": "main.js",
+  "scripts": {
+    "postinstall": "node scripts/vendor.js",
+    "start": "electron .",
+    "dist": "electron-builder --win",
+    "test": "node --test test/updater.test.js test/versions.test.js test/launchplan.test.js test/installer.test.js test/launcher.test.js test/visuals.test.js test/modconfig.test.js test/ziputil.test.js test/compat.test.js test/hud.test.js test/spotify.test.js test/skyfx.test.js test/emotes.test.js test/serverping.test.js test/clientmod.test.js test/msauth.test.js",
+    "test:ui": "node --test --test-concurrency=1 test/ui/ui.test.js test/ui/studios.test.js test/ui/stage4.test.js test/ui/quality.test.js test/ui/versions.test.js"
+  },
+  "devDependencies": {
+    "electron": "^39.0.0",
+    "electron-builder": "^26.0.0",
+    "jszip": "3.10.1",
+    "three": "0.128.0"
+  },
+  "build": {
+    "appId": "gg.auroras.client",
+    "productName": "Auroras Client",
+    "files": [
+      "auth.json",
+      "release.json",
+      "clientmod.js",
+      "build/**",
+      "compat.js",
+      "msauth.js",
+      "installer.js",
+      "launcher.js",
+      "launchplan.js",
+      "main.js",
+      "modconfig.js",
+      "preload.js",
+      "renderer/**",
+      "serverping.js",
+      "spotify.js",
+      "update-public-key.pem",
+      "updater.js",
+      "validated.json",
+      "versions.js",
+      "visuals/**",
+      "ziputil.js"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}

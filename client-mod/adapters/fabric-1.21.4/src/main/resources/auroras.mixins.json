@@ -1,0 +1,25 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "gg.auroras.client.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "MouseMixin",
+    "MinecraftClientMixin",
+    "PlayerEntityModelMixin",
+    "GameRendererMixin",
+    "CameraMixin",
+    "InGameHudMixin",
+    "BossBarHudMixin",
+    "InGameOverlayRendererMixin",
+    "SimpleOptionMixin",
+    "ParticleManagerMixin",
+    "OverlayTextureMixin",
+    "PlayerGlowMixin",
+    "PlayerGlowColorMixin",
+    "CapeMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

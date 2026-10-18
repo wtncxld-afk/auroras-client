@@ -1,0 +1,22 @@
+{
+  "_comment": "Every injection is optional (defaultRequire 0): if a Minecraft name differs, that one feature stays off and the game still starts. Check logs/latest.log for 'Auroras' and Mixin warnings.",
+  "required": true,
+  "minVersion": "0.8",
+  "package": "gg.auroras.client.mixin",
+  "compatibilityLevel": "${mixin_java}",
+  "client": [
+    "MouseHandlerMixin",
+    "MinecraftMixin",
+    "EntityMixin",
+    "GameRendererMixin",
+    "CameraMixin",
+    "OptionInstanceMixin",
+    "ParticleEngineMixin",
+    "OverlayTextureMixin",
+    "AvatarRendererMixin",
+    "PlayerModelMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}

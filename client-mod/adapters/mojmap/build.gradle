@@ -1,0 +1,48 @@
+// One Gradle project for every Minecraft 1.21.11+ target. Pick one with -Ptarget=<name> (see targets/). Sources:
+//   ../../core/src/main/java   tested game-independent logic (shared with every adapter and the launcher's twin)
+//   common/                    Minecraft-facing code written once against Mojang's names
+//   gui-v1/ or gui-v2/         the small layer that differs: 1.21.11 draws through GuiGraphics and GLFW key codes,
+//                              26.x through GuiGraphicsExtractor ("extract render state") and SDL key codes.
+plugins {
+    id 'net.fabricmc.fabric-loom' version "${loom_version}" apply false
+    id 'net.fabricmc.fabric-loom-remap' version "${loom_version}" apply false
+}
+def targetProps = new Properties()
+file("targets/${project.target}.properties").withInputStream { targetProps.load(it) }
+def T = { String k -> targetProps.getProperty(k) ?: { throw new GradleException("targets/${project.target}.properties has no ${k}") }() }
+def remap = T('remap') == 'true'
+apply plugin: remap ? 'net.fabricmc.fabric-loom-remap' : 'net.fabricmc.fabric-loom'
+apply plugin: 'java'
+
+version = "${project.mod_version}+mc${project.target}"
+group = project.maven_group
+base { archivesName = 'auroras-client' }
+layout.buildDirectory = file("build/${project.target}")
+
+dependencies {
+    minecraft "com.mojang:minecraft:${T('minecraft_version')}"
+    if (remap) {
+        mappings loom.officialMojangMappings()
+        modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+        modImplementation "net.fabricmc.fabric-api:fabric-api:${T('fabric_api_version')}"
+    } else {
+        implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+        implementation "net.fabricmc.fabric-api:fabric-api:${T('fabric_api_version')}"
+    }
+}
+sourceSets {
+    main {
+        java { srcDirs = ['../../core/src/main/java', 'common/java', "${T('platform')}/java"] }
+        resources { srcDirs = ['common/resources', "${T('platform')}/resources"] }
+    }
+}
+def javaVersion = T('java_version') as int
+java { toolchain { languageVersion = JavaLanguageVersion.of(javaVersion) }; withSourcesJar() }
+tasks.withType(JavaCompile).configureEach { it.options.release = javaVersion; it.options.encoding = 'UTF-8' }
+processResources {
+    def props = [version: project.version, minecraft_dep: T('minecraft_dep'), java: javaVersion, mixin_java: "JAVA_${javaVersion}"]
+    inputs.properties props
+    filesMatching(['fabric.mod.json', 'auroras.mixins.json']) { expand props }
+    // One copy of the sky themes, built-in emotes and design tokens, shared with the launcher.
+    from('../../../visuals') { include 'themes.json', 'emotes.json', 'design-tokens.json'; into 'assets/auroras_client' }
+}
