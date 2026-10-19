@@ -34,7 +34,7 @@ public class RadialScreen extends AScreen {
         if (m == null || art != a) { art = a; RadialMenu fresh = new RadialMenu(w, h); if (m != null) { fresh.phase = m.phase; fresh.t = m.t; } m = fresh; }
         Face.refresh();
     }
-    private boolean reduced() { return "true".equals(AurorasClient.PM.get("menuanim.reducedMotion")); }
+    private boolean reduced() { return AurorasModules.reducedMotion(); }
 
     @Override protected void draw(Gfx g, int mx, int my, float delta) {
         if (m == null) return;

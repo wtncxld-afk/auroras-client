@@ -54,6 +54,7 @@ public class AurorasClient implements ClientModInitializer {
         mcVersion = FabricLoader.getInstance().getModContainer("minecraft").map(c -> c.getMetadata().getVersion().getFriendlyString()).orElse("?");
         // fabric.mod.json already limits this jar to its Minecraft line, so Fabric won't load it on another version.
         REG.restrict(NOT_IN_THIS_VERSION, "Not in the Minecraft " + mcVersion + " build yet");
+        REG.restrict(Platform.NOT_PORTED, "Not in the Minecraft " + mcVersion + " build yet");
         PM = new Config.ProfileManager(REG);
         try { int skipped = PM.load(DIR); if (skipped > 0 || PM.skippedLines > 0) System.out.println("[Auroras] skipped " + skipped + " invalid profile file(s) and " + PM.skippedLines + " invalid setting(s)"); } catch (Exception e) { System.out.println("[Auroras] using default settings: " + e.getMessage()); }
         guiKey = Platform.key("key.auroras.gui", Integer.parseInt(PM.get(Config.Registry.GUI_KEY)));

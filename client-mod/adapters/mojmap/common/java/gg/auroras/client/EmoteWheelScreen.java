@@ -15,7 +15,7 @@ public class EmoteWheelScreen extends AScreen {
     private double open; private long last = System.nanoTime();
     @Override protected void draw(Gfx ctx, int mx, int my, float delta) {
         gg.auroras.core.UiTokens t = gg.auroras.client.ui.AUi.tokens(); long now = System.nanoTime(); double dt = Math.min(0.1, (now - last) / 1e9); last = now;
-        boolean rm = "true".equals(AurorasClient.PM.get("menuanim.reducedMotion")); open = rm ? 1 : gg.auroras.core.UiKit.approach(open, 1, dt, AurorasModules.tau(0.05));
+        boolean rm = AurorasModules.reducedMotion(); open = rm ? 1 : gg.auroras.core.UiKit.approach(open, 1, dt, AurorasModules.tau(0.05));
         int cx = width / 2, cy = height / 2, r = (int) Math.round(Math.min(width, height) / 3.0 * (0.92 + 0.08 * open)); hover = Emotes.wheelSlot(mx - cx, my - cy, r * 0.28);
         ctx.fill(0, 0, width, height, gg.auroras.client.ui.AUi.fade(t.argb("bg", t.scrimAlpha), open));
         for (int k = 0; k < Emotes.SLOTS; k++) {

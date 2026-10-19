@@ -20,7 +20,14 @@ public final class Keys {
         {261, InputConstants.KEY_DELETE}, {262, InputConstants.KEY_RIGHT}, {263, InputConstants.KEY_LEFT}, {264, InputConstants.KEY_DOWN}, {265, InputConstants.KEY_UP},
         {290, InputConstants.KEY_F1}, {291, InputConstants.KEY_F2}, {292, InputConstants.KEY_F3}, {293, InputConstants.KEY_F4}, {294, InputConstants.KEY_F5}, {295, InputConstants.KEY_F6},
         {296, InputConstants.KEY_F7}, {297, InputConstants.KEY_F8}, {298, InputConstants.KEY_F9}, {299, InputConstants.KEY_F10}, {300, InputConstants.KEY_F11}, {301, InputConstants.KEY_F12},
-        {340, InputConstants.KEY_LSHIFT}, {341, InputConstants.KEY_LCONTROL}, {342, InputConstants.KEY_LALT}, {344, InputConstants.KEY_RSHIFT}, {345, InputConstants.KEY_RCONTROL}, {346, InputConstants.KEY_RALT}};
+        {340, InputConstants.KEY_LSHIFT}, {341, InputConstants.KEY_LCONTROL}, {342, InputConstants.KEY_LALT}, {344, InputConstants.KEY_RSHIFT}, {345, InputConstants.KEY_RCONTROL}, {346, InputConstants.KEY_RALT},
+        // punctuation, navigation and keypad: without these a key bound in the Auroras menu on 26.x was saved as a raw SDL code
+        {39, InputConstants.KEY_APOSTROPHE}, {44, InputConstants.KEY_COMMA}, {45, InputConstants.KEY_MINUS}, {46, InputConstants.KEY_PERIOD}, {47, InputConstants.KEY_SLASH},
+        {59, InputConstants.KEY_SEMICOLON}, {61, InputConstants.KEY_EQUALS}, {91, InputConstants.KEY_LBRACKET}, {92, InputConstants.KEY_BACKSLASH}, {93, InputConstants.KEY_RBRACKET},
+        {96, InputConstants.KEY_GRAVE}, {260, InputConstants.KEY_INSERT}, {266, InputConstants.KEY_PAGEUP}, {267, InputConstants.KEY_PAGEDOWN}, {268, InputConstants.KEY_HOME},
+        {269, InputConstants.KEY_END}, {280, InputConstants.KEY_CAPSLOCK}, {320, InputConstants.KEY_NUMPAD0}, {321, InputConstants.KEY_NUMPAD1}, {322, InputConstants.KEY_NUMPAD2},
+        {323, InputConstants.KEY_NUMPAD3}, {324, InputConstants.KEY_NUMPAD4}, {325, InputConstants.KEY_NUMPAD5}, {326, InputConstants.KEY_NUMPAD6}, {327, InputConstants.KEY_NUMPAD7},
+        {328, InputConstants.KEY_NUMPAD8}, {329, InputConstants.KEY_NUMPAD9}};
     public static final int ESCAPE = 256, ENTER = 257, TAB = 258, BACKSPACE = 259, DELETE = 261, RIGHT = 262, LEFT = 263, DOWN = 264, UP = 265, SPACE = 32;
     /** Game key code -> GLFW code (unknown keys keep their own value, so they still compare consistently). */
     public static int toGlfw(int game) { for (int[] p : PAIRS) if (p[1] == game) return p[0]; return game; }

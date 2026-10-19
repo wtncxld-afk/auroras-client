@@ -12,6 +12,7 @@
     "CameraMixin",
     "OptionInstanceMixin",
     "ParticleEngineMixin",
+    "ClientLevelMixin",
     "OverlayTextureMixin",
     "AvatarRendererMixin",
     "PlayerModelMixin",

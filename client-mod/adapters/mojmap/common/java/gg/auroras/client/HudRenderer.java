@@ -40,6 +40,7 @@ public final class HudRenderer {
             color = Integer.parseInt(pm.get(id + ".color"), 16); accent = Integer.parseInt(pm.get(id + ".accent"), 16); shadow = b("shadow"); bg = b("background"); border = b("border"); bgPct = i("bgOpacity"); opacity = i("opacity");
             style = HudKit.Style.of(pm.get(id + ".style")); text.set(Long.MIN_VALUE, "");
             bgColor = Integer.parseInt(pm.get(id + ".bgColor"), 16); radius = i("radius"); textMode = s("textMode"); chromaSpeed = Double.parseDouble(pm.get(id + ".chromaSpeed"));
+            if (id.equals("brandinghud") && b("animate") && !HudKit.perChar(textMode)) textMode = "gradient"; // Animate: the name shimmers from its colour to the accent
             if (id.equals("keystrokes")) keys = Keystrokes.layout(i("keySize"), i("gap"), b("showMouse"), b("showModifiers"), b("showSpace"), s("spaceStyle"));
         }
         /** This element's settings by short key, copied in load(), so per-frame reads don't build "id.key" strings. */
@@ -63,7 +64,11 @@ public final class HudRenderer {
     static double fpsAvg; static final HudKit.Smooth FPS_AVG = new HudKit.Smooth();
     static final GameLogic.FrameGraph FRAMES = new GameLogic.FrameGraph(200); static final int[] BARS = new int[200];
     static final Identifier LOGO = Identifier.fromNamespaceAndPath("auroras_client", "textures/gui/logo.png");
-    static boolean editingNow;
+    static boolean editingNow; static double frameDt;
+    /** Module List "animate": each entry slides and fades in when its module turns on (0..1 per registry index). */
+    static double[] LIST_IN = new double[0]; static int[] LIST_IDX = new int[0];
+    /** Potion Effects "showIcons": the effect sprite for each line, in line order. */
+    static Identifier[] POTION_ICONS = new Identifier[0];
 
     static void init(Path gameDir) {
         for (Config.Module m : AurorasClient.REG.modules()) if (HudKit.positionable(m) && m.available()) ELS.put(m.id(), new El(m.id()));
@@ -84,12 +89,12 @@ public final class HudRenderer {
     /** editing: the HUD editor draws outlines itself and passes drag previews in. reduced = reduced motion. */
     static void render(Gfx ctx, Minecraft mc, double dt, boolean editing, String selected) {
         refresh();
-        boolean reduced = AurorasClient.PM.get("menuanim.reducedMotion").equals("true");
+        boolean reduced = AurorasModules.reducedMotion(); frameDt = dt;
         int sw = ctx.w(), sh = ctx.h(); long nowMs = System.currentTimeMillis();
         boolean slow = SLOW.due(System.nanoTime());
         fpsAvg = FPS_AVG.update(mc.getFps(), dt, 2.0, false); editingNow = editing; seconds = reduced ? 0 : (System.nanoTime() - T0) / 1e9;
         for (El e : ELS.values()) {
-            double a = e.fade.update(e.on, dt, 0.18, reduced || editing); if (a <= 0) continue;
+            double a = e.fade.update(e.on && (editing || !e.id.equals("coords") || !AurorasModules.coordsHidden()), dt, 0.18, reduced || editing); if (a <= 0) continue;
             if (e.id.equals("keystrokes")) { keystrokes(ctx, mc, e, sw, sh, dt, a); continue; }
             if (e.id.equals("spotify")) { SpotifyHud.draw(ctx, mc, e, sw, sh, dt, a, reduced); continue; }
             if (e.id.equals("logo")) { logo(ctx, e, sw, sh, a); continue; }
@@ -97,6 +102,8 @@ public final class HudRenderer {
             String[] lines = content(mc, e, nowMs, slow); if (lines == null || lines.length == 0) continue; e.lines = lines;
             draw(ctx, mc, e, lines, sw, sh, a);
         }
+        // Toggle Sprint / Toggle Sneak "Show status", bottom left above where chat input opens
+        String st = editing ? null : AurorasModules.status(); if (st != null) ctx.text(st, 4, sh - 12, 0xFFFFFFFF, true);
     }
 
     /** Text lines for an element. Rebuilt only when the numbers they show change. */
@@ -123,17 +130,21 @@ public final class HudRenderer {
                 if (e.text.stale(k)) e.text.set(k, HudKit.target(t.getDisplayName().getString(), le.getHealth(), le.getMaxHealth(), dist, e.b("showHealth"), e.b("showDistance"))); return one(e); }
             case "potions": { if (!slow && e.lines.length > 0) return e.lines;
                 Collection<MobEffectInstance> fx = mc.player.getActiveEffects(); if (fx.isEmpty()) { e.lines = new String[0]; return null; }
-                String[] names = new String[fx.size()]; int[] ticks = new int[fx.size()]; int[] amp = new int[fx.size()]; int n = 0;
-                for (MobEffectInstance s : fx) { names[n] = s.getEffect().value().getDisplayName().getString(); ticks[n] = s.isInfiniteDuration() ? -1 : s.getDuration(); amp[n] = s.getAmplifier(); n++; }
-                int[] order = HudKit.potionOrder(names, ticks, e.s("order")); String[] out = new String[n]; for (int i = 0; i < n; i++) { int j = order[i]; out[i] = HudKit.potionName(names[j], amp[j]) + "  " + HudKit.potionTime(ticks[j]); }
-                return out; }
+                String[] names = new String[fx.size()]; int[] ticks = new int[fx.size()]; int[] amp = new int[fx.size()]; Identifier[] icons = new Identifier[fx.size()]; int n = 0;
+                for (MobEffectInstance s : fx) { names[n] = s.getEffect().value().getDisplayName().getString(); ticks[n] = s.isInfiniteDuration() ? -1 : s.getDuration(); amp[n] = s.getAmplifier();
+                    icons[n] = s.getEffect().unwrapKey().map(x -> x.identifier().withPrefix("mob_effect/")).orElse(null); n++; } // the GUI sprite vanilla's inventory uses
+                int[] order = HudKit.potionOrder(names, ticks, e.s("order")); String[] out = new String[n]; Identifier[] ic = new Identifier[n];
+                for (int i = 0; i < n; i++) { int j = order[i]; out[i] = HudKit.potionName(names[j], amp[j]) + "  " + HudKit.potionTime(ticks[j]); ic[i] = icons[j]; }
+                POTION_ICONS = ic; return out; }
             case "armor": { if (!slow && e.lines.length > 0) return e.lines; String f = e.s("format"); List<String> out = new ArrayList<>();
                 for (EquipmentSlot slot : new EquipmentSlot[]{EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET}) addDur(out, mc.player.getItemBySlot(slot), f);
                 if (e.b("showHeld")) addDur(out, mc.player.getMainHandItem(), f);
                 if (out.isEmpty()) return null; return e.s("layout").equals("horizontal") ? new String[]{String.join("   ", out)} : out.toArray(new String[0]); }
-            case "modulelist": { if (!slow && e.lines.length > 0) return e.lines; List<HudKit.Entry> en = new ArrayList<>();
-                for (Config.Module m : AurorasClient.REG.modules()) if (!m.id().equals("modulelist") && AurorasClient.PM.enabled(m.id())) en.add(new HudKit.Entry(m.id(), m.name(), m.cat().label, Gfx.width(m.name())));
-                List<HudKit.Entry> sorted = HudKit.moduleList(en, e.s("sort")); String[] out = new String[sorted.size()]; for (int i = 0; i < out.length; i++) out[i] = sorted.get(i).name(); return out.length == 0 ? null : out; }
+            case "modulelist": { if (!slow && e.lines.length > 0) return e.lines; List<HudKit.Entry> en = new ArrayList<>(); Map<String, Integer> idx = new HashMap<>(); int k = 0;
+                if (LIST_IN.length != AurorasClient.REG.modules().size()) LIST_IN = new double[AurorasClient.REG.modules().size()];
+                for (Config.Module m : AurorasClient.REG.modules()) { idx.put(m.id(), k); if (!m.id().equals("modulelist") && AurorasClient.PM.enabled(m.id())) en.add(new HudKit.Entry(m.id(), m.name(), m.cat().label, Gfx.width(m.name()))); else LIST_IN[k] = 0; k++; }
+                List<HudKit.Entry> sorted = HudKit.moduleList(en, e.s("sort")); String[] out = new String[sorted.size()]; int[] li = new int[out.length];
+                for (int i = 0; i < out.length; i++) { out[i] = sorted.get(i).name(); li[i] = idx.get(sorted.get(i).id()); } LIST_IDX = li; return out.length == 0 ? null : out; }
             case "direction": { float yaw = mc.player.getYRot(); boolean deg = e.b("showDegrees"), strip = e.s("display").equals("strip"); long k = GameLogic.heading(yaw) * 2L + (deg ? 1 : 0);
                 if (e.text.stale(k)) e.text.set(k, strip ? GameLogic.compassStrip(yaw, 9) + (deg ? "  " + GameLogic.heading(yaw) + "°" : "") : GameLogic.direction(yaw, deg)); return one(e); }
             case "freelookstatus": { boolean on = AurorasModules.freelook(); if (!on && !editingNow) return null; if (e.text.stale(1)) e.text.set(1, "Freelook"); return one(e); }
@@ -177,7 +188,7 @@ public final class HudRenderer {
 
     /** Places and draws a text element in its style. Editor and gameplay use the same path. */
     static void draw(Gfx ctx, Minecraft mc, El e, String[] lines, int sw, int sh, double fade) {
-        int tw = 0; for (String l : lines) tw = Math.max(tw, Gfx.width(l));
+        int icon = e.id.equals("potions") && e.b("showIcons") ? 11 : 0, tw = 0; for (String l : lines) tw = Math.max(tw, Gfx.width(l) + icon);
         String label = e.style.label ? e.mod.name().toUpperCase(Locale.ROOT) : null; int th = lines.length * 10 - 1 + (label != null ? 7 : 0);
         int[] b = HudKit.box(e.style, Math.max(tw, label != null ? (int) (Gfx.width(label) * 0.75f) : 0), th);
         e.w = Hud.scaled(b[0], e.scale); e.h = Hud.scaled(b[1], e.scale); Hud.resolveInto(e.anchor, e.offX, e.offY, e.w, e.h, sw, sh, e.pos);
@@ -186,11 +197,13 @@ public final class HudRenderer {
         if (e.style.accent > 0) { int r = HudKit.fitRadius(e.radius, b[0], b[1]); ctx.fill(0, r, e.style.accent, b[1] - r, HudKit.argb(e.accent, e.opacity, fade)); }
         int y = e.style.padY;
         if (label != null) { ctx.push(); ctx.translate(e.style.padX + e.style.accent, y); ctx.scale(0.75f); ctx.text(label, 0, 0, HudKit.argb(e.accent, 90 * e.opacity / 100, fade), false); ctx.pop(); y += 7; }
-        boolean right = e.id.equals("modulelist") && e.s("align").equals("right");
+        boolean list = e.id.equals("modulelist"), right = list && e.s("align").equals("right"), slide = list && e.b("animate") && !editingNow;
         for (int i = 0; i < lines.length; i++) {
-            int lw = Gfx.width(lines[i]), x = right ? b[0] - e.style.padX - lw : e.style.padX + e.style.accent;
+            int lw = Gfx.width(lines[i]), x = (right ? b[0] - e.style.padX - lw : e.style.padX + e.style.accent) + icon; double f = fade;
+            if (slide && i < LIST_IDX.length) { int k = LIST_IDX[i]; double in = LIST_IN[k] = AurorasModules.reducedMotion() ? 1 : Math.min(1, LIST_IN[k] + frameDt / 0.2); f = fade * in; x += (int) Math.round((1 - in) * (right ? 12 : -12)); }
+            if (icon > 0 && i < POTION_ICONS.length && POTION_ICONS[i] != null) ctx.sprite(POTION_ICONS[i], x - icon, y - 1, 9, 9, HudKit.argb(0xFFFFFF, e.opacity, fade));
             if (e.id.equals("ping")) { int lvl = HudKit.pingLevel(parsePing(lines[i]), e.i("goodMs"), e.i("okMs")); ctx.text(lines[i], x, y, HudKit.argb(HudKit.PING_COLORS[lvl < 0 ? 3 : lvl], e.opacity, fade), e.shadow); }
-            else text(ctx, e, lines[i], x, y, e.id.equals("modulelist") && i % 2 == 0 && !HudKit.perChar(e.textMode) ? e.accent : e.color, fade);
+            else text(ctx, e, lines[i], x, y, list && i % 2 == 0 && !HudKit.perChar(e.textMode) ? e.accent : e.color, f);
             y += 10;
         }
         ctx.pop();

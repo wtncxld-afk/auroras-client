@@ -60,8 +60,10 @@ public final class HudKit {
         Arrays.sort(idx, mode.equals("name") ? Comparator.<Integer, String>comparing(i -> names[i]).thenComparing(byTime) : byTime.thenComparing(i -> names[i]));
         int[] out = new int[idx.length]; for (int i = 0; i < out.length; i++) out[i] = idx[i]; return out;
     }
+    /** percent "45%", numeric "163/363", or bar: 1 to 6 blocks for what is left (the launcher's HUD editor draws the same). */
     public static String durability(int max, int damage, String format) {
         int pct = Calc.armorPercent(max, damage); if (pct < 0) return "";
+        if (format.equals("bar")) { int left = Math.max(0, Math.min(max, max - damage)); return "█".repeat((int) Math.max(1, Math.round(left * 6.0 / max))); }
         return format.equals("numeric") ? (Math.max(0, max - damage)) + "/" + max : pct + "%";
     }
     public static String session(long millis) { long s = Math.max(0, millis / 1000); return String.format(Locale.ROOT, "%d:%02d:%02d", s / 3600, (s % 3600) / 60, s % 60); }

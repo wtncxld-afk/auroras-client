@@ -32,7 +32,7 @@ public class ModuleScreen extends AScreen {
     @Override protected void init() { L = menu.layout(width, height); }
     /** The search box is drawn and edited here (no vanilla text field), so it looks and behaves the same in every version. */
     private void setQuery(String q) { menu.setQuery(q.length() > 40 ? q.substring(0, 40) : q); L = menu.layout(width, height); caretT0 = System.nanoTime(); }
-    private boolean reduced() { return "true".equals(AurorasClient.PM.get("menuanim.reducedMotion")); }
+    private boolean reduced() { return AurorasModules.reducedMotion(); }
 
     @Override protected void draw(Gfx c, int mx, int my, float delta) {
         long now = System.nanoTime(); double dt = Math.min(0.1, (now - last) / 1e9); last = now; boolean rm = reduced();

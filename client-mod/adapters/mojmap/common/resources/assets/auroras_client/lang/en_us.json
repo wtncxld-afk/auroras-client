@@ -9,5 +9,6 @@
   "key.auroras.sneak": "Toggle sneak",
   "key.auroras.freelook": "Freelook",
   "key.auroras.frontview": "Front view",
+  "key.auroras.coords": "Show or hide coordinates",
   "key.category.auroras_client.main": "Auroras Client"
 }

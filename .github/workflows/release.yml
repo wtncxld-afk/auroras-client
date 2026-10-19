@@ -4,7 +4,7 @@
 #   auroras-client-fabric-<mc>.jar         the Auroras mod, one per adapter folder (the launcher installs it by itself)
 #   SHA256SUMS.txt                         checksums the launcher checks every download against
 # Optional: set a repository variable AZURE_CLIENT_ID (Settings > Secrets and variables > Actions > Variables) so the
-# installer ships with Microsoft sign-in ready to use.
+# installer ships with Microsoft sign-in ready to use, and FRIENDS_URL (https address of your friends-server) for Friends.
 # Third-party steps are pinned to exact commits (tag in the comment) of open-source actions from GitHub (actions/*),
 # Gradle (gradle/actions) and softprops/action-gh-release (MIT), so a moved tag can't change what runs.
 name: Build and release
@@ -76,6 +76,7 @@ jobs:
         run: node scripts/ci-release.js "${{ github.repository }}" "${{ github.run_number }}"
         env:
           AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          FRIENDS_URL: ${{ vars.FRIENDS_URL }}
       - run: npm install --no-audit --no-fund
       - run: python scripts/build-renderer.py
       - run: npx electron-builder --win nsis --publish never

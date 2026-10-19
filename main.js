@@ -297,10 +297,11 @@ ipcMain.handle("settings:set", (_e, o) => {
   if (typeof o.msClientId === "string") s.msClientId = /^[0-9a-f-]{36}$/i.test(o.msClientId.trim()) ? o.msClientId.trim() : (o.msClientId.trim() === "" ? "" : (() => { throw new Error("That doesn’t look like an Azure application (client) ID"); })());
   if (typeof o.autoMod === "boolean") s.autoMod = o.autoMod;
   if (typeof o.spotifyClientId === "string") { const v = o.spotifyClientId.trim(); if (v && !/^[0-9a-f]{32}$/i.test(v)) throw new Error("That doesn’t look like a Spotify client ID (32 letters and numbers)."); s.spotifyClientId = v; }
+  if (typeof o.friendsUrl === "string") { const v = o.friendsUrl.trim(); if (v && !friends.checkUrl(v)) throw new Error("The friends server address must start with https://"); s.friendsUrl = v ? friends.checkUrl(v) : ""; }
   if (typeof o.updateUrl === "string") { if (o.updateUrl) { if (new URL(o.updateUrl).protocol !== "https:") throw new Error("Update URL must be https"); } s.updateUrl = o.updateUrl.trim(); }
   fs.writeFileSync(settingsFile(), JSON.stringify(s)); return true;
 });
-ipcMain.handle("settings:all", () => { const s = readSettings(); return { autoMod: s.autoMod !== false, releaseRepo: RELEASES ? RELEASE.githubRepo : "", cfKey: !!cfKey(), msClientId: s.msClientId || "", msShipped: !!msauth.clientId({}, SHIPPED_AUTH), updateUrl: s.updateUrl || "", spotifyClientId: s.spotifyClientId || "", spotifyConnected: !!readSpotifyToken(), version: app.getVersion() }; });
+ipcMain.handle("settings:all", () => { const s = readSettings(); return { autoMod: s.autoMod !== false, releaseRepo: RELEASES ? RELEASE.githubRepo : "", cfKey: !!cfKey(), msClientId: s.msClientId || "", msShipped: !!msauth.clientId({}, SHIPPED_AUTH), updateUrl: s.updateUrl || "", friendsUrl: s.friendsUrl || "", friendsShipped: !!friends.friendsUrl({}, SHIPPED_AUTH), spotifyClientId: s.spotifyClientId || "", spotifyConnected: !!readSpotifyToken(), version: app.getVersion() }; });
 
 // ---------- Updates (signed manifest; nothing is applied unless it verifies) ----------
 async function fetchBytes(url) { const r = await net.fetch(updater.httpsUrl ? updater.httpsUrl(url) : url, { headers: { "User-Agent": UA } }); if (!r.ok) throw new Error(`Update server returned ${r.status}`); return Buffer.from(await r.arrayBuffer()); }
@@ -408,10 +409,38 @@ ipcMain.handle("launch", async (e, { inst: I, uuid, face }) => {
     send("launching", 100, "");
     const child = spawn(cmd.file, cmd.args, { cwd: gameDir, windowsHide: false });
     startSpotify(key, path.join(gameDir, "config", "auroras"));
-    launcher.supervise(child, { logFile: path.join(gameDir, "logs", "auroras-launch.log"), emit: send }).finally(() => { running.delete(key); stopSpotify(key); });
+    friendsPlaying.set(String(uuid), { server: I.server ? String(I.server) : null, instance: String(I.name || "") }); pushPresence(String(uuid));
+    launcher.supervise(child, { logFile: path.join(gameDir, "logs", "auroras-launch.log"), emit: send }).finally(() => { running.delete(key); stopSpotify(key); friendsPlaying.delete(String(uuid)); pushPresence(String(uuid)); });
     return true;
   } catch (err) { running.delete(key); throw err; }
 });
+
+// ---------- Friends (friends-server/): sign in with the Minecraft account, list friends, requests, presence ----------
+const friends = require("./friends");
+const friendsPlaying = new Map(), friendTokens = new Map();
+const friendsBase = () => friends.friendsUrl(readSettings(), SHIPPED_AUTH);
+async function friendsHttp(method, url, body, token) {
+  const r = await net.fetch(url, { method, headers: { "Content-Type": "application/json", Accept: "application/json", "User-Agent": UA, ...(token ? { Authorization: "Bearer " + token } : {}) }, body: body && method !== "GET" ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(10000) });
+  return { status: r.status, json: await r.json().catch(() => ({})) };
+}
+/** A friends client for one signed-in Microsoft account. Mojang's join uses the player's own token; it never leaves for the friends server. */
+async function friendsFor(uuid) {
+  const base = friendsBase(); if (!base) throw new Error("NO_FRIENDS_SERVER");
+  const a = readAcc()[uuid]; if (!a) throw new Error("Friends needs a Microsoft account signed in on this PC.");
+  const auth = await mcAuthFor(uuid);
+  const join = async (serverId) => { const r = await post("https://sessionserver.mojang.com/session/minecraft/join", { accessToken: auth.token, selectedProfile: uuid, serverId }, true); if (r.status !== 204 && r.status !== 200) throw new Error(`Mojang didn’t accept the sign-in (${r.status}). Try again in a minute.`); };
+  return { client: friends.createClient({ base, http: friendsHttp, join, tokens: friendTokens }), acct: { uuid, name: auth.name } };
+}
+/** Tells the friends server what this account is doing: playing (with the server, if any) while a game runs, otherwise online. */
+async function pushPresence(uuid, state) {
+  try { if (!friendsBase() || !friendTokens.has(uuid)) return; const { client, acct } = await friendsFor(uuid); const g = friendsPlaying.get(uuid);
+    await client.presence(acct, state === "offline" ? { state: "offline" } : g ? { state: "playing", server: g.server, instance: g.instance } : { state: state || "online" }); } catch (e) { console.log("[auroras] presence: " + e.message); }
+}
+ipcMain.handle("friends:state", () => ({ url: friendsBase(), shipped: !!friends.friendsUrl({}, SHIPPED_AUTH) }));
+ipcMain.handle("friends:overview", async (_e, uuid) => { const { client, acct } = await friendsFor(String(uuid)); const o = await client.overview(acct); pushPresence(String(uuid)); return o; });
+ipcMain.handle("friends:act", async (_e, { uuid, action, arg }) => { const { client, acct } = await friendsFor(String(uuid)); return client.act(acct, String(action), arg); });
+ipcMain.handle("friends:presence", (_e, { uuid, state }) => pushPresence(String(uuid), state === "away" ? "away" : state === "offline" ? "offline" : "online"));
+app.on("before-quit", () => { for (const u of friendTokens.keys()) pushPresence(u, "offline"); });
 
 // ---------- Auroras mod settings per instance (config/auroras in the instance folder; the mod reads these) ----------
 const cfgDir = (id) => { if (!/^\d+$/.test(String(id))) throw new Error("Unknown instance"); return path.join(instDir(id), "config", "auroras"); };

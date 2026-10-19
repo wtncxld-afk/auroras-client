@@ -92,6 +92,8 @@ public final class Calc {
             return on && forward && !sneaking && canSprint;
         }
         public boolean on() { return on; }
+        /** Module turned off: forget the toggle, so turning it back on doesn't start sprinting by itself. */
+        public void reset() { on = false; }
     }
 
     /** Returns the actions that already use this key (excluding the action being bound). Key -1 means unbound. */

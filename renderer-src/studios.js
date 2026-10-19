@@ -96,3 +96,4 @@ else if(e.target.closest("[data-assign]")){const k=VX.placeKey(d.querySelector("
 /*@include renderer-src/compat-ui.js*/
 /*@include renderer-src/hud-editor.js*/
 /*@include renderer-src/studio-emotes.js*/
+/*@include renderer-src/friends-ui.js*/

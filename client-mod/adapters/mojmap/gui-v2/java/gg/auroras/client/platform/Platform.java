@@ -18,6 +18,8 @@ import net.minecraft.resources.Identifier;
 public final class Platform {
     private Platform() {}
     public static final String NAME = "gui-v2";
+    /** Modules this GUI line can't do yet (locked in the menu with a reason). Low Fire: its mixin (ScreenEffectRenderer#renderFire) is written only for 1.21.11; the 26.x fire overlay isn't hooked yet. */
+    public static final java.util.List<String> NOT_PORTED = java.util.List.of("lowfire");
     static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("auroras_client", "main"));
     /** Registers a key mapping with a default given as a GLFW key code (the format the launcher and settings files use). */
     public static KeyMapping key(String name, int glfwKey) {

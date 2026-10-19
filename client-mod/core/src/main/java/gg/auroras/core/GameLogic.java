@@ -79,6 +79,16 @@ public final class GameLogic {
     /** Toggle on key press (rising edge). Used for toggle sneak; toggle sprint uses Calc.SprintToggle (which also checks it's allowed). */
     public static final class Toggle { private boolean on, last; public boolean update(boolean keyDown) { if (keyDown && !last) on = !on; last = keyDown; return on; } public boolean on() { return on; } public void reset() { on = false; } }
 
+    /**
+     * Toggle Sprint / Toggle Sneak status line ("Show status"), or null when there is nothing to show. Sneaking wins,
+     * because the game stops sprinting while you sneak. sprinting = the toggle is actually holding sprint right now.
+     */
+    public static String toggleStatus(boolean sprintShow, boolean sprintToggled, boolean sprinting, boolean sneakShow, boolean sneakToggled) {
+        if (sneakShow && sneakToggled) return "Sneaking (toggled)";
+        if (sprintShow && sprintToggled) return sprinting ? "Sprinting (toggled)" : "Sprint toggled";
+        return null;
+    }
+
     /** Zoom factor changed by the scroll wheel while zooming, clamped to the setting's range. */
     public static double zoomScroll(double factor, double scroll) { return Sky.clamp(Math.round(factor * Math.pow(1.15, scroll) * 100) / 100.0, 1.1, 10); }
 

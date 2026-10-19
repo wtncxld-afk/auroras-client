@@ -21,12 +21,13 @@ import java.util.List;
 
 public final class AurorasModules {
     private AurorasModules() {}
-    static KeyMapping zoomKey, sprintKey, sneakKey, freelookKey, frontKey;
+    static KeyMapping zoomKey, sprintKey, sneakKey, freelookKey, frontKey, coordsKey;
     static int seen = -1;
 
     // cached settings (refresh())
     static boolean zoomOn, zoomScaleSens, zoomScroll, sprintOn, sprintStatus, sneakOn, sneakStatus, freelookOn, perspOn, skipFront,
-        crossOn, crossOutline, crossDot, crossDynamic, crossHide3p, fireOn, partOn, fullbrightOn, bossOn, bossHide, glowOn, totemOn, totemParticles, menuOn;
+        crossOn, crossOutline, crossDot, crossDynamic, crossHide3p, fireOn, partOn, fullbrightOn, bossOn, bossHide, glowOn, totemOn, totemParticles, menuOn, menuReduced, coordsHidden;
+    static String status; // Toggle Sprint / Toggle Sneak "Show status" line, null when hidden
     static String freelookMode = "hold", crossStyle = "cross";
     static double freelookSens = 1, fireOffset, fullbrightGamma = 1, bossScale = 1, menuSpeed = 1;
     static int crossSize, crossThick, crossGap, crossColor, fireAlpha, bossOffY, glowColor, totemColor;
@@ -44,7 +45,7 @@ public final class AurorasModules {
     static void register() {
         Config.ProfileManager pm = AurorasClient.PM;
         zoomKey = key("key.auroras.zoom", pm.get("zoom.key")); sprintKey = key("key.auroras.sprint", pm.get("sprint.key")); sneakKey = key("key.auroras.sneak", pm.get("sneak.key"));
-        freelookKey = key("key.auroras.freelook", pm.get("freelook.key")); frontKey = key("key.auroras.frontview", pm.get("perspective.frontKey"));
+        freelookKey = key("key.auroras.freelook", pm.get("freelook.key")); frontKey = key("key.auroras.frontview", pm.get("perspective.frontKey")); coordsKey = key("key.auroras.coords", pm.get("coords.key"));
         SESSION.start(System.currentTimeMillis());
         ClientPlayerBlockBreakEvents.AFTER.register((level, player, pos, state) -> SESSION.blockBroken());
     }
@@ -54,6 +55,7 @@ public final class AurorasModules {
         Config.ProfileManager pm = AurorasClient.PM; if (pm.revision() == seen) return; seen = pm.revision();
         zoomOn = pm.enabled("zoom"); zoom = zoom.withSettings(d("zoom.factor"), d("zoom.smoothing")); zoomScaleSens = b("zoom.scaleSensitivity"); zoomScroll = b("zoom.scrollAdjust");
         sprintOn = pm.enabled("sprint"); sprintStatus = b("sprint.showStatus"); sneakOn = pm.enabled("sneak"); sneakStatus = b("sneak.showStatus");
+        if (!sprintOn) SPRINT.reset(); if (!sneakOn) SNEAK.reset(); // a module turned off forgets its toggle
         freelookOn = pm.enabled("freelook"); freelookMode = pm.get("freelook.mode"); freelookSens = d("freelook.sensitivity");
         perspOn = pm.enabled("perspective"); skipFront = b("perspective.skipFront");
         crossOn = pm.enabled("crosshair"); crossStyle = pm.get("crosshair.style"); crossSize = i("crosshair.size"); crossThick = i("crosshair.thickness"); crossGap = i("crosshair.gap");
@@ -65,9 +67,9 @@ public final class AurorasModules {
         glowOn = pm.enabled("glow"); glowColor = Integer.parseInt(pm.get("glow.color"), 16);
         totemOn = pm.enabled("totemfx"); totemParticles = b("totemfx.particles"); totemColor = Integer.parseInt(pm.get("totemfx.particleColor"), 16);
         TOTEM.density = d("totemfx.density"); TOTEM.duration = d("totemfx.duration"); TOTEM.overlay = b("totemfx.overlay"); TOTEM.overlayIntensity = d("totemfx.overlayIntensity"); TOTEM.overlayDuration = d("totemfx.overlayDuration");
-        menuOn = pm.enabled("menuanim"); menuSpeed = d("menuanim.speed");
+        menuOn = pm.enabled("menuanim"); menuSpeed = d("menuanim.speed"); menuReduced = menuOn && b("menuanim.reducedMotion"); if (!pm.enabled("coords")) coordsHidden = false;
         // keys changed in the Auroras menu or the launcher apply at once (Minecraft's Controls screen still works too)
-        rebind(zoomKey, "zoom.key"); rebind(sprintKey, "sprint.key"); rebind(sneakKey, "sneak.key"); rebind(freelookKey, "freelook.key"); rebind(frontKey, "perspective.frontKey");
+        rebind(zoomKey, "zoom.key"); rebind(sprintKey, "sprint.key"); rebind(sneakKey, "sneak.key"); rebind(freelookKey, "freelook.key"); rebind(frontKey, "perspective.frontKey"); rebind(coordsKey, "coords.key");
         rebind(AurorasClient.guiKey, Config.Registry.GUI_KEY); rebind(AurorasClient.emoteKey, "emotes.wheelKey");
     }
     static final java.util.Map<KeyMapping, String> BOUND = new java.util.IdentityHashMap<>();
@@ -84,11 +86,20 @@ public final class AurorasModules {
     /** Speed factor for menu animations (Menu Animations module), 1 when it is off. */
     public static double menuSpeed() { return menuOn ? Math.max(0.25, Math.min(2, menuSpeed)) : 1; }
     public static double tau(double base) { return menuOn ? GameLogic.animTau(base, menuSpeed, false) : base; }
+    /** Menu Animations' reduced motion (only while that module is on, like its speed): menus and HUD animations jump to their end. */
+    public static boolean reducedMotion() { return menuReduced; }
+    /** Coordinates' key hides and shows the element while the module is on. */
+    public static boolean coordsHidden() { return coordsHidden; }
+    public static String status() { return status; }
 
     /** END_CLIENT_TICK: keys, toggles, freelook and perspective, session counters, totem particles. */
     static void tick(Minecraft mc) {
         refresh();
-        if (mc.player == null) { FREELOOK.active = false; return; }
+        if (mc.player == null) { // left the world: give back the camera and the keys this module was holding
+            if (FREELOOK.active && beforeFreelook != null) mc.options.setCameraType(beforeFreelook); FREELOOK.active = false; beforeFreelook = null;
+            if (sprintApplied) { mc.options.keySprint.setDown(false); sprintApplied = false; } if (sneakApplied) { mc.options.keyShift.setDown(false); sneakApplied = false; } status = null; return;
+        }
+        while (coordsKey.consumeClick()) if (mc.screen == null && AurorasClient.PM.enabled("coords")) coordsHidden = !coordsHidden;
         // zoom eases every frame in fov(), so it glides at any frame rate
         // toggle sprint: hold Minecraft's own sprint key for the player, so the game's rules (hunger, sneaking, blindness) still decide
         boolean forward = mc.player.input != null && mc.player.input.keyPresses.forward();
@@ -97,14 +108,15 @@ public final class AurorasModules {
         while (sneakKey.consumeClick()) { } // the toggle reads the key's edge itself; drain the press counter so it can't pile up
         boolean sneak = sneakOn && SNEAK.update(sneakKey.isDown()) && mc.screen == null;
         if (sneak) { mc.options.keyShift.setDown(true); sneakApplied = true; } else if (sneakApplied) { mc.options.keyShift.setDown(false); sneakApplied = false; }
+        status = GameLogic.toggleStatus(sprintOn && sprintStatus, SPRINT.on(), sprint, sneakOn && sneakStatus, SNEAK.on());
         // freelook: a separate camera rotation (CameraMixin) while the player keeps facing forward; shown from behind
         boolean was = FREELOOK.active, now = freelookOn && mc.screen == null && FREELOOK.key(freelookKey.isDown(), freelookMode, mc.player.getYRot(), mc.player.getXRot());
         if (!freelookOn || mc.screen != null) FREELOOK.active = false;
         if (now && !was) { beforeFreelook = mc.options.getCameraType(); if (beforeFreelook.isFirstPerson()) mc.options.setCameraType(CameraType.THIRD_PERSON_BACK); }
         if (!FREELOOK.active && was && beforeFreelook != null) { mc.options.setCameraType(beforeFreelook); beforeFreelook = null; }
         // perspective: a key for the front view, and optionally skipping the front view when cycling with F5
+        while (frontKey.consumeClick()) if (perspOn) { boolean front = mc.options.getCameraType() == CameraType.THIRD_PERSON_FRONT; mc.options.setCameraType(front ? CameraType.FIRST_PERSON : CameraType.THIRD_PERSON_FRONT); frontByKey = !front; }
         if (perspOn) {
-            while (frontKey.consumeClick()) { boolean front = mc.options.getCameraType() == CameraType.THIRD_PERSON_FRONT; mc.options.setCameraType(front ? CameraType.FIRST_PERSON : CameraType.THIRD_PERSON_FRONT); frontByKey = !front; }
             CameraType p = mc.options.getCameraType();
             if (skipFront && !frontByKey && p == CameraType.THIRD_PERSON_FRONT && lastPerspective == CameraType.THIRD_PERSON_BACK) mc.options.setCameraType(CameraType.values()[GameLogic.nextPerspective(1, true)]);
             if (mc.options.getCameraType() != CameraType.THIRD_PERSON_FRONT) frontByKey = false;

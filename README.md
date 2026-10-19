@@ -21,6 +21,7 @@ Download **AurorasClientSetup-<version>.exe** from this repository's **Releases*
 - Instances keep their own Minecraft version, loader and loader version, Java setting, memory, launch arguments, and their own folder (mods, config, resource packs, saves, logs, HUD), side by side.
 - Accounts: Microsoft device-code sign-in (needs your Azure app ID, below), or preview a skin by username (preview accounts cannot play).
 - Home screen with a glass hero card (greeting, selected instance, Play, instance and account pickers) beside the 3D skin, stacking on narrow windows.
+- Friends: add friends by Minecraft username, see who's online and which server they're on, invites and one-click Join. Needs your own friends server (`friends-server/`, see its README); sign-in is checked with Mojang's session server, no passwords.
 - Cape library: upload capes (including OptiFine and HD), favourite, rename and organise them, and paint your own in the pixel editor with a live 3D preview. Local only.
 - VexVanilla (vexvanilla.net) is featured on Home with live status and one-click Join, and is pinned first in every instance's in-game server list.
 - Seven animated backgrounds (Sakura, Sakura Night, Aurora Borealis, Cosmic Nebula, Midnight Rain, Floating Islands, Minimal), drawn sharp at your screen's pixel density at up to 60 fps, with cross-fades between them; ambient audio (generated, off by default), cursor trails, all configurable and persistent.

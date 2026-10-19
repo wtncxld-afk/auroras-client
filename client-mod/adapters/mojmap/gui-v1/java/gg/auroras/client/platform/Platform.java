@@ -18,6 +18,8 @@ import net.minecraft.resources.Identifier;
 public final class Platform {
     private Platform() {}
     public static final String NAME = "gui-v1";
+    /** Modules this GUI line can't do yet (locked in the menu with a reason). Nothing: every module the common code has is hooked up here. */
+    public static final java.util.List<String> NOT_PORTED = java.util.List.of();
     static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("auroras_client", "main"));
     /** Registers a key mapping with a default given as a GLFW key code (the format the launcher and settings files use). */
     public static KeyMapping key(String name, int glfwKey) {
