@@ -70,7 +70,7 @@ const HOSTS = new Set(["api.modrinth.com", "modrinth.com", "cdn.modrinth.com", "
   "piston-meta.mojang.com", "launchermeta.mojang.com", "libraries.minecraft.net", "resources.download.minecraft.net", "meta.fabricmc.net", "maven.fabricmc.net",
   "maven.neoforged.net", "files.minecraftforge.net", "maven.minecraftforge.net", "meta.quiltmc.org", "login.microsoftonline.com", "login.live.com", "user.auth.xboxlive.com",
   "xsts.auth.xboxlive.com", "auth.xboxlive.com", "accounts.spotify.com", "api.spotify.com", "api.github.com", "github.com", "cdnjs.cloudflare.com",
-  "fonts.googleapis.com", "fonts.gstatic.com", "portal.azure.com", "127.0.0.1", "localhost", "www.w3.org", "example.com", "friends.example.net", "x", "textures.minecraft.net", "crafatar.com", "mc-heads.net", "minotar.net"]);
+  "fonts.googleapis.com", "fonts.gstatic.com", "portal.azure.com", "127.0.0.1", "localhost", "www.w3.org", "example.com", "friends.example.net", "x", "textures.minecraft.net", "crafatar.com", "www.skinmc.net", "skinmc.net", "mc-heads.net", "minotar.net"]);
 
 test("the launcher only talks to known, legitimate hosts", () => {
   const bad = [];
@@ -89,7 +89,8 @@ test("no eval, no shell commands, no hidden downloads-and-run", () => {
   }
   // The only process the launcher starts is Java, to run Minecraft.
   const main = fs.readFileSync(path.join(ROOT, "main.js"), "utf8");
-  assert.deepEqual([...main.matchAll(/\bspawn\(([^,]+),/g)].map((m) => m[1]), ["cmd.file"]);
+  assert.deepEqual([...main.matchAll(/\bspawn\(([^,]+),/g)].map((m) => m[1]), ["updReady.file", "cmd.file"]);
+  assert.match(main, /selfupdate.fetchInstaller\(p, /, "the update installer only runs after its checksum is verified");
   assert.deepEqual(bad, []);
 });
 test("the Java mod has no networking, no process launching, no class loading from outside", () => {

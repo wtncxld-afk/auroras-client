@@ -17,6 +17,8 @@ contextBridge.exposeInMainWorld("auroras", {
   authStart: () => ir.invoke("auth:start"),
   authWindow: () => ir.invoke("auth:window"),
   releaseCheck: () => ir.invoke("release:check"),
+  updateAuto: (on) => ir.invoke("update:auto", !!on), updateInstall: () => ir.invoke("update:install"),
+  onUpdateReady: (fn) => { ir.removeAllListeners("update:ready"); ir.on("update:ready", (_e, d) => fn(d)); },
   modStatus: (id) => ir.invoke("mod:status", id),
   authCancel: () => ir.invoke("auth:cancel"),
   onAuthDone: (f) => ir.on("auth:done", (_e, d) => f(d)),

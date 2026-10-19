@@ -402,6 +402,29 @@ async function mcAuthFor(uuid) {
 }
 const lastModStatus = new Map();
 ipcMain.handle("mod:status", (_e, id) => lastModStatus.get(String(id)) || null);
+// ---------- Auto-update: download a newer launcher in the background, verify it, then offer "Restart to update" ----------
+const selfupdate = require("./selfupdate.js");
+let updReady = null, updBusy = false, updTimer = null;
+async function selfUpdateTick() {
+  if (!RELEASES || updBusy || updReady) return; updBusy = true;
+  try { const p = selfupdate.plan(await RELEASES(true), app.getVersion());
+    if (p) { updReady = await selfupdate.fetchInstaller(p, path.join(user(), "updates"), ghBytes); updReady.notes = p.notes;
+      for (const w of BrowserWindow.getAllWindows()) if (!w.isDestroyed()) w.webContents.send("update:ready", { version: updReady.version, notes: updReady.notes }); }
+  } catch (x) { console.log("[auroras] update: " + x.message); } finally { updBusy = false; }
+}
+ipcMain.handle("update:auto", (_e, on) => {
+  if (updTimer) { clearInterval(updTimer); updTimer = null; }
+  if (!on || !RELEASES) return { enabled: false, configured: !!RELEASES };
+  setTimeout(selfUpdateTick, 4000); updTimer = setInterval(selfUpdateTick, 20 * 60 * 1000);
+  return { enabled: true, configured: true, ready: updReady && { version: updReady.version, notes: updReady.notes } };
+});
+ipcMain.handle("update:install", () => {
+  if (!updReady || !fs.existsSync(updReady.file)) throw new Error("No update is ready yet.");
+  if (running.size) throw new Error("Close Minecraft first, then restart to update.");
+  // The installer (verified against SHA256SUMS.txt above) runs silently and opens the new launcher when it's done.
+  spawn(updReady.file, selfupdate.INSTALL_ARGS, { detached: true, stdio: "ignore", windowsHide: true }).unref();
+  setTimeout(() => app.quit(), 300); return true;
+});
 ipcMain.handle("release:check", async () => { try { return await clientmod.launcherUpdate(RELEASES, app.getVersion()); } catch (e) { return { configured: true, error: e.message }; } });
 ipcMain.handle("launch", async (e, { inst: I, uuid, face }) => {
   const key = String(I && I.id); if (!I || !/^\d+$/.test(key)) throw new Error("Unknown instance");

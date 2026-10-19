@@ -405,6 +405,8 @@ h1{font-size:24px;font-weight:650;letter-spacing:-.025em;line-height:1.15}
 .modcard{border-radius:16px;padding:14px;background:linear-gradient(180deg,color-mix(in srgb,var(--s1) 80%,transparent),color-mix(in srgb,var(--s1) 68%,transparent));backdrop-filter:blur(16px);border-color:color-mix(in srgb,var(--line) 70%,rgba(255,255,255,.07));box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 16px 36px -24px rgba(0,0,0,.8)}
 .modcard:hover{border-color:var(--line-strong,var(--mute));transform:translateY(-1px)}.modcard .mico{width:36px;height:36px;border-radius:11px}.modcard:not(.na) .mico{box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 6px 16px -8px var(--acc)}
 .modcard .tag{font-size:10.5px;padding:1px 8px}.modcard .mbot{padding-top:10px;border-top:1px solid color-mix(in srgb,var(--line) 55%,transparent)}
+.cs-find{display:flex;gap:12px;align-items:center;margin:10px 0 4px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:color-mix(in srgb,var(--s1) 60%,transparent)}.cs-find .min{flex:1;min-width:0}.cs-find b{display:block;font-weight:550}.cs-find small{display:block;white-space:normal}.cs-find .btn{flex:none}
+.upd-ico{width:56px;height:56px;margin:0 auto;border-radius:16px;display:grid;place-items:center;color:var(--acc-ink);background:linear-gradient(135deg,var(--acc),var(--vio));box-shadow:0 8px 30px color-mix(in srgb,var(--acc) 40%,transparent)}
 .privacy{display:grid;gap:12px}.privrow{display:flex;gap:12px;align-items:flex-start}.privrow .nic{flex:none;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;background:color-mix(in srgb,var(--ok,#3ecf8e) 16%,transparent);color:var(--ok,#3ecf8e)}.privrow .min{flex:1;min-width:0}.privrow .min b,.privrow .min small{white-space:normal;overflow:visible;text-overflow:clip}.privrow b{font-weight:550;display:block}.privrow small{display:block;margin-top:2px}.privrow.warn .nic{background:color-mix(in srgb,#f5a524 16%,transparent);color:#f5a524}
 @media(max-width:1100px){.side{width:56px}.side .nav span,.side .acct .min,.side .nav .badge,.sbrand span{display:none}.sbrand{justify-content:center;padding:6px 0 12px}.side .nav{justify-content:center;padding:0}.side .acct{justify-content:center;padding:6px}.side .grp{height:10px;padding:0;margin:6px 8px 0;border-top:1px solid var(--line);font-size:0}.side .grp:first-of-type{border:0}
  .side .nav:hover::after{content:attr(data-tip);position:fixed;left:62px;background:var(--s2);border:1px solid var(--line);color:var(--text);padding:3px 8px;border-radius:var(--r-s);font-size:12px;z-index:30}.bar{left:calc(50% + 28px)}#collapse{display:none}}
@@ -757,7 +759,7 @@ SK.refresh=()=>{tex.needsUpdate=true};SK.setLayer=on=>ov.forEach(m=>m.visible=on
 /* ===== Settings store ===== */
 const REDUCED=()=>matchMedia("(prefers-reduced-motion: reduce)").matches||document.documentElement.dataset.motion==="reduced";
 var GAME_RUNNING=false;let UNFOCUSED=!document.hasFocus();window.addEventListener("blur",()=>{UNFOCUSED=true});window.addEventListener("focus",()=>{UNFOCUSED=false});
-const CFG=(()=>{const d={bg:{scene:"sakura",animate:true,intensity:1,density:1,parallax:.6,brightness:1,blur:0,perf:false,audio:false,volume:.4},trail:{mode:REDUCED()?"off":"aurora",length:1,density:1,opacity:.9,color:"",speed:1,size:1,glow:1,perf:false},upd:{channel:"stable",auto:true},mc:{snapshots:false,filter:"releases"},ui:{reduceMotion:false}};
+const CFG=(()=>{const d={bg:{scene:"sakura",animate:true,intensity:1,density:1,parallax:.6,brightness:1,blur:0,perf:false,audio:false,volume:.4},trail:{mode:REDUCED()?"off":"aurora",length:1,density:1,opacity:.9,color:"",speed:1,size:1,glow:1,perf:false},upd:{channel:"stable",auto:true},mc:{snapshots:false,filter:"releases"},ui:{reduceMotion:false},snd:{on:true,style:"soft",volume:.45,hover:false}};
 try{const s=JSON.parse(localStorage.getItem("cfg")||"{}");for(const k in d)Object.assign(d[k],s[k]||{})}catch(e){}return d})();
 const cfgSave=()=>{try{localStorage.setItem("cfg",JSON.stringify(CFG))}catch(e){}};
 const motionApply=()=>{if(CFG.ui.reduceMotion)document.documentElement.dataset.motion="reduced";else delete document.documentElement.dataset.motion};motionApply();
@@ -794,6 +796,92 @@ function blossomTree(H,seed,trunk,pal,dark){let sd=seed;const r=()=>(sd=(sd*1680
 /** Soft horizontal mist that drifts sideways, for depth between layers. */
 function mist(c,w,y,hh,col,t,sp){const g=c.createLinearGradient(0,y-hh,0,y+hh);g.addColorStop(0,col.replace(/[\d.]+\)$/,"0)"));g.addColorStop(.5,col);g.addColorStop(1,col.replace(/[\d.]+\)$/,"0)"));c.fillStyle=g;
  for(let i=0;i<3;i++){const x=((t*sp*(1+i*.3)+i*w*.4)%(w*1.6))-w*.3;c.beginPath();c.ellipse(x,y+Math.sin(i*2)*hh*.3,w*.5,hh,0,0,6.3);c.fill()}}
+/* ===== Halloween helpers: everything is grown once from a seed into its own canvas, then drawn as an image each frame ===== */
+const seeded=s=>()=>(s=(s*16807)%2147483647)/2147483647;
+const mkCanvas=(w,h)=>{const c=document.createElement("canvas");c.width=Math.max(1,Math.ceil(w));c.height=Math.max(1,Math.ceil(h));return c};
+/** Height of ridge() at screen x, so things can stand on the hills. */
+const ridgeY=(x,base,amp,fq,sd,px)=>{const X=x-px;return base-(Math.sin(X*fq+sd)*.5+Math.sin(X*fq*2.3+sd*1.7)*.3+Math.sin(X*fq*5.1+sd*.3)*.2+.5)*amp};
+/** A bare, gnarled tree: crooked tapering limbs that fork and end in hooked twigs, with a faint rim of light on the side of
+   the moon (rx = -1 left, 1 right). The trunk's foot is at the bottom centre of the returned canvas. */
+function deadTree(H,seed,col,rim,lean,rx,dep=7){const r=seeded(seed),W=Math.round(H*2),CH=Math.round(H*1.15),cv=mkCanvas(W,CH),c=cv.getContext("2d"),seg=[];
+ const br=(x,y,a,len,wd,d)=>{const a2=a+(r()-.5)*.7,x2=x+Math.cos(a2)*len,y2=y+Math.sin(a2)*len;seg.push([x,y,x+Math.cos(a)*len*.55+(r()-.5)*len*.2,y+Math.sin(a)*len*.55+(r()-.5)*len*.2,x2,y2,wd]);
+  if(d<=0||len<H*.03){const a3=a2+(r()<.5?-1:1)*(.7+r()*.6),l=len*.42;seg.push([x2,y2,x2+Math.cos(a2)*l*.6,y2+Math.sin(a2)*l*.6,x2+Math.cos(a3)*l,y2+Math.sin(a3)*l,Math.max(.5,wd*.55)]);return}
+  const n=d>5?2:r()<.55?2:3;for(let i=0;i<n;i++){let na=a2+(i-(n-1)/2)*(.55+r()*.45)+(r()-.5)*.35;na+=(-Math.PI/2-na)*.1;br(x2,y2,na,len*(.66+r()*.16),wd*.64,d-1)}
+  if(d>1&&d<6&&r()<.35){let sa=a2+(r()<.5?-1:1)*(.8+r()*.4);if(Math.sin(sa)>-.25)sa=-Math.PI-sa;br(x+(x2-x)*.5,y+(y2-y)*.5,sa,len*.38,wd*.42,1)}};
+ const bx=W*.5,by=CH;br(bx,by-H*.12,-Math.PI/2+lean,H*(dep<7?.31:.27),H*.056,dep);
+ const paint=(st,dx,dy)=>{c.strokeStyle=c.fillStyle=st;c.beginPath();c.moveTo(bx-H*.13+dx,by);c.quadraticCurveTo(bx-H*.03+dx,by-H*.03+dy,bx-H*.028+dx,by-H*.17+dy);c.lineTo(bx+H*.028+dx,by-H*.17+dy);c.quadraticCurveTo(bx+H*.035+dx,by-H*.03+dy,bx+H*.14+dx,by);c.fill();
+  for(const[x,y,mx,my,x2,y2,wd]of seg){c.lineWidth=wd;c.beginPath();c.moveTo(x+dx,y+dy);c.quadraticCurveTo(mx+dx,my+dy,x2+dx,y2+dy);c.stroke()}};
+ c.lineCap="round";c.lineJoin="round";if(rim){const off=Math.max(.8,H*.005);paint(rim,rx*off,-off*.6)}paint(col,0,0);return cv}
+/** A soft cloud: many overlapping round puffs, with its upper edge tinted by the moon. */
+function cloudSprite(W,H,seed,body,rim,str=1,al=.5){const r=seeded(seed),cv=mkCanvas(W,H),c=cv.getContext("2d");
+ for(let i=0;i<34;i++){const u=.1+.8*r(),x=W*u,y=H*(.58+(r()-.5)*.3),rr=H*(.14+.28*r())*(1-Math.abs(u-.5)*1.2),g=c.createRadialGradient(0,0,0,0,0,rr);g.addColorStop(0,`rgba(${body},${al})`);g.addColorStop(.5,`rgba(${body},${al*.6})`);g.addColorStop(1,`rgba(${body},0)`);c.save();c.translate(x,y);c.scale(str,1);c.fillStyle=g;c.fillRect(-rr,-rr,rr*2,rr*2);c.restore()}
+ c.globalCompositeOperation="source-atop";c.fillStyle=lgr(c,0,H,[[0,rim],[.5,rim.replace(/[\d.]+\)$/,"0)")],[1,"rgba(0,0,0,0)"]]);c.fillRect(0,0,W,H);return cv}
+/** A full moon with a warm limb, darker seas and a few soft craters. */
+function moonSprite(R,seed,cols,sea){const r=seeded(seed),S=Math.ceil(R*2+4),cv=mkCanvas(S,S),c=cv.getContext("2d"),m=S/2;
+ const g=c.createRadialGradient(m-R*.28,m-R*.3,R*.05,m,m,R);cols.forEach((k,i)=>g.addColorStop(i/(cols.length-1),k));c.fillStyle=g;c.beginPath();c.arc(m,m,R,0,6.3);c.fill();
+ c.globalCompositeOperation="source-atop";for(let i=0;i<14;i++){const a=r()*6.3,d=Math.sqrt(r())*R*.75,x=m+Math.cos(a)*d,y=m+Math.sin(a)*d,rr=R*(.08+r()*(i<5?.3:.1));const q=c.createRadialGradient(x,y,0,x,y,rr);q.addColorStop(0,sea);q.addColorStop(1,sea.replace(/[\d.]+\)$/,"0)"));c.fillStyle=q;c.fillRect(x-rr,y-rr,rr*2,rr*2)}
+ const e=c.createRadialGradient(m,m,R*.7,m,m,R);e.addColorStop(0,"rgba(0,0,0,0)");e.addColorStop(1,"rgba(90,30,10,.22)");c.fillStyle=e;c.fillRect(0,0,S,S);return cv}
+/** A thin crescent moon: a bright disc with a soft-edged bite taken out of it. */
+function crescentSprite(R){const S=Math.ceil(R*2+4),cv=mkCanvas(S,S),c=cv.getContext("2d"),m=S/2;
+ c.fillStyle=lgr(c,m-R,m+R,[[0,"#fbfff0"],[1,"#d6e8c8"]]);c.beginPath();c.arc(m,m,R,0,6.3);c.fill();
+ c.globalCompositeOperation="destination-out";const x=m-R*.42,y=m-R*.2,g=c.createRadialGradient(x,y,R*.82,x,y,R*.98);g.addColorStop(0,"rgba(0,0,0,1)");g.addColorStop(1,"rgba(0,0,0,0)");c.fillStyle=g;c.fillRect(0,0,S,S);return cv}
+/** A crooked old house with a witch-hat tower; the windows are cut out so whatever is drawn behind them shows as light. */
+function hauntedHouse(H,col){const W=Math.round(H*1.6),CH=Math.round(H*1.75),gy=CH-H*.35,cv=mkCanvas(W,CH),c=cv.getContext("2d"),X=v=>H*(.06+v),Y=v=>gy-v*H;
+ const poly=(...p)=>{c.beginPath();p.forEach(([a,b],i)=>i?c.lineTo(X(a),Y(b)):c.moveTo(X(a),Y(b)));c.closePath();c.fill()};c.fillStyle=c.strokeStyle=col;
+ poly([.28,-.35],[1,-.35],[.99,.5],[.29,.51]);poly([.22,.49],[1.06,.48],[.67,.85]);poly([.8,.6],[.88,.6],[.89,.9],[.81,.91]);poly([.83,.89],[.91,.89],[.91,.93],[.82,.94]);
+ poly([.98,-.35],[1.34,-.35],[1.33,.3],[.99,.31]);poly([.95,.3],[1.38,.29],[1.17,.5]);poly([.43,.58],[.57,.58],[.5,.7]);
+ poly([.05,-.35],[.3,-.35],[.3,.78],[.06,.79]);c.beginPath();c.moveTo(X(.01),Y(.77));c.lineTo(X(.35),Y(.77));c.quadraticCurveTo(X(.25),Y(.95),X(.24),Y(1.18));c.quadraticCurveTo(X(.25),Y(1.24),X(.29),Y(1.22));c.quadraticCurveTo(X(.2),Y(1.28),X(.2),Y(1.15));c.quadraticCurveTo(X(.16),Y(.92),X(.01),Y(.77));c.fill();
+ c.lineWidth=Math.max(1,H*.012);c.beginPath();c.moveTo(X(.405),Y(0));c.lineTo(X(.405),Y(.17));c.moveTo(X(.885),Y(0));c.lineTo(X(.885),Y(.17));c.stroke();poly([.38,.16],[.92,.16],[.9,.2],[.4,.2]);
+ const wins=[[.11,.5,.09,.14,1],[.36,.28,.1,.14],[.56,.28,.1,.14],[.79,.28,.09,.13],[.35,.03,.1,.1],[.6,0,.09,.14],[1.12,.06,.09,.1],[.47,.6,.05,.06]].map(([x,y,w,h,arch],i)=>({x:X(x),y:Y(y+h),w:w*H,h:h*H,arch,ph:i*1.7+.4,on:i!==3&&i!==5,door:i===5}));
+ c.globalCompositeOperation="destination-out";wins.forEach(q=>{c.beginPath();if(q.arch){c.moveTo(q.x,q.y+q.h);c.lineTo(q.x,q.y+q.w/2);c.arc(q.x+q.w/2,q.y+q.w/2,q.w/2,Math.PI,0);c.lineTo(q.x+q.w,q.y+q.h)}else c.rect(q.x,q.y,q.w,q.h);c.fill()});
+ c.globalCompositeOperation="source-over";c.lineWidth=Math.max(.6,H*.011);wins.forEach(q=>{if(q.door)return;c.beginPath();c.moveTo(q.x+q.w/2,q.y);c.lineTo(q.x+q.w/2,q.y+q.h);c.moveTo(q.x,q.y+q.h*.5);c.lineTo(q.x+q.w,q.y+q.h*.5);c.stroke()});
+ // a loose shutter hanging off one window
+ c.save();c.translate(X(.79)+H*.09,Y(.41));c.rotate(.35);c.fillRect(0,0,H*.04,H*.13);c.restore();return{cv,wins,gy}}
+/** A small stone chapel with a steeple and cross; one arched window is cut out to be lit from behind. */
+function chapel(H,col){const W=Math.round(H*1.1),CH=Math.round(H*1.5),gy=CH-H*.3,cv=mkCanvas(W,CH),c=cv.getContext("2d"),X=v=>H*(.05+v),Y=v=>gy-v*H;c.fillStyle=col;
+ const poly=(...p)=>{c.beginPath();p.forEach(([a,b],i)=>i?c.lineTo(X(a),Y(b)):c.moveTo(X(a),Y(b)));c.closePath();c.fill()};
+ poly([.3,-.3],[1,-.3],[1,.35],[.3,.35]);poly([.26,.34],[1.04,.34],[.65,.6]);poly([.04,-.3],[.3,-.3],[.3,.7],[.04,.7]);poly([.01,.69],[.33,.69],[.17,1.05]);
+ c.fillRect(X(.16),Y(1.18),Math.max(1,H*.02),H*.14);c.fillRect(X(.12),Y(1.13),H*.1,Math.max(1,H*.02));
+ const win={x:X(.12),y:Y(.58),w:H*.1,h:H*.16};c.globalCompositeOperation="destination-out";c.beginPath();c.moveTo(win.x,win.y+win.h);c.lineTo(win.x,win.y+win.w/2);c.arc(win.x+win.w/2,win.y+win.w/2,win.w/2,Math.PI,0);c.lineTo(win.x+win.w,win.y+win.h);c.fill();
+ [.45,.6,.75].forEach(x=>{c.beginPath();c.moveTo(X(x),Y(.08));c.lineTo(X(x),Y(.22));c.arc(X(x+.035),Y(.22),H*.035,Math.PI,0);c.lineTo(X(x+.07),Y(.08));c.fill()});return{cv,win,gy}}
+/** Jack-o'-lantern: a ribbed pumpkin body and, separately, its carved face, which is drawn with a flickering alpha. */
+function pumpkin(S,seed){const r=seeded(seed),W=Math.ceil(S*1.3),CH=Math.ceil(S*1.15),cx=W/2,cy=CH*.6,rx=S*.5,ry=S*.36,body=mkCanvas(W,CH),face=mkCanvas(W,CH),b=body.getContext("2d"),f=face.getContext("2d");
+ [[-.55,.5],[.55,.5],[-.3,.62],[.3,.62],[0,.6]].forEach(([o,s])=>{const x=cx+o*rx,g=b.createRadialGradient(cx,cy+ry*.15,ry*.1,cx,cy,rx*1.05);g.addColorStop(0,"#e27a2c");g.addColorStop(.5,"#a9461a");g.addColorStop(1,"#3d1606");b.fillStyle=g;b.beginPath();b.ellipse(x,cy,rx*s,ry,0,0,6.3);b.fill();b.strokeStyle="rgba(40,12,3,.55)";b.lineWidth=Math.max(.5,S*.014);b.stroke()});
+ b.fillStyle=lgr(b,cy-ry,cy,[[0,"rgba(255,200,140,.18)"],[1,"rgba(255,200,140,0)"]]);b.beginPath();b.ellipse(cx,cy,rx*.95,ry,0,Math.PI,0);b.fill();
+ b.fillStyle="#3b2b12";b.beginPath();b.moveTo(cx-S*.04,cy-ry*.85);b.quadraticCurveTo(cx-S*.03,cy-ry-S*.12,cx+S*.06,cy-ry-S*.18);b.lineTo(cx+S*.08,cy-ry-S*.13);b.quadraticCurveTo(cx+S*.03,cy-ry-S*.08,cx+S*.05,cy-ry*.85);b.fill();
+ const g=f.createRadialGradient(cx,cy,0,cx,cy,rx);g.addColorStop(0,"#fff6c0");g.addColorStop(.6,"#ffc44a");g.addColorStop(1,"#ff8a1c");f.fillStyle=g;
+ const tri=(x,y,s,up)=>{f.beginPath();f.moveTo(x-s,y+s*.55*up);f.lineTo(x+s,y+s*.55*up);f.lineTo(x+s*.15*(r()-.5),y-s*.8*up);f.fill()};
+ tri(cx-rx*.36,cy-ry*.22,rx*.17,1);tri(cx+rx*.36,cy-ry*.22,rx*.17,1);tri(cx,cy+ry*.08,rx*.08,1);
+ const n=4+((r()*3)|0),mw=rx*.68,my=cy+ry*.3;f.beginPath();f.moveTo(cx-mw,my-ry*.12);for(let i=0;i<=n*2;i++){const x=cx-mw+i*mw/n,top=i%2?my-ry*.02:my+ry*.12;f.lineTo(x,top)}f.lineTo(cx+mw,my-ry*.12);f.quadraticCurveTo(cx,my+ry*.65,cx-mw,my-ry*.12);f.fill();
+ return{body,face,W,CH,cx,cy,S}}
+/** One bat; f in -1..1 is the wing beat. */
+function bat(c,x,y,s,f){c.beginPath();for(const d of[-1,1]){const tx=x+d*s,ty=y-s*.35*f-s*.05;c.moveTo(x+d*s*.08,y-s*.1);c.quadraticCurveTo(x+d*s*.5,y-s*.45*f-s*.25,tx,ty);c.quadraticCurveTo(x+d*s*.82,ty+s*.12,x+d*s*.72,ty+s*.24+s*.1*f);c.quadraticCurveTo(x+d*s*.6,y-s*.05*f,x+d*s*.46,y+s*.15-s*.12*f);c.quadraticCurveTo(x+d*s*.32,y+s*.02,x+d*s*.25,y+s*.18);c.quadraticCurveTo(x+d*s*.15,y+s*.05,x+d*s*.08,y+s*.12);c.closePath()}c.fill();
+ c.beginPath();c.ellipse(x,y+s*.02,s*.1,s*.17,0,0,6.3);c.fill();c.beginPath();c.moveTo(x-s*.09,y-s*.1);c.lineTo(x-s*.07,y-s*.27);c.lineTo(x-s*.02,y-s*.14);c.lineTo(x+s*.02,y-s*.14);c.lineTo(x+s*.07,y-s*.27);c.lineTo(x+s*.09,y-s*.1);c.fill()}
+/** A row of weathered gravestones (rounded slabs, crosses, obelisks, broken stones), lit along the moon-side edge. */
+function stoneRow(W,H,n,seed,s0,s1,col,rim){const r=seeded(seed),cv=mkCanvas(W,H),c=cv.getContext("2d"),base=H*.8;
+ const path=(t,wd,s)=>{c.beginPath();const b=s*.4;if(t===1){c.rect(-wd*.14,-s,wd*.28,s+b);c.rect(-wd*.5,-s*.76,wd,wd*.26)}else if(t===2){c.rect(-wd*.5,-s*.16,wd,s*.16+b);c.moveTo(-wd*.32,-s*.16);c.lineTo(-wd*.22,-s*.88);c.lineTo(0,-s);c.lineTo(wd*.22,-s*.88);c.lineTo(wd*.32,-s*.16)}
+  else if(t===3){c.moveTo(-wd/2,b);c.lineTo(-wd/2,-s*.78);c.quadraticCurveTo(-wd*.5,-s,0,-s);c.quadraticCurveTo(wd*.5,-s,wd/2,-s*.78);c.lineTo(wd/2,b)}
+  else if(t===4){c.moveTo(-wd/2,b);c.lineTo(-wd/2,-s*.7);c.lineTo(-wd*.2,-s*.62);c.lineTo(0,-s*.8);c.lineTo(wd*.18,-s*.56);c.lineTo(wd/2,-s*.66);c.lineTo(wd/2,b)}
+  else{c.moveTo(-wd/2,b);c.lineTo(-wd/2,-s+wd/2);c.arc(0,-s+wd/2,wd/2,Math.PI,0);c.lineTo(wd/2,b)}};
+ for(let i=0;i<n;i++){const x=W*(i+.2+r()*.6)/n,s=s0+(s1-s0)*r(),t=(r()*5)|0,wd=s*(t===2?.42:t===1?.62:.55+r()*.2),tilt=(r()-.5)*.22,o=Math.max(.7,s*.025);
+  c.save();c.translate(x,base+r()*H*.06);c.rotate(tilt);c.save();c.translate(o,-o);path(t,wd,s);c.fillStyle=rim;c.fill();c.restore();path(t,wd,s);c.fillStyle=col;c.fill();
+  c.fillStyle=lgr(c,-s,0,[[0,"rgba(190,230,210,.07)"],[1,"rgba(190,230,210,0)"]]);c.fill();if(t===0||t===3){c.fillStyle="rgba(0,0,0,.25)";c.fillRect(-wd*.25,-s*.62,wd*.5,Math.max(.6,s*.025));c.fillRect(-wd*.18,-s*.52,wd*.36,Math.max(.6,s*.02))}c.restore()}return cv}
+/** Wrought-iron fence: spear-tipped pickets on two rails, heavier posts with ball finials, a few pickets bent or missing. */
+function ironFence(W,H,seed,col){const r=seeded(seed),cv=mkCanvas(W,H),c=cv.getContext("2d"),sp=H*.12,top=H*.24,pw=Math.max(1,sp*.17);c.fillStyle=c.strokeStyle=col;
+ c.fillRect(0,top+H*.1,W,Math.max(1,H*.035));c.fillRect(0,H*.8,W,Math.max(1,H*.035));let i=0;
+ for(let x=sp*.5;x<W;x+=sp,i++){if(i%9===0){c.fillRect(x-sp*.3,H*.14,sp*.6,H);c.fillRect(x-sp*.4,H*.14,sp*.8,sp*.25);c.beginPath();c.arc(x,H*.14-sp*.3,sp*.33,0,6.3);c.fill();continue}
+  if(r()<.06)continue;c.save();c.translate(x,H);c.rotate(r()<.1?(r()-.5)*.25:0);c.fillRect(-pw/2,-(H-top),pw,H-top);c.beginPath();c.moveTo(0,-(H-top)-sp*.7);c.lineTo(sp*.22,-(H-top)-sp*.18);c.lineTo(0,-(H-top));c.lineTo(-sp*.22,-(H-top)-sp*.18);c.fill();c.restore();
+  if(i%9!==8){c.lineWidth=Math.max(.6,pw*.55);c.beginPath();c.arc(x+sp/2,top+H*.1-sp*.28,sp*.22,0,6.3);c.stroke()}}return cv}
+/** Rolling fog: wide soft blobs (stretched radial gradients) that drift sideways, with no visible edges. */
+function fog(c,w,y,hh,col,t,n){const z=col.replace(/[\d.]+\)$/,"0)"),mid=col.replace(/([\d.]+)\)$/,(m,a)=>(a*.5)+")");for(let i=0;i<n;i++){const span=w*1.9,x=((t*(1+i*.21)+i*w*.61)%span+span)%span-w*.45,yy=y+Math.sin(i*2.1)*hh*.3,rx=w*(.3+.1*Math.sin(i*1.7)),g=c.createRadialGradient(0,0,0,0,0,hh);
+ g.addColorStop(0,col);g.addColorStop(.5,mid);g.addColorStop(1,z);c.save();c.translate(x,yy);c.scale(rx/hh,1);c.fillStyle=g;c.fillRect(-hh,-hh,hh*2,hh*2);c.restore()}}
+/** Falling autumn leaves (maple and plain), tumbling as they fall. z in 0..1; z>.8 can go on the overlay canvas. */
+function LeafSys(pal){let a=[];const leaf=(c,x,y,s,rot,fl,col,al,mp)=>{c.save();c.translate(x,y);c.rotate(rot);c.scale(1,fl);c.globalAlpha=al;c.fillStyle=col;c.beginPath();
+  if(mp){for(let i=0;i<=40;i++){const th=i/40*Math.PI*2,rr=s*(.35+.65*Math.pow(Math.abs(Math.cos(th*2.5)),1.6))*(1-.12*Math.abs(Math.sin(th*7.5)));c.lineTo(Math.cos(th-Math.PI/2)*rr,Math.sin(th-Math.PI/2)*rr*.95)}}else{c.moveTo(0,-s);c.quadraticCurveTo(s*.75,-s*.1,0,s);c.quadraticCurveTo(-s*.75,-s*.1,0,-s)}c.fill();
+  if(s>5){c.strokeStyle="rgba(40,15,5,.35)";c.lineWidth=.6;c.beginPath();c.moveTo(0,-s*.8);c.lineTo(0,s*1.15);c.stroke()}c.restore()};
+ return{init(o,n){a=Array.from({length:Math.round(n*o.dens)},()=>({x:Math.random()*o.w*1.2-o.w*.1,y:Math.random()*o.h,z:Math.random(),ph:Math.random()*6.3,r:Math.random()*6.3,vr:rnd(-1.6,1.6),c:pal[(Math.random()*pal.length)|0],mp:Math.random()<.55}))},
+ step(o){a.forEach(p=>{const k=o.k*o.dt;p.y+=(12+p.z*26)*k*(1+.5*Math.sin(o.t*.0011+p.ph));p.x+=(10+p.z*22)*k*Math.sin(o.t*.0004+p.ph)+8*k;p.r+=p.vr*k;if(p.y>o.h+20){p.y=-20;p.x=Math.random()*o.w*1.1-o.w*.05}if(p.x>o.w+20)p.x=-20;if(p.x<-30)p.x=o.w+20})},
+ draw(c,o,which){const px=o.m.x*o.px*40,py=o.m.y*o.px*16;a.forEach(p=>{const fr=p.z>.8;if(which==="back"&&fr||which==="front"&&!fr)return;leaf(c,p.x-px*p.z*1.4,p.y-py*p.z,3+p.z*7,p.r,Math.cos(p.r*1.3+p.ph),p.c,.45+p.z*.5,p.mp)});c.globalAlpha=1}}}
 /* ===== Scenes. draw(c,o): o={t,dt,w,h,k,m,px,dens,fgOn}. front(c,o) draws overlay petals on the home page ===== */
 const SCENES={
 sakura(){const P=PetalSys(["#ffc0d3","#ffb0c8","#ffd6e2","#f79ab8"]);let T1,T2;return{init(o){P.init(o,80);T1=blossomTree(Math.round(o.h*.75),17,"#2a1430",["#ffb7cc","#ff9fbd","#ffd3e0","#f58fb0"],"#9c4a72");T2=blossomTree(Math.round(o.h*.45),43,"#3a1d42",["#f8a9c4","#ffc2d6","#e98cb0"],"#8c4a74")},
@@ -910,13 +998,83 @@ Is.forEach(is=>{const u=Math.max(2,Math.round(h*.012*is.s)),d=.4+is.s*.3,bob=Mat
  if(is.fall){const fx=cx+(wd/2-1)*u,top=cy+u,len=sea-top;c.fillStyle="rgba(150,210,255,.75)";c.fillRect(fx,top,u,len);c.fillStyle="rgba(255,255,255,.55)";
   Dr.forEach(q=>{const y=top+((q.y+T*.6)%1)*len;c.fillRect(fx+q.x*u,y,1,u*.8)});glow(c,fx+u/2,sea,u*6,"rgba(255,255,255,.55)")}});
 Cl.forEach(p=>{if(p.d>=.55)cloud(p,.85)})}}},
+halloween(){
+/* Haunted Night: a harvest moon rising out of an orange dusk, clouds sliding across it, a crooked house with candlelit
+   windows on the hill, a bare tree, jack-o'-lanterns flickering on the ground, bats, and low fog rolling through. */
+let S,M,T1,Hs,HT,HX,Pk,Cl,B,Sh;const fl=(T,p)=>.78+.1*Math.sin(T*7.3+p)+.07*Math.sin(T*13.1+p*2.3)+.05*Math.sin(T*23.7+p*.7);
+return{init(o){const{w,h}=o;S=starField(Math.round(w*h/6000),w,h,.45);M=moonSprite(h*.13,5,["#fff3cf","#ffd88f","#f6a650","#d9772f"],"rgba(190,95,35,.28)");
+ T1=deadTree(Math.max(10,Math.round(h*.66)),71,"#08040c","rgba(255,170,100,.5)",-.18,1,6);HT=deadTree(Math.max(8,Math.round(h*.14)),23,"#1f0e27",null,.15,1);Hs=hauntedHouse(Math.max(10,Math.round(h*.13)),"#1f0e27");Sh=[[.18,.09,51],[.47,.07,53],[.72,.08,57]].map(([x,s,sd])=>({x:w*x,T:deadTree(Math.max(6,Math.round(h*s)),sd,"#0b0510",null,(x-.5)*.6,1,4)}));
+ HX=w*.42;let best=1e9;for(let x=w*.34;x<=w*.54;x+=4){const y=ridgeY(x,h*.79,h*.12,.0045,5,0);if(y<best){best=y;HX=x}}
+ Pk=[[.31,.072,3],[.365,.05,8],[.56,.06,14],[.61,.042,19],[.93,.07,27],[.035,.06,31]].map(([x,s,sd])=>({x:w*x,ph:sd,P:pumpkin(Math.max(6,h*s),sd)}));
+ Cl=[[.18,1.1,.09,4],[.3,.8,.06,6],[.24,.95,.12,9],[.42,1.2,.05,12],[.12,.7,.08,15]].map(([y,s,v,sd],i)=>({sp:cloudSprite(h*s,h*.17,sd,"34,14,44","rgba(255,170,110,.55)",1.8,.5),y,v:v*h,x0:i*w*.37+w*.55,d:.15+i*.06,a:.75+.05*i}));
+ B=Array.from({length:Math.max(2,Math.round(7*o.dens))},(_,i)=>({x:Math.random()*w,y:h*rnd(.1,.5),s:h*rnd(.014,.034),v:h*rnd(.05,.11)*(i%3?1:-1),ph:rnd(0,6.3),fr:rnd(6,9)}))},
+draw(c,o){const{w,h,t}=o,k=o.k,px=o.m.x*o.px*30,py=o.m.y*o.px*12,T=t*.001*k;
+c.fillStyle=lgr(c,0,h,[[0,"#0c071d"],[.28,"#22103a"],[.5,"#4a1b4a"],[.64,"#8c3540"],[.74,"#c9602e"],[.86,"#e9903a"],[1,"#f0a44a"]]);c.fillRect(0,0,w,h);drawStars(c,S,t,px,py,"#ffe8d2",.55);
+const mx=w*.8-px*.15,my=h*.27-py*.1,mr=h*.13;glow(c,mx,my,h*.9,"rgba(255,120,50,.16)");glow(c,mx,my,mr*2.6,"rgba(255,170,90,.3)");glow(c,mx,my,mr*1.35,"rgba(255,225,160,.55)");c.drawImage(M,mx-M.width/2,my-M.height/2);
+Cl.forEach(q=>{const cw=q.sp.width,span=w+cw*2,x=((q.x0+T*q.v)%span+span)%span-cw-px*q.d;c.globalAlpha=Math.min(1,q.a*(.6+.4*k));c.drawImage(q.sp,x,q.y*h-py*q.d-q.sp.height/2)});c.globalAlpha=1;
+c.fillStyle=lgr(c,h*.55,h*.8,[[0,"rgba(255,140,60,0)"],[1,"rgba(255,140,60,.18)"]]);c.fillRect(0,h*.55,w,h*.25);
+ridge(c,w,h,h*.72,h*.1,.0032,2,"#3c1836",-px*.25);fog(c,w,h*.71,h*.05,"rgba(255,150,110,.16)",T*16,3);
+// the house stands on the highest point of the middle hills; its windows are lit from behind
+const p2=-px*.55,hx=HX+p2,hy=ridgeY(HX,h*.79,h*.12,.0045,5,0)+Hs.cv.height*.02-py*.3,ox=hx-Hs.cv.width*.45,oy=hy-Hs.gy;
+Hs.wins.forEach(q=>{const f=q.on?fl(T,q.ph):0;c.fillStyle=q.on?`rgba(255,${(150+60*f)|0},${(60+40*f)|0},${.55+.45*f})`:q.door?"#120814":"#2b1424";c.fillRect(ox+q.x,oy+q.y,q.w,q.h)});
+c.drawImage(Hs.cv,ox,oy);c.drawImage(HT,hx+Hs.cv.width*.55-HT.width/2,hy+2-HT.height);ridge(c,w,h,h*.79,h*.12,.0045,5,"#1f0e27",p2-0);
+c.save();c.globalCompositeOperation="lighter";Hs.wins.forEach(q=>{if(!q.on)return;const f=fl(T,q.ph);glow(c,ox+q.x+q.w/2,oy+q.y+q.h/2,Hs.cv.height*.16*(.85+.15*f),`rgba(255,140,50,${.3*f*k})`)});c.restore();
+fog(c,w,h*.81,h*.05,"rgba(190,120,170,.16)",T*22,3);
+B.forEach(b=>{b.x+=b.v*o.dt*k;if(b.x>w+40)b.x=-40;if(b.x<-40)b.x=w+40;const x=b.x-px*.5,y=b.y+Math.sin(T*.9+b.ph)*h*.03-py*.3,f=Math.sin(T*b.fr+b.ph);c.save();c.fillStyle="#0b0510";c.translate(x,y);c.scale(b.v<0?-1:1,1);bat(c,0,0,b.s,f);c.restore()});
+const tx=w*.95-px*.85,ty=h*.97-py*.4;c.save();c.translate(tx,ty);c.rotate(Math.sin(T*.5)*.006);c.drawImage(T1,-T1.width/2,-T1.height);c.restore();
+const p3=-px;Sh.forEach(q=>c.drawImage(q.T,q.x+p3-q.T.width/2,ridgeY(q.x,h*.93,h*.07,.0065,8,0)+q.T.height*.06-py*.6-q.T.height));ridge(c,w,h,h*.93,h*.07,.0065,8,"#0b0510",p3);
+c.fillStyle=lgr(c,h*.85,h,[[0,"rgba(255,120,40,0)"],[1,"rgba(255,120,40,.07)"]]);c.fillRect(0,h*.85,w,h*.15);
+Pk.forEach(q=>{const P=q.P,x=q.x+p3,y=ridgeY(q.x,h*.93,h*.07,.0065,8,0)+P.S*.12-py*.6,f=fl(T,q.ph);
+ c.save();c.globalCompositeOperation="lighter";c.translate(x,y);c.scale(1,.35);glow(c,0,0,P.S*1.9,`rgba(255,120,40,${.35*f*k})`);c.restore();
+ c.drawImage(P.body,x-P.cx,y-P.cy-P.S*.36);c.globalAlpha=Math.min(1,.55+.45*f);c.drawImage(P.face,x-P.cx,y-P.cy-P.S*.36);c.globalAlpha=1;
+ c.save();c.globalCompositeOperation="lighter";glow(c,x,y-P.S*.36,P.S*1.5*(.9+.1*f),`rgba(255,150,50,${.32*f*k})`);c.restore()});
+fog(c,w,h*.93,h*.06,"rgba(160,110,170,.14)",T*14,4);fog(c,w,h*1.01,h*.06,"rgba(120,80,130,.2)",T*20,3)}}},
+halloweenGrave(){
+/* Graveyard: a crescent moon over a misty churchyard, a chapel on the far hill, rows of leaning stones behind an iron
+   fence, a bare tree, green will-o'-wisps, a faint ghost drifting through, and autumn leaves tumbling down. */
+const P=LeafSys(["#d9622b","#b8401f","#e8932f","#8a4a22","#c9772b","#7a2e1a","#e0a040"]);let S,M,Ch,R1,R2,Fn,T1,Wi,Cl;
+return{init(o){const{w,h}=o;P.init(o,46);S=starField(Math.round(w*h/4200),w,h,.55);M=crescentSprite(h*.06);Ch=chapel(Math.max(10,Math.round(h*.12)),"#0e1d20");
+ R1=stoneRow(w*1.15,h*.16,Math.max(4,Math.round(w/h*7)),11,h*.035,h*.06,"#1b2b2b","#587268");R2=stoneRow(w*1.2,h*.3,Math.max(3,Math.round(w/h*4.5)),37,h*.08,h*.15,"#111b1c","#7a968a");
+ Fn=ironFence(w*1.2,h*.12,5,"#050a0c");T1=deadTree(Math.max(10,Math.round(h*.6)),97,"#04080a","rgba(170,220,190,.4)",.16,1);
+ Wi=Array.from({length:Math.max(3,Math.round(16*o.dens))},()=>({x:Math.random()*w,y:h*rnd(.6,.95),ph:rnd(0,6.3),r:rnd(.6,1.3),d:rnd(.4,1),blue:Math.random()<.3}));
+ Cl=[[.1,1.4,.02,41],[.2,1,.035,43],[.06,.9,.025,47]].map(([y,s,v,sd],i)=>({sp:cloudSprite(h*s,h*.08,sd,"70,100,100","rgba(200,240,220,.35)",3,.3),y,v:v*h,x0:i*w*.45,d:.1+i*.05}))},
+draw(c,o){const{w,h,t}=o,k=o.k,px=o.m.x*o.px*30,py=o.m.y*o.px*12,T=t*.001*k;
+c.fillStyle=lgr(c,0,h,[[0,"#03070b"],[.4,"#0a171d"],[.66,"#173029"],[.82,"#2a4636"],[1,"#1c3028"]]);c.fillRect(0,0,w,h);drawStars(c,S,t,px,py,"#e8fff2",.75);
+const mx=w*.64-px*.12,my=h*.14-py*.08,mr=h*.06;glow(c,mx,my,h*.55,"rgba(150,220,180,.13)");glow(c,mx,my,mr*2.4,"rgba(210,255,225,.22)");c.fillStyle="rgba(150,190,170,.07)";c.beginPath();c.arc(mx,my,mr,0,6.3);c.fill();c.drawImage(M,mx-M.width/2,my-M.height/2);
+c.globalAlpha=.7;Cl.forEach(q=>{const cw=q.sp.width,span=w+cw*2,x=((q.x0+T*q.v)%span+span)%span-cw-px*q.d;c.drawImage(q.sp,x,q.y*h-py*q.d-q.sp.height/2)});c.globalAlpha=1;
+glow(c,w*.5-px*.2,h*.78,h*.55,"rgba(120,200,150,.12)");
+// far hill with the chapel on it
+const p1=-px*.25,cx=w*.45,cy=ridgeY(cx,h*.64,h*.09,.0035,4,0)+Ch.cv.height*.03-py*.15,ox=cx+p1-Ch.cv.width*.45,oy=cy-Ch.gy;
+const cf=.8+.1*Math.sin(T*5+1)+.1*Math.sin(T*11.3);c.fillStyle=`rgba(230,240,150,${.55+.4*cf})`;c.fillRect(ox+Ch.win.x,oy+Ch.win.y,Ch.win.w,Ch.win.h);c.drawImage(Ch.cv,ox,oy);
+ridge(c,w,h,h*.64,h*.09,.0035,4,"#0e1d20",p1);c.save();c.globalCompositeOperation="lighter";glow(c,ox+Ch.win.x+Ch.win.w/2,oy+Ch.win.y+Ch.win.h/2,Ch.cv.height*.18,`rgba(220,240,140,${.25*cf*k})`);c.restore();
+fog(c,w,h*.66,h*.05,"rgba(130,200,160,.16)",T*12,3);
+// back row of stones, then the ghost drifting between the rows
+const p2=-px*.45;c.drawImage(R1,p2-w*.07,h*.73-R1.height*.8-py*.25);ridge(c,w,h,h*.77,h*.025,.004,9,"#0b1517",p2);
+{const span=w*1.6,gx=((T*h*.03+w*.6)%span)-w*.3-px*.5,gy=h*.68+Math.sin(T*.8)*h*.015-py*.3,gs=h*.07,fade=Math.sin(Math.max(0,Math.min(1,(gx+w*.3)/span))*Math.PI),a=.22*fade*(.6+.4*k);
+ if(a>.01){c.save();c.globalCompositeOperation="lighter";glow(c,gx,gy-gs*.3,gs*1.6,`rgba(150,255,200,${.16*fade})`);c.restore();c.save();c.globalAlpha=a;const g=c.createLinearGradient(0,gy-gs,0,gy+gs);g.addColorStop(0,"rgba(230,255,240,1)");g.addColorStop(.55,"rgba(200,245,225,.7)");g.addColorStop(1,"rgba(200,245,225,0)");c.fillStyle=g;
+  c.beginPath();c.arc(gx,gy-gs*.45,gs*.4,Math.PI,0);c.bezierCurveTo(gx+gs*.42,gy-gs*.1,gx+gs*.5,gy+gs*.4,gx+gs*.42,gy+gs*.85);
+  for(let i=1;i<=5;i++){const xx=gx+gs*.42-i*gs*.23,yy=gy+gs*.85+Math.sin(T*3+i*1.3)*gs*.07+i*gs*.035;c.quadraticCurveTo(xx+gs*.115,yy-gs*.2,xx,yy)}
+  c.bezierCurveTo(gx-gs*.62,gy+gs*.4,gx-gs*.42,gy-gs*.1,gx-gs*.4,gy-gs*.45);c.fill();
+  c.fillStyle="rgba(10,30,28,.8)";c.beginPath();c.ellipse(gx-gs*.16,gy-gs*.42,gs*.07,gs*.11,0,0,6.3);c.ellipse(gx+gs*.16,gy-gs*.42,gs*.07,gs*.11,0,0,6.3);c.fill();c.beginPath();c.ellipse(gx,gy-gs*.15,gs*.06,gs*.08,0,0,6.3);c.fill();c.restore()}}
+fog(c,w,h*.76,h*.045,"rgba(140,210,170,.18)",T*18,3);
+// iron fence on the middle ground, the bare tree behind it on the right
+const p3=-px*.7;c.save();c.translate(w*.9+p3,h*.86-py*.45);c.rotate(Math.sin(T*.45)*.005);c.drawImage(T1,-T1.width/2,-T1.height);c.restore();
+c.drawImage(Fn,p3-w*.1,h*.835-Fn.height-py*.45);ridge(c,w,h,h*.845,h*.02,.005,3,"#070e10",p3);
+fog(c,w,h*.85,h*.05,"rgba(130,200,160,.18)",T*24,4);
+// front stones, ground and fog
+const p4=-px;c.drawImage(R2,p4-w*.1,h*.965-R2.height*.8-py*.6);ridge(c,w,h,h*.985,h*.025,.006,6,"#050a0b",p4);
+c.fillStyle=lgr(c,h*.7,h,[[0,"rgba(120,190,150,0)"],[1,"rgba(120,190,150,.12)"]]);c.fillRect(0,h*.7,w,h*.3);
+c.save();c.globalCompositeOperation="lighter";Wi.forEach(q=>{const x=q.x+Math.sin(T*.3+q.ph)*h*.05-px*q.d,y=q.y+Math.sin(T*.47+q.ph*1.7)*h*.025-py*q.d*.5,f=.5+.5*Math.sin(T*1.6+q.ph*3),a=f*f*k,col=q.blue?"150,220,255":"170,255,160";
+ glow(c,x,y,h*.035*q.r,`rgba(${col},${.35*a})`);glow(c,x,y,h*.008*q.r,`rgba(240,255,220,${.9*a})`)});c.restore();
+fog(c,w,h*.97,h*.05,"rgba(120,190,150,.13)",T*15,4);fog(c,w,h*1.02,h*.05,"rgba(100,170,130,.16)",T*22,3);
+P.step(o);P.draw(c,o,o.fgOn?"back":"all")},front(c,o){P.draw(c,o,"front")}}},
 minimal(){
 /* Deep blue with three large soft lights drifting very slowly, and fine dust. Quiet enough to sit behind any page. */
 let D;return{init(o){D=Array.from({length:Math.round(42*o.dens)},()=>({x:Math.random()*o.w,y:Math.random()*o.h,s:rnd(.6,1.6),v:rnd(2,6),d:rnd(.2,1)}))},
 draw(c,o){const{w,h,t}=o,px=o.m.x*o.px*20,py=o.m.y*o.px*10,T=t*.001*o.k;c.fillStyle=lgr(c,0,h,[[0,"#090c15"],[1,"#0d1422"]]);c.fillRect(0,0,w,h);
 c.save();c.globalCompositeOperation="lighter";[[.25,.3,.65,"80,130,230",.24,0],[.75,.25,.55,"130,100,230",.2,2],[.6,.8,.7,"60,170,200",.16,4]].forEach(([x,y,r,col,a,p])=>glow(c,w*(x+.06*Math.sin(T*.05+p))-px*(.5+p*.1),h*(y+.05*Math.cos(T*.04+p))-py*.4,h*r,`rgba(${col},${a})`));c.restore();
 D.forEach(p=>{p.y-=p.v*o.dt*o.k;if(p.y<-3){p.y=h+3;p.x=Math.random()*w}c.globalAlpha=.15+.25*p.d;c.fillStyle="#d6e6ff";c.fillRect(p.x-px*p.d,p.y,p.s,p.s)});c.globalAlpha=1}}}};
-const SCENE_NAMES={sakura:"Sakura",sakuraNight:"Sakura Night",aurora:"Aurora Borealis",nebula:"Cosmic Nebula",rain:"Midnight Rain",islands:"Floating Islands",minimal:"Minimal"};
+const SCENE_NAMES={sakura:"Sakura",sakuraNight:"Sakura Night",aurora:"Aurora Borealis",nebula:"Cosmic Nebula",rain:"Midnight Rain",islands:"Floating Islands",halloween:"Haunted Night",halloweenGrave:"Graveyard",minimal:"Minimal"};
 
 /* ===== Engine ===== */
 const bgc=document.getElementById("bg"),bx=bgc.getContext("2d");
@@ -1098,7 +1256,7 @@ cv.onpointermove=e=>{if(SG.drag===null)return;SG.tgt+=(e.clientX-SG.drag)*.012;S
 cv.onpointerup=cv.onpointercancel=()=>{SG.drag=null;SG.idleAt=performance.now();cv.style.cursor="grab"};
 const loop=ts=>{if(!document.body.contains(cv)){try{r.dispose()}catch(e){}return}SG.id=requestAnimationFrame(loop);if(document.hidden)return;if(GAME_RUNNING||ts-last<(UNFOCUSED?100:CFG.bg.perf?33:15))return;const dt=Math.min(.05,(ts-last)/1000);last=ts;
 const w=cv.clientWidth,h=cv.clientHeight;if(w!==sw||h!==sh2){sw=w;sh2=h;r.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix()}
-const t=ts*.001,P=SG.P;if(!REDUCED()){if(SG.drag===null&&ts-SG.idleAt>2500)SG.tgt+=dt*.3;P.rArm.rotation.x=Math.sin(t*1.3)*.07;P.lArm.rotation.x=-Math.sin(t*1.3)*.07;P.head.rotation.y=Math.sin(t*.6)*.12;P.head.rotation.x=Math.sin(t*.9)*.03;P.body.scale.y=1+Math.sin(t*1.6)*.006}
+const t=ts*.001,P=SG.P;if(P&&P.rArm&&!REDUCED()){if(SG.drag===null&&ts-SG.idleAt>2500)SG.tgt+=dt*.3;P.rArm.rotation.x=Math.sin(t*1.3)*.07;P.lArm.rotation.x=-Math.sin(t*1.3)*.07;P.head.rotation.y=Math.sin(t*.6)*.12;P.head.rotation.x=Math.sin(t*.9)*.03;P.body.scale.y=1+Math.sin(t*1.6)*.006}
 SG.ry+=(SG.tgt-SG.ry)*Math.min(1,dt*10);if(SG.model)SG.model.rotation.y=SG.ry;r.render(sc,cam)};SG.id=requestAnimationFrame(loop);
 const a=curAcct();if(window.auroras&&auroras.skinRefresh&&a&&!a.preview&&SG.loadedFor!==a.uuid){SG.loadedFor=a.uuid;auroras.skinRefresh(a.uuid).then(async n=>{if(n&&n.skin&&n.skin!==a.skin){await addAccount({...n,microsoft:a.microsoft,preview:a.preview})}}).catch(()=>{})}
 }).catch(homeFallback)}
@@ -1151,6 +1309,27 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-acct]");if
 const cfgGet=p=>p.split(".").reduce((o,k)=>o[k],CFG);
 const cfgSet=(p,v)=>{const k=p.split("."),last=k.pop();k.reduce((o,x)=>o[x],CFG)[last]=v;cfgSave()};
 const sl=(p,label,min,max,step,fmt)=>{const v=cfgGet(p);return `<div class="set"><label for="c-${p}">${label}</label><span style="display:flex;gap:10px;align-items:center"><input type="range" id="c-${p}" data-cfg="${p}" min="${min}" max="${max}" step="${step}" value="${v}" style="width:180px"><small style="min-width:40px;text-align:right">${fmt?fmt(v):v}</small></span></div>`};
+/* Interface sounds: generated with Web Audio (no sound files, nothing downloaded). Styles, volume and hover sounds are in
+   Settings > Sounds. Toggles play a higher note when switched on. */
+const SFX={c:null,last:0,
+  ctx(){if(!SFX.c){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;SFX.c=new C()}if(SFX.c.state==="suspended")SFX.c.resume().catch(()=>{});return SFX.c},
+  tone(c,out,{type="sine",f0,f1,t=0,dur=.06,peak=1}){const o=c.createOscillator(),g=c.createGain(),n=c.currentTime+t;o.type=type;o.frequency.setValueAtTime(f0,n);if(f1)o.frequency.exponentialRampToValueAtTime(f1,n+dur);g.gain.setValueAtTime(0,n);g.gain.linearRampToValueAtTime(peak,n+.004);g.gain.exponentialRampToValueAtTime(.0001,n+dur);o.connect(g);g.connect(out);o.start(n);o.stop(n+dur+.02)},
+  noise(c,out,{dur=.025,hp=3000,peak=1}){const b=c.createBuffer(1,Math.ceil(c.sampleRate*dur),c.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,3);const s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();f.type="highpass";f.frequency.value=hp;g.gain.value=peak;s.buffer=b;s.connect(f);f.connect(g);g.connect(out);s.start()},
+  STYLES:{soft:(c,o,k)=>SFX.tone(c,o,{f0:520*k,f1:380*k,dur:.07,peak:.5}),
+    tick:(c,o,k)=>SFX.noise(c,o,{dur:.018,hp:2600*k,peak:.7}),
+    wood:(c,o,k)=>{SFX.tone(c,o,{type:"triangle",f0:240*k,f1:160*k,dur:.06,peak:.8});SFX.noise(c,o,{dur:.01,hp:1500,peak:.25})},
+    glass:(c,o,k)=>{SFX.tone(c,o,{f0:1760*k,dur:.16,peak:.25});SFX.tone(c,o,{f0:2637*k,dur:.1,peak:.12})},
+    bubble:(c,o,k)=>SFX.tone(c,o,{f0:300*k,f1:900*k,dur:.08,peak:.45}),
+    retro:(c,o,k)=>{SFX.tone(c,o,{type:"square",f0:660*k,dur:.035,peak:.18});SFX.tone(c,o,{type:"square",f0:990*k,t:.035,dur:.035,peak:.14})}},
+  play(kind="click",style){if(!CFG.snd.on&&!style)return;const now=performance.now();if(kind==="hover"&&now-SFX.last<60)return;SFX.last=now;const c=SFX.ctx();if(!c)return;
+    const g=c.createGain();g.gain.value=Math.max(0,Math.min(1,+CFG.snd.volume))*(kind==="hover"?.35:.9);g.connect(c.destination);const k=kind==="on"?1.25:kind==="off"?.85:kind==="hover"?1.5:1;
+    try{(SFX.STYLES[style||CFG.snd.style]||SFX.STYLES.soft)(c,g,k)}catch(e){}}};
+const SFX_SEL="button,.btn,.nav,.chip,.tg,summary,[data-go],[role=menuitemradio],a[href]";
+document.addEventListener("click",e=>{const t=e.target.closest(SFX_SEL);if(!t||t.disabled||t.closest("[data-sfx-off]"))return;
+  if(t.dataset.cfgv&&t.dataset.cfgv.startsWith("snd.style:"))return;
+  if(t.classList.contains("tg"))return setTimeout(()=>SFX.play(t.getAttribute("aria-checked")==="true"?"on":"off"),0);SFX.play("click")},true);
+document.addEventListener("change",e=>{if(e.target.dataset&&e.target.dataset.cfg==="snd.volume")SFX.play("click")});
+document.addEventListener("pointerover",e=>{if(!CFG.snd.on||!CFG.snd.hover||e.pointerType==="touch")return;const t=e.target.closest(SFX_SEL);if(!t||t.disabled||(e.relatedTarget&&t.contains(e.relatedTarget)))return;SFX.play("hover")},true);
 const tgl=(p,label,desc)=>`<div class="set"><div><b style="font-weight:500">${label}</b>${desc?`<br><small>${desc}</small>`:""}</div><button class="tg" role="switch" aria-checked="${!!cfgGet(p)}" data-cfgt="${p}" aria-label="${label}"></button></div>`;
 const chipRow=(p,opts)=>`<div class="chips">${opts.map(([v,l])=>`<button class="chip" data-cfgv="${p}:${v}" aria-pressed="${cfgGet(p)===v}">${l}</button>`).join("")}</div>`;
 const pct=v=>Math.round(v*100)+"%";
@@ -1158,6 +1337,7 @@ PAGES.settings=()=>`<div class="page"><div class="head"><h1>Settings</h1></div>
 <h2>Appearance</h2><div class="themes" style="margin-bottom:28px">${THEMES.map(([id,n,a,b,s])=>`<button class="th" data-theme-set="${id}" aria-pressed="${S.theme===id}"><div class="pv" style="background:${b}"><i style="background:${s}"></i><b style="background:${a}"></b></div><span><b style="font-weight:500">${n}</b><i style="width:10px;height:10px;border-radius:50%;background:${a}"></i></span></button>`).join("")}</div>
 <h2>Background</h2><div class="bggrid">${Object.keys(SCENES).map(id=>`<button class="bgcard" data-cfgv="bg.scene:${id}" aria-pressed="${CFG.bg.scene===id}" aria-label="${SCENE_NAMES[id]}"><canvas data-scene="${id}" width="240" height="135"></canvas><span>${SCENE_NAMES[id]}</span></button>`).join("")}</div>
 <div class="panel" style="margin:14px 0 28px">${tgl("ui.reduceMotion","Reduce interface motion","Turns off transitions, preview animations and the animated background. Your system’s reduced-motion setting does the same.")}${tgl("bg.animate","Animate background","Turns background movement off.")}${sl("bg.intensity","Animation intensity",.2,1.6,.05,pct)}${sl("bg.density","Particle density",.2,2,.1,pct)}${sl("bg.parallax","Parallax strength",0,1,.05,pct)}${sl("bg.brightness","Brightness",.4,1.2,.05,pct)}${sl("bg.blur","Background blur",0,12,1,v=>v+" px")}${tgl("bg.perf","Performance mode","Lower resolution and frame rate for the background and the 3D skin.")}${tgl("bg.audio","Ambient audio","Soft generated wind, rain or drone. Off by default.")}${sl("bg.volume","Audio volume",0,1,.05,pct)}</div>
+<h2 id="sounds">Sounds</h2><div class="panel" style="margin:14px 0 28px">${tgl("snd.on","Click sounds","A soft sound when you click buttons, tabs and switches. Made by the launcher itself, so there are no sound files.")}<div class="set" style="display:block"><b style="font-weight:500">Sound style</b><div style="margin-top:8px">${chipRow("snd.style",[["soft","Soft"],["tick","Tick"],["wood","Wood"],["glass","Glass"],["bubble","Bubble"],["retro","Retro"]])}</div></div>${sl("snd.volume","Volume",0,1,.05,pct)}${tgl("snd.hover","Hover sounds","A very quiet tick when the pointer moves over a button.")}</div>
 <h2>Cursor trail</h2><div class="panel" style="padding:14px;margin-bottom:10px">${chipRow("trail.mode",[["sakura","Sakura petals"],["aurora","Aurora particles"],["cyan","Cyan light"],["stardust","Purple stardust"],["soft","Soft trail"],["minimal","Minimal"],["off","Disabled"]])}</div>
 <div class="panel" style="margin-bottom:28px">${sl("trail.length","Trail length",.2,2,.1,pct)}${sl("trail.density","Particle density",.2,2,.1,pct)}${sl("trail.opacity","Opacity",.1,1,.05,pct)}${sl("trail.speed","Speed",.2,2,.1,pct)}${sl("trail.size","Size",.5,2,.1,pct)}${sl("trail.glow","Glow",0,2,.1,pct)}<div class="set"><span>Color</span><span style="display:flex;gap:8px;align-items:center"><input type="color" data-cfg="trail.color" value="${CFG.trail.color||"#6fe3ff"}" aria-label="Trail color" style="width:44px;height:28px;border:1px solid var(--line);border-radius:6px;background:var(--bg)"><button class="btn" data-cfgv="trail.color:" style="height:28px">Use mode default</button></span></div>${tgl("trail.perf","Trail performance mode","Fewer particles.")}</div>
 <h2 id="accounts">Accounts</h2><div id="acctmgr">${acctMgrHtml()}</div><div class="panel" style="padding:14px;margin-bottom:28px"><label class="l" for="msid" style="margin-top:0">Azure application (client) ID for Microsoft sign-in</label><div style="display:flex;gap:8px"><input class="f" id="msid" placeholder="00000000-0000-0000-0000-000000000000" autocomplete="off"><button class="btn" data-save="ms">Save</button></div><small style="display:block;margin-top:8px">Create a free app registration at portal.azure.com (personal Microsoft accounts, device-code flow enabled) and have Mojang approve it for Minecraft services. See the README.</small><div id="msres" class="err" role="alert"></div></div><div class="panel" style="padding:14px;margin-bottom:28px"><label class="l" for="frurl" style="margin-top:0">Friends server</label><div style="display:flex;gap:8px"><input class="f" id="frurl" placeholder="https://friends.example.net" autocomplete="off" spellcheck="false"><button class="btn" data-save="fr">Save</button></div><small style="display:block;margin-top:8px">The address of your Auroras friends server (the <code>friends-server</code> folder). Leave empty to use the one built into this launcher, if any.</small><div id="frres" class="err" role="alert"></div></div>
@@ -1167,11 +1347,12 @@ PAGES.settings=()=>`<div class="page"><div class="head"><h1>Settings</h1></div>
 <div class="privrow"><span class="nic">${ic("check",14)}</span><span class="min"><b>Your password never reaches Auroras</b><small>You sign in on Microsoft’s own page in a separate window that forgets everything when it closes.</small></span></div>
 <div class="privrow"><span class="nic">${ic("check",14)}</span><span class="min"><b>Only trusted sites, and nothing in the background</b><small>Auroras talks only to Microsoft, Mojang, Modrinth, CurseForge, Fabric, GitHub, Spotify (if you connect it) and your friends server (if you set one). Every download is checked against its checksum. No analytics, no tracking.</small></span></div>
 <div class="privrow"><span class="nic">${ic("check",14)}</span><span class="min"><b>Capes and emotes stay on this PC</b><small>Nothing you design is uploaded.</small></span></div></div>
-<h2>Updates</h2><div class="panel" style="padding:14px"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center"><span>Installed launcher version <b id="ver" style="font-weight:500">…</b></span><button class="btn pri" data-checkupd>Check for updates</button></div><div style="margin-top:12px">${chipRow("upd.channel",[["stable","Stable"],["preview","Preview"]])}</div><div style="margin-top:4px">${tgl("upd.auto","Check on startup")}</div><div class="set" style="padding:10px 0;border:0"><div>Install the Auroras mod automatically<br><small>Fabric instances on a supported Minecraft version get the ready-made Auroras mod and Fabric API when you press Play, and stay up to date.</small></div><button class="tg" role="switch" id="automod" aria-checked="true" aria-label="Install the Auroras mod automatically"></button></div><small id="relsrc" style="display:block"></small><label class="l" for="updurl">Update server manifest URL (https)</label><div style="display:flex;gap:8px"><input class="f" id="updurl" placeholder="https://example.com/auroras/manifest.json" autocomplete="off"><button class="btn" data-save="upd">Save</button></div><div id="updres" style="margin-top:12px" aria-live="polite"></div></div></div>`;
+<h2>Updates</h2><div class="panel" style="padding:14px"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center"><span>Installed launcher version <b id="ver" style="font-weight:500">…</b></span><button class="btn pri" data-checkupd>Check for updates</button></div><div style="margin-top:12px">${chipRow("upd.channel",[["stable","Stable"],["preview","Preview"]])}</div><div style="margin-top:4px">${tgl("upd.auto","Update automatically","Downloads new versions in the background, checks them, and asks you to restart. Your instances, accounts and settings stay.")}</div><div class="set" style="padding:10px 0;border:0"><div>Install the Auroras mod automatically<br><small>Fabric instances on a supported Minecraft version get the ready-made Auroras mod and Fabric API when you press Play, and stay up to date.</small></div><button class="tg" role="switch" id="automod" aria-checked="true" aria-label="Install the Auroras mod automatically"></button></div><small id="relsrc" style="display:block"></small><label class="l" for="updurl">Update server manifest URL (https)</label><div style="display:flex;gap:8px"><input class="f" id="updurl" placeholder="https://example.com/auroras/manifest.json" autocomplete="off"><button class="btn" data-save="upd">Save</button></div><div id="updres" style="margin-top:12px" aria-live="polite"></div></div></div>`;
 /** Updates from this copy's GitHub releases (set by the release workflow). Returns true when that source handled the check. */
 async function ghUpdCheck(silent,say){if(!(window.auroras&&auroras.releaseCheck))return false;let r;try{r=await auroras.releaseCheck()}catch(e){r={configured:true,error:errMsg(e)}}if(!r.configured)return false;
 if(r.error){if(!silent)say(`<div class="err">Couldn’t check for updates: ${esc(r.error)}</div>`);return true}
-if(r.newer){if(silent)toast("Auroras Client "+r.latest+" is available. Open Settings > Updates to download it.");else say(`<div><b style="font-weight:500">Auroras Client ${esc(r.latest)} is available</b><br><small>You have ${esc(r.current)}. Download the installer and run it; your instances, accounts and settings stay.</small><br><button class="btn pri" data-ext="${esc(r.url)}" style="margin-top:6px">Download ${esc(r.installer||"the update")}</button></div>`)}
+if(r.newer&&CFG.upd.auto&&auroras.updateAuto){if(!silent)say(`<small>Auroras Client ${esc(r.latest)} is downloading in the background. You’ll be asked to restart when it’s ready.</small>`);updAuto()}
+else if(r.newer){if(silent)toast("Auroras Client "+r.latest+" is available. Open Settings > Updates to download it.");else say(`<div><b style="font-weight:500">Auroras Client ${esc(r.latest)} is available</b><br><small>You have ${esc(r.current)}. Download the installer and run it; your instances, accounts and settings stay.</small><br><button class="btn pri" data-ext="${esc(r.url)}" style="margin-top:6px">Download ${esc(r.installer||"the update")}</button></div>`)}
 else if(!silent)say(`<small>You have the latest version (${esc(r.current)}). The Auroras mod in your Fabric instances updates itself when you press Play.</small>`);return true}
 async function updCheck(silent){const out=document.getElementById("updres"),say=h=>{if(out)out.innerHTML=h};if(!silent)say(`<small>Checking…</small>`);if(await ghUpdCheck(silent,say))return;if(!(window.auroras&&auroras.updateCheck)){if(!silent)say(`<small>Update checks need the desktop app.</small>`);return}
 if(!silent)say(`<small>Checking…</small>`);let r;try{r=await auroras.updateCheck({channel:CFG.upd.channel,mc:cur().mc,loader:cur().loader,installedClient:null})}catch(e){if(!silent)say(`<div class="err">${esc(errMsg(e))}</div>`);return}
@@ -1185,8 +1366,8 @@ try{const s=await auroras.settingsAll(),g=i=>document.getElementById(i);if(g("ve
 if(g("relsrc"))g("relsrc").textContent=s.releaseRepo?"Downloads come from github.com/"+s.releaseRepo+" (its latest release).":"This copy runs from source, so there are no ready-made downloads. The installer built by the GitHub release workflow has them.";if(g("spid"))g("spid").value=s.spotifyClientId||"";if(s.secureStorage===false&&g("priv-store")){g("priv-store").textContent="This computer can’t encrypt saved sign-ins";g("priv-store").closest(".privrow").classList.add("warn");g("priv-store-sub").textContent="So Auroras keeps them in memory only and never writes them to disk. You’ll sign in again each time you open the launcher."}if(g("spres")&&s.spotifyConnected){g("spres").innerHTML="<small>Spotify is connected.</small>";if(g("spmore"))g("spmore").open=true}}catch(e){}}
 document.addEventListener("input",e=>{const t=e.target,p=t.dataset&&t.dataset.cfg;if(!p)return;const v=t.type==="range"?+t.value:t.value;cfgSet(p,v);const o=t.nextElementSibling;if(o&&o.tagName==="SMALL"){const f={"bg.blur":x=>x+" px"}[p]||pct;o.textContent=f(v)}if(p.startsWith("bg."))bgApply()});
 document.addEventListener("click",async e=>{const t=e.target.closest("[data-cfgt],[data-cfgv],[data-save],[data-checkupd],[data-instclient],[data-compat],[data-spconnect],[data-spdisc]");if(!t)return;
-if(t.dataset.cfgt){const p=t.dataset.cfgt;cfgSet(p,!cfgGet(p));t.setAttribute("aria-checked",!!cfgGet(p));if(p.startsWith("bg."))bgApply();if(p==="ui.reduceMotion"){motionApply();bgApply()}}
-else if(t.dataset.cfgv!==undefined){const i=t.dataset.cfgv.indexOf(":"),p=t.dataset.cfgv.slice(0,i),v=t.dataset.cfgv.slice(i+1);cfgSet(p,v);if(p.startsWith("bg."))bgApply();render()}
+if(t.dataset.cfgt){const p=t.dataset.cfgt;cfgSet(p,!cfgGet(p));t.setAttribute("aria-checked",!!cfgGet(p));if(p==="upd.auto")updAuto();if(p.startsWith("bg."))bgApply();if(p==="ui.reduceMotion"){motionApply();bgApply()}}
+else if(t.dataset.cfgv!==undefined){const i=t.dataset.cfgv.indexOf(":"),p=t.dataset.cfgv.slice(0,i),v=t.dataset.cfgv.slice(i+1);cfgSet(p,v);if(p==="snd.style")SFX.play("click",v);if(p.startsWith("bg."))bgApply();render()}
 else if(t.dataset.save){const out=document.getElementById({ms:"msres",sp:"spres",fr:"frres"}[t.dataset.save]||"updres");if(t.dataset.save==="fr")FR.checked=false;if(!(window.auroras&&auroras.setSettings))return void(out.textContent="Saving needs the desktop app.");
 try{await auroras.setSettings(t.dataset.save==="ms"?{msClientId:document.getElementById("msid").value}:t.dataset.save==="fr"?{friendsUrl:document.getElementById("frurl").value.trim()}:t.dataset.save==="sp"?{spotifyClientId:document.getElementById("spid").value}:{updateUrl:document.getElementById("updurl").value.trim()});out.className="";out.innerHTML="<small>Saved.</small>"}catch(err){out.className="err";out.textContent=errMsg(err)}}
 else if(t.hasAttribute("data-checkupd"))updCheck(false);
@@ -1195,6 +1376,13 @@ else if(t.hasAttribute("data-spconnect")||t.hasAttribute("data-spdisc")){const o
 try{if(t.hasAttribute("data-spdisc")){await auroras.spotifyDisconnect();out.innerHTML="<small>Spotify disconnected.</small>"}else{out.innerHTML="<small>Finish signing in in your browser…</small>";await auroras.spotifyConnect();out.innerHTML="<small>Spotify connected. The Spotify HUD will show your current track while you play.</small>"}}catch(err){out.className="err";out.textContent=errMsg(err)}}
 else if(t.hasAttribute("data-instclient")){const out=document.getElementById("updres"),b=window.__clientBuild;if(!b)return;t.disabled=true;out.insertAdjacentHTML("beforeend",`<div id="ip"><small>Downloading and verifying…</small></div>`);
 try{const r=await auroras.updateInstallClient({instId:cur().id,build:b}),ip=document.getElementById("ip");ip.innerHTML=r.ok?`<b style="font-weight:500">Installed Auroras Client ${esc(r.version)}.</b> <small>Restart Minecraft to use it.</small>`:`<div class="err">Update failed: ${esc(r.error)}${r.restored?" Your previous version was restored.":""}</div>`}catch(err){const ip=document.getElementById("ip");if(ip)ip.innerHTML=`<div class="err">${esc(errMsg(err))}</div>`}t.disabled=false}});
+/* Auto-update: the desktop app downloads and verifies a newer launcher in the background, then this asks to restart. */
+function showUpdReady(u){if(!u||document.getElementById("updmodal"))return;const d=document.createElement("div");d.id="updmodal";d.className="mb";
+d.innerHTML=`<div class="dlg upd-dlg" role="dialog" aria-modal="true" aria-label="Update ready" style="width:440px"><div class="body" style="min-height:0;text-align:center;padding:26px 24px 18px"><div class="upd-ico">${ic("download",26)}</div><h1 style="font-size:18px;margin:12px 0 4px">Update ready</h1><small style="display:block">Auroras Client ${esc(u.version)} is downloaded and checked. Restart the launcher to finish updating.</small>${u.notes?`<details style="margin-top:12px;text-align:left"><summary style="cursor:pointer;color:var(--mute);font-size:var(--fs-sm)">What’s new</summary><small style="display:block;white-space:pre-wrap;margin-top:6px;max-height:160px;overflow:auto">${esc(u.notes)}</small></details>`:""}<div class="err" id="upd-err" role="alert" style="margin-top:8px"></div></div><footer style="justify-content:center;gap:10px"><button class="btn" data-updlater>Later</button><button class="btn pri" data-updnow>${ic("reset",14)}Restart now</button></footer></div>`;
+d.onclick=async e=>{if(e.target.closest("[data-updlater]")){d.remove();setTimeout(()=>showUpdReady(u),60*60*1000);return}if(e.target.closest("[data-updnow]")){try{await auroras.updateInstall();d.querySelector(".body small").textContent="Updating… the launcher reopens by itself."}catch(x){d.querySelector("#upd-err").textContent=errMsg(x)}}};
+document.body.appendChild(d);d.querySelector("[data-updnow]").focus()}
+const updAuto=()=>{if(!(window.auroras&&auroras.updateAuto))return;auroras.updateAuto(!!CFG.upd.auto).then(r=>{if(r&&r.ready)showUpdReady(r.ready)}).catch(()=>{})};
+if(window.auroras&&auroras.onUpdateReady){auroras.onUpdateReady(showUpdReady);setTimeout(updAuto,1500)}
 if(window.auroras&&auroras.settingsAll&&CFG.upd.auto)setTimeout(()=>auroras.settingsAll().then(s=>{if(s.updateUrl||s.releaseRepo)updCheck(true)}).catch(()=>{}),4000);
 
 const POST={home:initHome,settings:initSettings,skins:initSkins,mods:initMods},_ri=renderInner;
@@ -2189,6 +2377,11 @@ d.onclick=e=>{if(e.target===d||e.target.closest("[data-x]"))d.remove();else if(e
 /* ----- Cape Studio: player + cape preview with Minecraft-style cape motion; local designs only ----- */
 const CAPE_BUILTIN={aurora:["Aurora","#0b1a2e","#6fe3ff","#b58cff","waves"],sakura:["Sakura","#3a1d33","#ffb7cf","#fff0f5","petals"],cosmic:["Cosmic","#0a0718","#8a6bff","#ffffff","stars"],
 midnight:["Midnight","#0a1230","#4f6fd8","#e8eeff","moon"],void:["Endless Void","#020306","#4fd6e6","#8a6bff","lines"]};
+/* More original designs drawn by the launcher. The game draws CAPE_BUILTIN itself; these go to the game as a PNG (custom). */
+const CAPE_EXTRA={ember:["Ember","#1a0804","#ff7a1a","#ffd34d","flame"],synth:["Synthwave","#12061f","#ff4fd8","#4fd6ff","grid"],frost:["Frost","#0b1d2a","#bfefff","#ffffff","diamond"],
+toxic:["Toxic","#07140a","#5dff6a","#d4ff4f","drip"],royal:["Royal","#1b0f33","#f2c14e","#fff4cc","crown"],storm:["Storm","#0d1220","#8fb3ff","#fff27a","bolt"],
+checker:["Checkmate","#141414","#e8e8e8","#2a2a2a","checker"],rose:["Rose","#2a0a14","#ff4f7a","#ffd1dc","heart"]};
+const CAPE_PRESET={...CAPE_BUILTIN,...CAPE_EXTRA};
 const CS={yaw:Math.PI*0.82,pitch:0.12,dist:78,walk:true,sneak:false,stride:ls.get("capeStride",0.77),design:ls.get("capeDesign","aurora"),mine:[],fav:ls.get("capeFav",[]),raf:0,drag:null,sim:null,pos:0,phase:0,tick:0,img:null,skin:null,skinKey:"",gen:{base:"#101826",a:"#6fe3ff",b:"#b58cff",pattern:"gradient"}};
 /** Draws a 64x32 cape texture: the pattern fills the cape faces (Cosmetics.CAPE_FACES), so it wraps the box like a real cape file. */
 function makeCape(base,a,b,pattern){const c=document.createElement("canvas");c.width=64;c.height=32;const x=c.getContext("2d");x.fillStyle=base;x.fillRect(0,0,22,17);
@@ -2199,6 +2392,16 @@ front(()=>{if(pattern==="gradient"||pattern==="waves"){const g=x.createLinearGra
  if(pattern==="stars"){const g=x.createLinearGradient(0,1,0,17);g.addColorStop(0,base);g.addColorStop(1,a);x.fillStyle=g;x.fillRect(0,0,22,17);for(let i=0;i<26;i++){x.fillStyle=r.next()<0.7?b:a;x.fillRect(Math.floor(r.next()*22),Math.floor(r.next()*17),1,1)}}
  if(pattern==="petals"){for(let i=0;i<22;i++){x.fillStyle=r.next()<0.5?a:b;x.fillRect(Math.floor(r.next()*22),Math.floor(r.next()*17),1,1)}}
  if(pattern==="moon"){x.fillStyle=b;x.fillRect(4,4,4,4);x.fillRect(15,4,4,4);x.fillStyle=base;x.fillRect(6,4,2,2);x.fillRect(17,4,2,2);for(let i=0;i<12;i++){x.fillStyle=a;x.fillRect(Math.floor(r.next()*22),9+Math.floor(r.next()*8),1,1)}}
+ // Each draws one 10x16 face; px(x,y) plots on both the front (x 1..10) and back (x 12..21) of the cape.
+ const px=(c,X,Y,w=1,h=1)=>{x.fillStyle=c;x.fillRect(1+X,1+Y,w,h);x.fillRect(12+X,1+Y,w,h)};
+ if(pattern==="flame"){for(let X=0;X<10;X++){const top=6+Math.round(Math.abs(Math.sin(X*1.7))*4+r.next()*2);for(let Y=top;Y<16;Y++)px(Y>12?b:(Y-top<2?b:a),X,Y);if(r.next()<.5)px(b,X,top-2)}px(b,3,9,1,3);px(b,7,10,1,3)}
+ if(pattern==="grid"){const g=x.createLinearGradient(0,1,0,9);g.addColorStop(0,base);g.addColorStop(1,a);x.fillStyle=g;x.fillRect(0,0,22,9);px("#ffd166",3,4,4,2);px("#ff9f43",2,6,6,1);for(let Y=8;Y<16;Y+=2)px(b,0,Y,10,1);for(const X of[0,3,6,9])px(b,X,8,1,8)}
+ if(pattern==="diamond"){for(let Y=0;Y<16;Y++)for(let X=0;X<10;X++){const d=(X+Y)%4===0||(X-Y+16)%4===0;if(d)px(Y<8?a:b,X,Y)}px(b,4,7,2,2)}
+ if(pattern==="drip"){px(a,0,0,10,4);for(let X=0;X<10;X++){const l=Math.floor(r.next()*8);px(a,X,4,1,l);if(l>2)px(b,X,4+l,1,1)}px(b,2,1,1,1);px(b,7,2,1,1)}
+ if(pattern==="crown"){px(a,1,5,8,4);px(a,1,3,1,2);px(a,4,2,2,3);px(a,8,3,1,2);px("#e84a5f",2,6,1,1);px("#4fd6ff",4,6,2,1);px("#5dff6a",7,6,1,1);px(b,1,9,8,1);for(let i=0;i<8;i++)px(a,Math.floor(r.next()*10),11+Math.floor(r.next()*5))}
+ if(pattern==="bolt"){for(let i=0;i<6;i++)px(a,Math.floor(r.next()*10),Math.floor(r.next()*4),2,1);[[6,3],[5,4],[5,5],[4,6],[4,7],[3,8],[4,8],[5,8],[6,8],[5,9],[5,10],[4,11],[4,12],[3,13]].forEach(([X,Y])=>px(b,X,Y))}
+ if(pattern==="checker"){for(let Y=0;Y<16;Y+=2)for(let X=0;X<10;X+=2)px(((X+Y)/2)%2?b:a,X,Y,2,2)}
+ if(pattern==="heart"){[[2,4],[3,4],[6,4],[7,4],[1,5],[2,5],[3,5],[4,5],[5,5],[6,5],[7,5],[8,5],[1,6],[2,6],[3,6],[4,6],[5,6],[6,6],[7,6],[8,6],[2,7],[3,7],[4,7],[5,7],[6,7],[7,7],[3,8],[4,8],[5,8],[6,8],[4,9],[5,9]].forEach(([X,Y])=>px(a,X,Y));px(b,2,5);for(let i=0;i<10;i++)px(b,Math.floor(r.next()*10),11+Math.floor(r.next()*5))}
  if(pattern==="lines"){x.fillStyle=a;x.fillRect(5,1,1,16);x.fillRect(17,1,1,16);x.fillStyle=b;x.fillRect(1,12,10,1);x.fillRect(12,12,10,1)}
  x.fillStyle="rgba(255,255,255,.85)";for(const ox of[4,15])[[2,0],[1,1],[3,1],[0,2],[4,2],[0,3],[1,3],[2,3],[3,3],[4,3],[0,4],[4,4]].forEach(([dx,dy])=>x.fillRect(ox+dx-0.5+0.5,12+dy-0,1,1))});
 x.fillStyle=a;x.fillRect(0,1,1,16);x.fillRect(11,1,1,16);x.fillRect(1,0,10,1);x.fillRect(11,0,10,1);return c}
@@ -2213,9 +2416,9 @@ const CL={desk:()=>!!(window.auroras&&auroras.capeLibList),
 CS.imgCache={};CS.imgWait={};CS.filter=ls.get("capeFilter","all");CS.tab="lib";
 /** Loads each custom design's image once; when one arrives its thumbnail and (if selected) the preview update. */
 function cacheImages(){for(const d of CS.mine)if(!CS.imgWait[d.id])CS.imgWait[d.id]=new Promise(ok=>{const im=new Image();im.onload=()=>{CS.imgCache[d.id]=im;if(CS.design===d.id)CS.img=null;drawThumb(d.id);ok(im)};im.onerror=()=>ok(null);im.src=d.img})}
-const capeCanvas=id=>{if(CAPE_BUILTIN[id]){const [,base,a,b,p]=CAPE_BUILTIN[id];return makeCape(base,a,b,p)}const im=CS.imgCache[id];if(im){const c=document.createElement("canvas");c.width=im.width;c.height=im.height;c.getContext("2d").drawImage(im,0,0);return c}return makeCape("#101826","#6fe3ff","#b58cff","gradient")};
+const capeCanvas=id=>{if(CAPE_PRESET[id]){const [,base,a,b,p]=CAPE_PRESET[id];return makeCape(base,a,b,p)}const im=CS.imgCache[id];if(im){const c=document.createElement("canvas");c.width=im.width;c.height=im.height;c.getContext("2d").drawImage(im,0,0);return c}return makeCape("#101826","#6fe3ff","#b58cff","gradient")};
 /** Same as capeCanvas, but waits for a custom design's image, so nothing ever saves the placeholder by mistake. */
-async function capeCanvasReady(id){if(!CAPE_BUILTIN[id]&&CS.imgWait[id])await CS.imgWait[id];return capeCanvas(id)}
+async function capeCanvasReady(id){if(!CAPE_PRESET[id]&&CS.imgWait[id])await CS.imgWait[id];return capeCanvas(id)}
 const texOf=c=>{const d=c.getContext("2d").getImageData(0,0,c.width,c.height);return{w:c.width,h:c.height,data:d.data}};
 /**
  * Turns any supported cape image into the game's layout: 64x32 and its HD sizes as they are; OptiFine's 46x22 (and
@@ -2234,14 +2437,14 @@ PAGES.capes=()=>`<div class="page capes" style="max-width:1180px"><div class="he
 <span class="capespeed"><label for="cs-stride">Speed</label><input type="range" class="rng" id="cs-stride" min="0" max="1" step="0.05" value="${CS.stride}" style="--fill:${fillPct(CS.stride,0,1)}%" aria-valuetext="${capePace(CS.stride)}"><output id="cs-pace" class="clock">${capePace(CS.stride)}</output></span></div>
 <small class="cs-hint">Cape motion follows the same rules the game uses for capes. Drag to turn the player; scroll to zoom. The skin comes from your selected account.</small></div>
 <div class="cs-side"><div class="seg cs-tabs" role="tablist"><button role="tab" data-cstab="lib" aria-selected="${CS.tab==="lib"}">${ic("grid",14)}Library</button><button role="tab" data-cstab="make" aria-selected="${CS.tab==="make"}">${ic("pen",14)}Editor</button></div>
-<div id="cs-lib"${CS.tab==="lib"?"":" hidden"}><label class="dropzone" id="cs-drop" tabindex="0">${ic("upload",18)}<span><b>Upload capes</b><small>PNG at 64x32 or HD (128x64 to 512x256). OptiFine capes work too. Drop files here or click.</small></span><input type="file" id="cs-imp" accept="image/png" multiple hidden></label>
+<div id="cs-lib"${CS.tab==="lib"?"":" hidden"}><label class="dropzone" id="cs-drop" tabindex="0">${ic("upload",18)}<span><b>Upload capes</b><small>PNG at 64x32 or HD (128x64 to 512x256). OptiFine capes work too. Drop files here or click.</small></span><input type="file" id="cs-imp" accept="image/png" multiple hidden></label><div class="cs-find"><span class="min"><b>Looking for more?</b><small>SkinMC has thousands of community capes. Download one as a PNG there, then drop it above. Capes stay on this PC and only you see them in game.</small></span><button class="btn" id="cs-skinmc">${ic("ext",13)}Browse SkinMC capes</button></div>
 <div class="seg cs-filter" role="group" aria-label="Show">${[["all","All"],["fav","Favorites"],["mine","Yours"]].map(([k,l])=>`<button data-cfilter="${k}" aria-pressed="${CS.filter===k}">${l}</button>`).join("")}</div>
 <div class="capegrid" id="cs-grid"></div></div>
 <div id="cs-make"${CS.tab==="make"?"":" hidden"}></div>
 <div class="err" id="cs-err" role="alert"></div>
 <div class="panel cs-game" id="cs-game"></div>
 <div class="row2"><button class="btn" id="cs-exp">${ic("download",14)}Export PNG</button></div></div></div></div>`;
-function capeItems(){const all=[...Object.keys(CAPE_BUILTIN).map(id=>({id,name:CAPE_BUILTIN[id][0],builtin:true})),...CS.mine];
+function capeItems(){const all=[...Object.keys(CAPE_PRESET).map(id=>({id,name:CAPE_PRESET[id][0],builtin:true})),...CS.mine];
   const shown=CS.filter==="fav"?all.filter(d=>CS.fav.includes(d.id)):CS.filter==="mine"?all.filter(d=>!d.builtin):all;
   return shown.sort((a,b)=>(CS.fav.includes(b.id)?1:0)-(CS.fav.includes(a.id)?1:0))}
 function drawCapeGrid(){const g=$("#cs-grid");if(!g)return;const items=capeItems();
@@ -2250,7 +2453,7 @@ g.innerHTML=items.length?items.map(d=>{const fav=CS.fav.includes(d.id);return `<
 :`<div class="cs-empty"><small>${CS.filter==="fav"?"Star a cape to keep it here.":"Capes you upload or make show up here."}</small></div>`;
 g.querySelectorAll("[data-cthumb]").forEach(c=>drawThumb(c.dataset.cthumb))}
 /** A card's picture: the cape's outer face, pixel-sharp. */
-function drawThumb(id){const c=document.querySelector(`[data-cthumb="${CSS.escape(id)}"]`);if(!c)return;if(!CAPE_BUILTIN[id]&&!CS.imgCache[id])return;const src=capeCanvas(id),x=c.getContext("2d"),sc=src.width/64;x.imageSmoothingEnabled=false;x.clearRect(0,0,40,64);x.drawImage(src,1*sc,1*sc,10*sc,16*sc,0,0,40,64)}
+function drawThumb(id){const c=document.querySelector(`[data-cthumb="${CSS.escape(id)}"]`);if(!c)return;if(!CAPE_PRESET[id]&&!CS.imgCache[id])return;const src=capeCanvas(id),x=c.getContext("2d"),sc=src.width/64;x.imageSmoothingEnabled=false;x.clearRect(0,0,40,64);x.drawImage(src,1*sc,1*sc,10*sc,16*sc,0,0,40,64)}
 function useDesign(id){CS.previewing=false;CS.design=id;ls.set("capeDesign",id);CS.img=null;drawCapeGrid();if(CS.tab==="make")ceLoad(id);const set={"cape.design":CAPE_BUILTIN[id]?id:"custom"};mcSave(set).catch(()=>{})}
 /** The in-game panel: the selected design can be shown in the game, to you only (the mod draws it on your own player). */
 function drawCapeGame(){const el=$("#cs-game");if(!el||!MC.data)return;const on=mcVals()["cape.enabled"]==="true",m=REG.modules.find(x=>x.id==="cape");
@@ -2271,7 +2474,7 @@ async function importCapes(files){const err=$("#cs-err");err.textContent="";cons
 const CE={cv:null,tool:"pen",col:"#ffffff",mirror:false,undo:[],redo:[],from:null,z:14,down:false,last:null};
 const CE_FACES=[["Outside",1,1,10,16],["Inside",12,1,10,16]];
 function ceLoad(id){const src=capeCanvas(id),c=document.createElement("canvas");c.width=64;c.height=32;const x=c.getContext("2d");x.imageSmoothingEnabled=false;x.drawImage(src,0,0,64,32);CE.cv=c;CE.from=id;CE.undo=[];CE.redo=[];ceDraw();cePreview()}
-function drawCapeMake(){const el=$("#cs-make");if(!el)return;const own=CE.from&&!CAPE_BUILTIN[CE.from]&&CS.mine.find(d=>d.id===CE.from);
+function drawCapeMake(){const el=$("#cs-make");if(!el)return;const own=CE.from&&!CAPE_PRESET[CE.from]&&CS.mine.find(d=>d.id===CE.from);
 el.innerHTML=`<div class="panel ce"><div class="ce-tools" role="toolbar" aria-label="Paint tools">${[["pen","Pen"],["bucket","Fill"],["picker","Pick colour"],["eraser","Erase"]].map(([t,l])=>`<button class="ibtn${CE.tool===t?" on":""}" data-cetool="${t}" aria-pressed="${CE.tool===t}" aria-label="${l}" data-tt="${l}">${ic(t,16)}</button>`).join("")}
 <input type="color" class="colorbox" id="ce-col" value="${CE.col}" aria-label="Paint colour"><span class="sep"></span><button class="ibtn" data-ceact="undo" aria-label="Undo" data-tt="Undo (Ctrl+Z)"${CE.undo.length?"":" disabled"}>${ic("undo",16)}</button><button class="ibtn" data-ceact="redo" aria-label="Redo" data-tt="Redo"${CE.redo.length?"":" disabled"}>${ic("redo",16)}</button>
 <label class="tgl" style="margin-left:auto"><button class="tg" role="switch" id="ce-mirror" aria-checked="${CE.mirror}" aria-label="Mirror"></button><span>Mirror</span></label></div>
@@ -2312,7 +2515,7 @@ function cePreview(){if(!CE.cv)return;CS.img=texOf(CE.cv);CS.previewing=true}
 function ceUndo(redo){const a=redo?CE.redo:CE.undo,b=redo?CE.undo:CE.redo;if(!a.length)return;const x=CE.cv.getContext("2d");b.push(x.getImageData(0,0,64,32));x.putImageData(a.pop(),0,0);ceDraw();cePreview();ceButtons()}
 function setCapeTab(t){CS.tab=t;document.querySelectorAll("[data-cstab]").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.cstab===t)));$("#cs-lib").hidden=t!=="lib";$("#cs-make").hidden=t!=="make";
   if(t==="make"){ceLoad(CS.design);drawCapeMake()}else{CS.previewing=false;CS.img=null}}
-async function initCapes(){await mcLoad();try{CS.mine=await CL.list()}catch(e){CS.mine=[]}if(!CAPE_BUILTIN[CS.design]&&!CS.mine.some(d=>d.id===CS.design))CS.design="aurora";cacheImages();drawCapeGrid();drawCapeGame();if(CS.tab==="make")setCapeTab("make");CS.sim=VX.CapeSim();CS.pos=0;CS.phase=0;CS.st=null;
+async function initCapes(){await mcLoad();try{CS.mine=await CL.list()}catch(e){CS.mine=[]}if(!CAPE_PRESET[CS.design]&&!CS.mine.some(d=>d.id===CS.design))CS.design="aurora";cacheImages();drawCapeGrid();drawCapeGame();if(CS.tab==="make")setCapeTab("make");CS.sim=VX.CapeSim();CS.pos=0;CS.phase=0;CS.st=null;
 const page=document.querySelector(".page"),err=()=>$("#cs-err");
 page.onclick=async e=>{const t=e.target.closest("[data-cd],[data-cfav],[data-cdup],[data-cren],[data-cdel],[data-cstab],[data-cfilter],[data-cetool],[data-ceact],#ce-mirror,#cs-walk,#cs-sneak,#cs-reset,#cg-save,#cs-exp");if(!t)return;err().textContent="";
 try{
@@ -2320,7 +2523,7 @@ if(t.dataset.cd)useDesign(t.dataset.cd);
 else if(t.dataset.cstab)setCapeTab(t.dataset.cstab);
 else if(t.dataset.cfilter){CS.filter=t.dataset.cfilter;ls.set("capeFilter",CS.filter);document.querySelectorAll("[data-cfilter]").forEach(b=>b.setAttribute("aria-pressed",String(b===t)));drawCapeGrid()}
 else if(t.dataset.cfav){const i=CS.fav.indexOf(t.dataset.cfav);i<0?CS.fav.push(t.dataset.cfav):CS.fav.splice(i,1);ls.set("capeFav",CS.fav);drawCapeGrid()}
-else if(t.dataset.cdup){const src=capeCanvas(t.dataset.cdup);await addDesign({id:newId(),name:(CAPE_BUILTIN[t.dataset.cdup]||[t.dataset.cdup])[0]+" copy",img:src.toDataURL("image/png"),source:"copy"})}
+else if(t.dataset.cdup){const src=capeCanvas(t.dataset.cdup);await addDesign({id:newId(),name:(CAPE_PRESET[t.dataset.cdup]||[t.dataset.cdup])[0]+" copy",img:src.toDataURL("image/png"),source:"copy"})}
 else if(t.dataset.cren){const d=CS.mine.find(x=>x.id===t.dataset.cren);promptDlg("Rename design","Design name",d.name,n=>{if(!n||n.length>32)return"Give it a name (up to 32 characters).";d.name=n;CL.rename(d.id,n).catch(x=>toast(errMsg(x),"err"));drawCapeGrid()})}
 else if(t.dataset.cdel){const d=CS.mine.find(x=>x.id===t.dataset.cdel);confirmDlg(`Delete “${d.name}”?`,"This removes the cape from your library on this computer.","Delete",async()=>{try{await CL.remove(d.id)}catch(x){return toast(errMsg(x),"err")}CS.mine=CS.mine.filter(x=>x!==d);if(CS.design===d.id)useDesign("aurora");else drawCapeGrid()})}
 else if(t.dataset.cetool){CE.tool=t.dataset.cetool;drawCapeMake()}
@@ -2335,7 +2538,7 @@ else if(t.id==="cs-exp"){const c=CS.tab==="make"&&CE.cv?CE.cv:await capeCanvasRe
 }catch(x){err().textContent=errMsg(x)}};
 page.onkeydown=e=>{if(CS.tab==="make"&&(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="z"&&!/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)){e.preventDefault();ceUndo(e.shiftKey)}};
 $("#cs-stride").oninput=e=>{CS.stride=+e.target.value;ls.set("capeStride",CS.stride);const p=capePace(CS.stride);e.target.style.setProperty("--fill",fillPct(CS.stride,0,1)+"%");e.target.setAttribute("aria-valuetext",p);$("#cs-pace").textContent=p};
-$("#cs-imp").onchange=async e=>{const fs=[...e.target.files];e.target.value="";if(fs.length)await importCapes(fs)};
+$("#cs-skinmc").onclick=()=>openExt("https://www.skinmc.net/capes");$("#cs-imp").onchange=async e=>{const fs=[...e.target.files];e.target.value="";if(fs.length)await importCapes(fs)};
 const dz=$("#cs-drop");dz.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();$("#cs-imp").click()}};dz.ondragover=e=>{e.preventDefault();dz.classList.add("over")};dz.ondragleave=()=>dz.classList.remove("over");
 dz.ondrop=async e=>{e.preventDefault();dz.classList.remove("over");const fs=[...(e.dataTransfer?.files||[])];if(fs.length)await importCapes(fs)};
 if(!CE.rs){CE.rs=1;window.addEventListener("resize",()=>ceDraw())}

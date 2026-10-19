@@ -150,14 +150,14 @@ describe("home: accounts and Play", () => {
 
 describe("backgrounds and cursor trails", () => {
   let s; before(async () => { s = await launch(); }); after(() => s.close());
-  test("all seven scenes fill the canvas at three sizes", async () => {
+  test("every scene fills the canvas at three sizes", async () => {
     const out = await s.page.evaluate(`(()=>{const r={};for(const id of Object.keys(SCENES)){try{let ok=true;for(const [w,h] of [[320,180],[700,400],[100,60]]){const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d'),sc=SCENES[id](),o={t:6000,dt:.016,w,h,k:1,m:{x:.3,y:-.2},px:.6,dens:1,fgOn:false};sc.init(o);for(let i=0;i<5;i++){o.t+=16;sc.draw(x,o)}if(sc.front)sc.front(x,{...o,fgOn:true});const d=x.getImageData(0,0,w,h).data;let nz=0;for(let i=3;i<d.length;i+=4)if(d[i]>0)nz++;if(nz<w*h*.9)ok=false}r[id]=ok}catch(e){r[id]='ERR '+e.message}}return r})()`);
-    assert.deepStrictEqual(Object.keys(out).sort(), ["aurora", "islands", "minimal", "nebula", "rain", "sakura", "sakuraNight"]);
+    assert.deepStrictEqual(Object.keys(out).sort(), ["aurora", "halloween", "halloweenGrave", "islands", "minimal", "nebula", "rain", "sakura", "sakuraNight"]);
     for (const [k, v] of Object.entries(out)) assert.strictEqual(v, true, k);
   });
   test("settings: live previews, instant switching, sliders, toggles, persistence", async () => {
     await nav(s.page, "Settings"); await wait(s.page, 300);
-    assert.strictEqual(await s.page.locator("canvas[data-scene]").count(), 7);
+    assert.strictEqual(await s.page.locator("canvas[data-scene]").count(), 9);
     await s.page.locator('[data-cfgv="bg.scene:rain"]').click(); await wait(s.page, 200);
     assert.strictEqual(await s.page.evaluate("SCNid"), "rain");
     for (const [id, v] of [["intensity", "0.5"], ["density", "1.5"], ["blur", "4"], ["brightness", "0.8"]]) await s.page.locator(`#c-bg\\.${id}`).fill(v);

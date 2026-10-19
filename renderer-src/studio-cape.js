@@ -1,6 +1,11 @@
 /* ----- Cape Studio: player + cape preview with Minecraft-style cape motion; local designs only ----- */
 const CAPE_BUILTIN={aurora:["Aurora","#0b1a2e","#6fe3ff","#b58cff","waves"],sakura:["Sakura","#3a1d33","#ffb7cf","#fff0f5","petals"],cosmic:["Cosmic","#0a0718","#8a6bff","#ffffff","stars"],
 midnight:["Midnight","#0a1230","#4f6fd8","#e8eeff","moon"],void:["Endless Void","#020306","#4fd6e6","#8a6bff","lines"]};
+/* More original designs drawn by the launcher. The game draws CAPE_BUILTIN itself; these go to the game as a PNG (custom). */
+const CAPE_EXTRA={ember:["Ember","#1a0804","#ff7a1a","#ffd34d","flame"],synth:["Synthwave","#12061f","#ff4fd8","#4fd6ff","grid"],frost:["Frost","#0b1d2a","#bfefff","#ffffff","diamond"],
+toxic:["Toxic","#07140a","#5dff6a","#d4ff4f","drip"],royal:["Royal","#1b0f33","#f2c14e","#fff4cc","crown"],storm:["Storm","#0d1220","#8fb3ff","#fff27a","bolt"],
+checker:["Checkmate","#141414","#e8e8e8","#2a2a2a","checker"],rose:["Rose","#2a0a14","#ff4f7a","#ffd1dc","heart"]};
+const CAPE_PRESET={...CAPE_BUILTIN,...CAPE_EXTRA};
 const CS={yaw:Math.PI*0.82,pitch:0.12,dist:78,walk:true,sneak:false,stride:ls.get("capeStride",0.77),design:ls.get("capeDesign","aurora"),mine:[],fav:ls.get("capeFav",[]),raf:0,drag:null,sim:null,pos:0,phase:0,tick:0,img:null,skin:null,skinKey:"",gen:{base:"#101826",a:"#6fe3ff",b:"#b58cff",pattern:"gradient"}};
 /** Draws a 64x32 cape texture: the pattern fills the cape faces (Cosmetics.CAPE_FACES), so it wraps the box like a real cape file. */
 function makeCape(base,a,b,pattern){const c=document.createElement("canvas");c.width=64;c.height=32;const x=c.getContext("2d");x.fillStyle=base;x.fillRect(0,0,22,17);
@@ -11,6 +16,16 @@ front(()=>{if(pattern==="gradient"||pattern==="waves"){const g=x.createLinearGra
  if(pattern==="stars"){const g=x.createLinearGradient(0,1,0,17);g.addColorStop(0,base);g.addColorStop(1,a);x.fillStyle=g;x.fillRect(0,0,22,17);for(let i=0;i<26;i++){x.fillStyle=r.next()<0.7?b:a;x.fillRect(Math.floor(r.next()*22),Math.floor(r.next()*17),1,1)}}
  if(pattern==="petals"){for(let i=0;i<22;i++){x.fillStyle=r.next()<0.5?a:b;x.fillRect(Math.floor(r.next()*22),Math.floor(r.next()*17),1,1)}}
  if(pattern==="moon"){x.fillStyle=b;x.fillRect(4,4,4,4);x.fillRect(15,4,4,4);x.fillStyle=base;x.fillRect(6,4,2,2);x.fillRect(17,4,2,2);for(let i=0;i<12;i++){x.fillStyle=a;x.fillRect(Math.floor(r.next()*22),9+Math.floor(r.next()*8),1,1)}}
+ // Each draws one 10x16 face; px(x,y) plots on both the front (x 1..10) and back (x 12..21) of the cape.
+ const px=(c,X,Y,w=1,h=1)=>{x.fillStyle=c;x.fillRect(1+X,1+Y,w,h);x.fillRect(12+X,1+Y,w,h)};
+ if(pattern==="flame"){for(let X=0;X<10;X++){const top=6+Math.round(Math.abs(Math.sin(X*1.7))*4+r.next()*2);for(let Y=top;Y<16;Y++)px(Y>12?b:(Y-top<2?b:a),X,Y);if(r.next()<.5)px(b,X,top-2)}px(b,3,9,1,3);px(b,7,10,1,3)}
+ if(pattern==="grid"){const g=x.createLinearGradient(0,1,0,9);g.addColorStop(0,base);g.addColorStop(1,a);x.fillStyle=g;x.fillRect(0,0,22,9);px("#ffd166",3,4,4,2);px("#ff9f43",2,6,6,1);for(let Y=8;Y<16;Y+=2)px(b,0,Y,10,1);for(const X of[0,3,6,9])px(b,X,8,1,8)}
+ if(pattern==="diamond"){for(let Y=0;Y<16;Y++)for(let X=0;X<10;X++){const d=(X+Y)%4===0||(X-Y+16)%4===0;if(d)px(Y<8?a:b,X,Y)}px(b,4,7,2,2)}
+ if(pattern==="drip"){px(a,0,0,10,4);for(let X=0;X<10;X++){const l=Math.floor(r.next()*8);px(a,X,4,1,l);if(l>2)px(b,X,4+l,1,1)}px(b,2,1,1,1);px(b,7,2,1,1)}
+ if(pattern==="crown"){px(a,1,5,8,4);px(a,1,3,1,2);px(a,4,2,2,3);px(a,8,3,1,2);px("#e84a5f",2,6,1,1);px("#4fd6ff",4,6,2,1);px("#5dff6a",7,6,1,1);px(b,1,9,8,1);for(let i=0;i<8;i++)px(a,Math.floor(r.next()*10),11+Math.floor(r.next()*5))}
+ if(pattern==="bolt"){for(let i=0;i<6;i++)px(a,Math.floor(r.next()*10),Math.floor(r.next()*4),2,1);[[6,3],[5,4],[5,5],[4,6],[4,7],[3,8],[4,8],[5,8],[6,8],[5,9],[5,10],[4,11],[4,12],[3,13]].forEach(([X,Y])=>px(b,X,Y))}
+ if(pattern==="checker"){for(let Y=0;Y<16;Y+=2)for(let X=0;X<10;X+=2)px(((X+Y)/2)%2?b:a,X,Y,2,2)}
+ if(pattern==="heart"){[[2,4],[3,4],[6,4],[7,4],[1,5],[2,5],[3,5],[4,5],[5,5],[6,5],[7,5],[8,5],[1,6],[2,6],[3,6],[4,6],[5,6],[6,6],[7,6],[8,6],[2,7],[3,7],[4,7],[5,7],[6,7],[7,7],[3,8],[4,8],[5,8],[6,8],[4,9],[5,9]].forEach(([X,Y])=>px(a,X,Y));px(b,2,5);for(let i=0;i<10;i++)px(b,Math.floor(r.next()*10),11+Math.floor(r.next()*5))}
  if(pattern==="lines"){x.fillStyle=a;x.fillRect(5,1,1,16);x.fillRect(17,1,1,16);x.fillStyle=b;x.fillRect(1,12,10,1);x.fillRect(12,12,10,1)}
  x.fillStyle="rgba(255,255,255,.85)";for(const ox of[4,15])[[2,0],[1,1],[3,1],[0,2],[4,2],[0,3],[1,3],[2,3],[3,3],[4,3],[0,4],[4,4]].forEach(([dx,dy])=>x.fillRect(ox+dx-0.5+0.5,12+dy-0,1,1))});
 x.fillStyle=a;x.fillRect(0,1,1,16);x.fillRect(11,1,1,16);x.fillRect(1,0,10,1);x.fillRect(11,0,10,1);return c}
@@ -25,9 +40,9 @@ const CL={desk:()=>!!(window.auroras&&auroras.capeLibList),
 CS.imgCache={};CS.imgWait={};CS.filter=ls.get("capeFilter","all");CS.tab="lib";
 /** Loads each custom design's image once; when one arrives its thumbnail and (if selected) the preview update. */
 function cacheImages(){for(const d of CS.mine)if(!CS.imgWait[d.id])CS.imgWait[d.id]=new Promise(ok=>{const im=new Image();im.onload=()=>{CS.imgCache[d.id]=im;if(CS.design===d.id)CS.img=null;drawThumb(d.id);ok(im)};im.onerror=()=>ok(null);im.src=d.img})}
-const capeCanvas=id=>{if(CAPE_BUILTIN[id]){const [,base,a,b,p]=CAPE_BUILTIN[id];return makeCape(base,a,b,p)}const im=CS.imgCache[id];if(im){const c=document.createElement("canvas");c.width=im.width;c.height=im.height;c.getContext("2d").drawImage(im,0,0);return c}return makeCape("#101826","#6fe3ff","#b58cff","gradient")};
+const capeCanvas=id=>{if(CAPE_PRESET[id]){const [,base,a,b,p]=CAPE_PRESET[id];return makeCape(base,a,b,p)}const im=CS.imgCache[id];if(im){const c=document.createElement("canvas");c.width=im.width;c.height=im.height;c.getContext("2d").drawImage(im,0,0);return c}return makeCape("#101826","#6fe3ff","#b58cff","gradient")};
 /** Same as capeCanvas, but waits for a custom design's image, so nothing ever saves the placeholder by mistake. */
-async function capeCanvasReady(id){if(!CAPE_BUILTIN[id]&&CS.imgWait[id])await CS.imgWait[id];return capeCanvas(id)}
+async function capeCanvasReady(id){if(!CAPE_PRESET[id]&&CS.imgWait[id])await CS.imgWait[id];return capeCanvas(id)}
 const texOf=c=>{const d=c.getContext("2d").getImageData(0,0,c.width,c.height);return{w:c.width,h:c.height,data:d.data}};
 /**
  * Turns any supported cape image into the game's layout: 64x32 and its HD sizes as they are; OptiFine's 46x22 (and
@@ -46,14 +61,14 @@ PAGES.capes=()=>`<div class="page capes" style="max-width:1180px"><div class="he
 <span class="capespeed"><label for="cs-stride">Speed</label><input type="range" class="rng" id="cs-stride" min="0" max="1" step="0.05" value="${CS.stride}" style="--fill:${fillPct(CS.stride,0,1)}%" aria-valuetext="${capePace(CS.stride)}"><output id="cs-pace" class="clock">${capePace(CS.stride)}</output></span></div>
 <small class="cs-hint">Cape motion follows the same rules the game uses for capes. Drag to turn the player; scroll to zoom. The skin comes from your selected account.</small></div>
 <div class="cs-side"><div class="seg cs-tabs" role="tablist"><button role="tab" data-cstab="lib" aria-selected="${CS.tab==="lib"}">${ic("grid",14)}Library</button><button role="tab" data-cstab="make" aria-selected="${CS.tab==="make"}">${ic("pen",14)}Editor</button></div>
-<div id="cs-lib"${CS.tab==="lib"?"":" hidden"}><label class="dropzone" id="cs-drop" tabindex="0">${ic("upload",18)}<span><b>Upload capes</b><small>PNG at 64x32 or HD (128x64 to 512x256). OptiFine capes work too. Drop files here or click.</small></span><input type="file" id="cs-imp" accept="image/png" multiple hidden></label>
+<div id="cs-lib"${CS.tab==="lib"?"":" hidden"}><label class="dropzone" id="cs-drop" tabindex="0">${ic("upload",18)}<span><b>Upload capes</b><small>PNG at 64x32 or HD (128x64 to 512x256). OptiFine capes work too. Drop files here or click.</small></span><input type="file" id="cs-imp" accept="image/png" multiple hidden></label><div class="cs-find"><span class="min"><b>Looking for more?</b><small>SkinMC has thousands of community capes. Download one as a PNG there, then drop it above. Capes stay on this PC and only you see them in game.</small></span><button class="btn" id="cs-skinmc">${ic("ext",13)}Browse SkinMC capes</button></div>
 <div class="seg cs-filter" role="group" aria-label="Show">${[["all","All"],["fav","Favorites"],["mine","Yours"]].map(([k,l])=>`<button data-cfilter="${k}" aria-pressed="${CS.filter===k}">${l}</button>`).join("")}</div>
 <div class="capegrid" id="cs-grid"></div></div>
 <div id="cs-make"${CS.tab==="make"?"":" hidden"}></div>
 <div class="err" id="cs-err" role="alert"></div>
 <div class="panel cs-game" id="cs-game"></div>
 <div class="row2"><button class="btn" id="cs-exp">${ic("download",14)}Export PNG</button></div></div></div></div>`;
-function capeItems(){const all=[...Object.keys(CAPE_BUILTIN).map(id=>({id,name:CAPE_BUILTIN[id][0],builtin:true})),...CS.mine];
+function capeItems(){const all=[...Object.keys(CAPE_PRESET).map(id=>({id,name:CAPE_PRESET[id][0],builtin:true})),...CS.mine];
   const shown=CS.filter==="fav"?all.filter(d=>CS.fav.includes(d.id)):CS.filter==="mine"?all.filter(d=>!d.builtin):all;
   return shown.sort((a,b)=>(CS.fav.includes(b.id)?1:0)-(CS.fav.includes(a.id)?1:0))}
 function drawCapeGrid(){const g=$("#cs-grid");if(!g)return;const items=capeItems();
@@ -62,7 +77,7 @@ g.innerHTML=items.length?items.map(d=>{const fav=CS.fav.includes(d.id);return `<
 :`<div class="cs-empty"><small>${CS.filter==="fav"?"Star a cape to keep it here.":"Capes you upload or make show up here."}</small></div>`;
 g.querySelectorAll("[data-cthumb]").forEach(c=>drawThumb(c.dataset.cthumb))}
 /** A card's picture: the cape's outer face, pixel-sharp. */
-function drawThumb(id){const c=document.querySelector(`[data-cthumb="${CSS.escape(id)}"]`);if(!c)return;if(!CAPE_BUILTIN[id]&&!CS.imgCache[id])return;const src=capeCanvas(id),x=c.getContext("2d"),sc=src.width/64;x.imageSmoothingEnabled=false;x.clearRect(0,0,40,64);x.drawImage(src,1*sc,1*sc,10*sc,16*sc,0,0,40,64)}
+function drawThumb(id){const c=document.querySelector(`[data-cthumb="${CSS.escape(id)}"]`);if(!c)return;if(!CAPE_PRESET[id]&&!CS.imgCache[id])return;const src=capeCanvas(id),x=c.getContext("2d"),sc=src.width/64;x.imageSmoothingEnabled=false;x.clearRect(0,0,40,64);x.drawImage(src,1*sc,1*sc,10*sc,16*sc,0,0,40,64)}
 function useDesign(id){CS.previewing=false;CS.design=id;ls.set("capeDesign",id);CS.img=null;drawCapeGrid();if(CS.tab==="make")ceLoad(id);const set={"cape.design":CAPE_BUILTIN[id]?id:"custom"};mcSave(set).catch(()=>{})}
 /** The in-game panel: the selected design can be shown in the game, to you only (the mod draws it on your own player). */
 function drawCapeGame(){const el=$("#cs-game");if(!el||!MC.data)return;const on=mcVals()["cape.enabled"]==="true",m=REG.modules.find(x=>x.id==="cape");
@@ -83,7 +98,7 @@ async function importCapes(files){const err=$("#cs-err");err.textContent="";cons
 const CE={cv:null,tool:"pen",col:"#ffffff",mirror:false,undo:[],redo:[],from:null,z:14,down:false,last:null};
 const CE_FACES=[["Outside",1,1,10,16],["Inside",12,1,10,16]];
 function ceLoad(id){const src=capeCanvas(id),c=document.createElement("canvas");c.width=64;c.height=32;const x=c.getContext("2d");x.imageSmoothingEnabled=false;x.drawImage(src,0,0,64,32);CE.cv=c;CE.from=id;CE.undo=[];CE.redo=[];ceDraw();cePreview()}
-function drawCapeMake(){const el=$("#cs-make");if(!el)return;const own=CE.from&&!CAPE_BUILTIN[CE.from]&&CS.mine.find(d=>d.id===CE.from);
+function drawCapeMake(){const el=$("#cs-make");if(!el)return;const own=CE.from&&!CAPE_PRESET[CE.from]&&CS.mine.find(d=>d.id===CE.from);
 el.innerHTML=`<div class="panel ce"><div class="ce-tools" role="toolbar" aria-label="Paint tools">${[["pen","Pen"],["bucket","Fill"],["picker","Pick colour"],["eraser","Erase"]].map(([t,l])=>`<button class="ibtn${CE.tool===t?" on":""}" data-cetool="${t}" aria-pressed="${CE.tool===t}" aria-label="${l}" data-tt="${l}">${ic(t,16)}</button>`).join("")}
 <input type="color" class="colorbox" id="ce-col" value="${CE.col}" aria-label="Paint colour"><span class="sep"></span><button class="ibtn" data-ceact="undo" aria-label="Undo" data-tt="Undo (Ctrl+Z)"${CE.undo.length?"":" disabled"}>${ic("undo",16)}</button><button class="ibtn" data-ceact="redo" aria-label="Redo" data-tt="Redo"${CE.redo.length?"":" disabled"}>${ic("redo",16)}</button>
 <label class="tgl" style="margin-left:auto"><button class="tg" role="switch" id="ce-mirror" aria-checked="${CE.mirror}" aria-label="Mirror"></button><span>Mirror</span></label></div>
@@ -124,7 +139,7 @@ function cePreview(){if(!CE.cv)return;CS.img=texOf(CE.cv);CS.previewing=true}
 function ceUndo(redo){const a=redo?CE.redo:CE.undo,b=redo?CE.undo:CE.redo;if(!a.length)return;const x=CE.cv.getContext("2d");b.push(x.getImageData(0,0,64,32));x.putImageData(a.pop(),0,0);ceDraw();cePreview();ceButtons()}
 function setCapeTab(t){CS.tab=t;document.querySelectorAll("[data-cstab]").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.cstab===t)));$("#cs-lib").hidden=t!=="lib";$("#cs-make").hidden=t!=="make";
   if(t==="make"){ceLoad(CS.design);drawCapeMake()}else{CS.previewing=false;CS.img=null}}
-async function initCapes(){await mcLoad();try{CS.mine=await CL.list()}catch(e){CS.mine=[]}if(!CAPE_BUILTIN[CS.design]&&!CS.mine.some(d=>d.id===CS.design))CS.design="aurora";cacheImages();drawCapeGrid();drawCapeGame();if(CS.tab==="make")setCapeTab("make");CS.sim=VX.CapeSim();CS.pos=0;CS.phase=0;CS.st=null;
+async function initCapes(){await mcLoad();try{CS.mine=await CL.list()}catch(e){CS.mine=[]}if(!CAPE_PRESET[CS.design]&&!CS.mine.some(d=>d.id===CS.design))CS.design="aurora";cacheImages();drawCapeGrid();drawCapeGame();if(CS.tab==="make")setCapeTab("make");CS.sim=VX.CapeSim();CS.pos=0;CS.phase=0;CS.st=null;
 const page=document.querySelector(".page"),err=()=>$("#cs-err");
 page.onclick=async e=>{const t=e.target.closest("[data-cd],[data-cfav],[data-cdup],[data-cren],[data-cdel],[data-cstab],[data-cfilter],[data-cetool],[data-ceact],#ce-mirror,#cs-walk,#cs-sneak,#cs-reset,#cg-save,#cs-exp");if(!t)return;err().textContent="";
 try{
@@ -132,7 +147,7 @@ if(t.dataset.cd)useDesign(t.dataset.cd);
 else if(t.dataset.cstab)setCapeTab(t.dataset.cstab);
 else if(t.dataset.cfilter){CS.filter=t.dataset.cfilter;ls.set("capeFilter",CS.filter);document.querySelectorAll("[data-cfilter]").forEach(b=>b.setAttribute("aria-pressed",String(b===t)));drawCapeGrid()}
 else if(t.dataset.cfav){const i=CS.fav.indexOf(t.dataset.cfav);i<0?CS.fav.push(t.dataset.cfav):CS.fav.splice(i,1);ls.set("capeFav",CS.fav);drawCapeGrid()}
-else if(t.dataset.cdup){const src=capeCanvas(t.dataset.cdup);await addDesign({id:newId(),name:(CAPE_BUILTIN[t.dataset.cdup]||[t.dataset.cdup])[0]+" copy",img:src.toDataURL("image/png"),source:"copy"})}
+else if(t.dataset.cdup){const src=capeCanvas(t.dataset.cdup);await addDesign({id:newId(),name:(CAPE_PRESET[t.dataset.cdup]||[t.dataset.cdup])[0]+" copy",img:src.toDataURL("image/png"),source:"copy"})}
 else if(t.dataset.cren){const d=CS.mine.find(x=>x.id===t.dataset.cren);promptDlg("Rename design","Design name",d.name,n=>{if(!n||n.length>32)return"Give it a name (up to 32 characters).";d.name=n;CL.rename(d.id,n).catch(x=>toast(errMsg(x),"err"));drawCapeGrid()})}
 else if(t.dataset.cdel){const d=CS.mine.find(x=>x.id===t.dataset.cdel);confirmDlg(`Delete “${d.name}”?`,"This removes the cape from your library on this computer.","Delete",async()=>{try{await CL.remove(d.id)}catch(x){return toast(errMsg(x),"err")}CS.mine=CS.mine.filter(x=>x!==d);if(CS.design===d.id)useDesign("aurora");else drawCapeGrid()})}
 else if(t.dataset.cetool){CE.tool=t.dataset.cetool;drawCapeMake()}
@@ -147,7 +162,7 @@ else if(t.id==="cs-exp"){const c=CS.tab==="make"&&CE.cv?CE.cv:await capeCanvasRe
 }catch(x){err().textContent=errMsg(x)}};
 page.onkeydown=e=>{if(CS.tab==="make"&&(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="z"&&!/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)){e.preventDefault();ceUndo(e.shiftKey)}};
 $("#cs-stride").oninput=e=>{CS.stride=+e.target.value;ls.set("capeStride",CS.stride);const p=capePace(CS.stride);e.target.style.setProperty("--fill",fillPct(CS.stride,0,1)+"%");e.target.setAttribute("aria-valuetext",p);$("#cs-pace").textContent=p};
-$("#cs-imp").onchange=async e=>{const fs=[...e.target.files];e.target.value="";if(fs.length)await importCapes(fs)};
+$("#cs-skinmc").onclick=()=>openExt("https://www.skinmc.net/capes");$("#cs-imp").onchange=async e=>{const fs=[...e.target.files];e.target.value="";if(fs.length)await importCapes(fs)};
 const dz=$("#cs-drop");dz.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();$("#cs-imp").click()}};dz.ondragover=e=>{e.preventDefault();dz.classList.add("over")};dz.ondragleave=()=>dz.classList.remove("over");
 dz.ondrop=async e=>{e.preventDefault();dz.classList.remove("over");const fs=[...(e.dataTransfer?.files||[])];if(fs.length)await importCapes(fs)};
 if(!CE.rs){CE.rs=1;window.addEventListener("resize",()=>ceDraw())}
