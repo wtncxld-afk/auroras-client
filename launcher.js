@@ -125,6 +125,19 @@ async function prepare(req, d) {
  * Runs the game and reports its life cycle. Resolves with the exit code. A non-zero exit becomes an "error" state
  * with the last log lines, so a crash on start is explained instead of silently returning to Ready.
  */
+/**
+ * Just Minecraft's own game jar for one version, from Mojang (checked against Mojang's SHA-1), into the same place a
+ * launch puts it. No sign-in needed: Totem Studio reads the vanilla totem texture from it before you've played.
+ */
+async function fetchClientJar(mc, d) {
+  const mf = await cachedJson(d, MANIFEST, "versions/version_manifest_v2.json", "Mojang’s version list");
+  const entry = (mf.value.versions || []).find((v) => v.id === mc); if (!entry) throw new Error(`Minecraft ${mc} isn’t in Mojang’s version list.`);
+  const v = (await cachedJson(d, entry.url, `versions/${mc}/${mc}.json`, `the ${mc} version file`)).value;
+  if (v.id !== mc || !v.downloads || !v.downloads.client) throw new Error("Mojang returned the wrong version file.");
+  const c = v.downloads.client, rel = `versions/${mc}/${mc}.jar`;
+  await inst.ensureFiles([{ path: rel, url: c.url, sha1: c.sha1, size: c.size }], { root: d.root, fetchBytes: d.fetchBytes, concurrency: 1, sleep: d.sleep, onProgress: d.onProgress || (() => {}) });
+  return path.join(d.root, rel);
+}
 function supervise(child, { logFile, emit }) {
   fs.mkdirSync(path.dirname(logFile), { recursive: true });
   const log = fs.createWriteStream(logFile), tail = [];
@@ -140,4 +153,4 @@ function supervise(child, { logFile, emit }) {
     child.on("error", (e) => end(null, e)); child.on("exit", (c) => end(c == null ? -1 : c));
   });
 }
-module.exports = { MANIFEST, JAVA_INDEX, fabricProfileUrl, splitJvmArgs, parseJavaVersion, prepare, supervise };
+module.exports = { MANIFEST, JAVA_INDEX, fabricProfileUrl, splitJvmArgs, parseJavaVersion, prepare, fetchClientJar, supervise };

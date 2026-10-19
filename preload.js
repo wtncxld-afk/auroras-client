@@ -38,6 +38,7 @@ contextBridge.exposeInMainWorld("auroras", {
   modcfgUpdate: (o) => ir.invoke("modcfg:update", o),
   modcfgAssign: (o) => ir.invoke("modcfg:assign", o),
   vanillaTexture: (o) => ir.invoke("vanilla:texture", o),
+  vanillaFetch: (o) => ir.invoke("vanilla:fetch", o),
   spotifyConnect: () => ir.invoke("spotify:connect"),
   spotifyDisconnect: () => ir.invoke("spotify:disconnect"),
   layoutsList: (id) => ir.invoke("layouts:list", id),

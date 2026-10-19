@@ -167,3 +167,10 @@ test("a snapshot launches through the same pipeline with its own metadata and is
   const cmd = await L.prepare({ ...t.req, inst: { ...t.req.inst, mc: "26.1-snapshot-1" } }, t.d), a = cmd.args;
   assert.strictEqual(a[a.indexOf("--version") + 1], "26.1-snapshot-1"); assert.strictEqual(a[a.indexOf("--versionType") + 1], "snapshot");
 });
+
+test("fetchClientJar: only the game jar, from Mojang's version file, checked against its SHA-1; no sign-in", async () => {
+  const t = setup(); const jar = await L.fetchClientJar("1.21.4", { root: t.root, fetchJson: t.w.fetchJson, fetchBytes: t.w.fetchBytes });
+  assert.strictEqual(jar, path.join(t.root, "versions", "1.21.4", "1.21.4.jar")); assert.ok(fs.existsSync(jar));
+  assert.ok(!fs.existsSync(path.join(t.root, "libraries")) && !fs.existsSync(path.join(t.root, "assets", "objects")), "nothing but the jar");
+  await assert.rejects(L.fetchClientJar("9.9.9", { root: t.root, fetchJson: t.w.fetchJson, fetchBytes: t.w.fetchBytes }), /isn’t in Mojang’s version list/);
+});

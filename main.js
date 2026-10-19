@@ -498,6 +498,12 @@ ipcMain.handle("vanilla:texture", (_e, { mc, path: entry }) => {
   return { dataUrl: "data:image/png;base64," + data.toString("base64") };
 });
 
+// Totem Studio's "Get the real totem": downloads only Minecraft's game jar for this version from Mojang (no sign-in needed).
+ipcMain.handle("vanilla:fetch", async (_e, { mc }) => {
+  if (!/^\d{1,3}\.\d{1,3}(\.\d{1,3})?$/.test(String(mc))) throw new Error("Unknown Minecraft version");
+  await launcher.fetchClientJar(String(mc), { root: path.join(user(), "game"), ...launchDeps }); return { ok: true };
+});
+
 // ---------- Spotify now playing (for the Spotify HUD). Polls only while a game is running. ----------
 const spotify = require("./spotify"), http = require("http");
 const spTokFile = () => path.join(user(), "spotify.json");

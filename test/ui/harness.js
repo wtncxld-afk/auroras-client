@@ -72,7 +72,8 @@ function mockBridge(versions) {
     friendsPresence: async (o) => { rec("friendsPresence", o); },
     emotesWheel: async ({ slots }) => { if (slots.length !== 8) throw new Error("The wheel has 8 slots"); window.__emotes.wheel = slots.slice(); rec("emotesWheel", slots); return JSON.parse(JSON.stringify(window.__emotes)); },
     spotifyConnect: async () => { rec("spotifyConnect"); return true; }, spotifyDisconnect: async () => { rec("spotifyDisconnect"); return true; },
-    vanillaTexture: async ({ mc, path }) => { rec("vanillaTexture", { mc, path }); if (mc !== "1.21.4") throw new Error(`Minecraft ${mc} is not downloaded yet`);
+    vanillaFetch: async ({ mc }) => { rec("vanillaFetch", { mc }); window.__noGame = false; return { ok: true }; },
+    vanillaTexture: async ({ mc, path }) => { rec("vanillaTexture", { mc, path }); if (mc !== "1.21.4" || window.__noGame) throw new Error(`Minecraft ${mc} is not downloaded yet`);
       const c = document.createElement("canvas"); c.width = c.height = 16; const x = c.getContext("2d"); x.fillStyle = "#e0b030"; x.fillRect(4, 2, 8, 12); return { dataUrl: c.toDataURL() }; } };
 }
 /** A stand-in for three.js: every property and call returns another stand-in. It proves the stage code runs, not that it draws correctly. */

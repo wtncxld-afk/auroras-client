@@ -161,6 +161,16 @@ describe("Totem Studio", () => {
     await s.page.locator("#ts-imp").setInputFiles({ name: "t.png", mimeType: "image/png", buffer: Buffer.from(await pngB64(s.page, 16, 16, "#123456"), "base64") }); await wait(s.page, 200);
     assert.ok(await s.page.evaluate(() => T.g.every((c) => c === "#123456")));
   });
+  test("with no game downloaded yet (never signed in), Real totem downloads Minecraft's game file from Mojang and loads the totem", async () => {
+    const t = await launch(); try {
+      await t.page.evaluate(() => { window.__noGame = true; localStorage.setItem("totemTouched", "true"); }); await nav(t.page, "Totem Studio"); await wait(t.page, 400);
+      await tap(t.page, t.page.locator("summary", { hasText: "Presets" }));
+      assert.match(await t.page.locator("#ts-realnote").textContent(), /download Minecraft 1\.21\.4’s game file from Mojang/);
+      await tap(t.page, t.page.locator('[data-bp="real"]')); await wait(t.page, 400);
+      assert.deepStrictEqual((await calls(t.page, "vanillaFetch")).at(-1), { mc: "1.21.4" });
+      assert.ok(await t.page.evaluate(() => T.g[2 * 16 + 4] === "#e0b030")); assert.strictEqual(await t.page.locator("#ts-realnote").count(), 0);
+    } finally { await t.close(); }
+  });
   test("vanilla comparison reads from the player's own game files and says so", async () => {
     await tap(s.page, s.page.locator("#ts-cmp")); await wait(s.page, 300);
     assert.deepStrictEqual((await calls(s.page, "vanillaTexture")).at(-1), { mc: "1.21.4", path: "assets/minecraft/textures/item/totem_of_undying.png" });
