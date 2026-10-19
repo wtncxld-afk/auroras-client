@@ -31,6 +31,13 @@ Network: Mojang, Fabric, NeoForge, Forge, Modrinth, Spotify, Gradle and Maven we
 - Measured in headless Chromium with software rendering at 1920x1080 (not a real GPU): 1.4 to 5 ms per frame at 1x, 2.7 to 8.3 ms at 2x.
 - The home page's welcome text sits on a glass pill so it stays readable on bright scenes; panels have a soft top highlight and shadow.
 
+## Launcher revamp and Sakura scenes (2026-10-19)
+- **Home** is now a two-column hero on wide windows: a glass card with a time-of-day greeting, "Welcome back, <name>", the selected instance's version, memory and last played, then Play, the instance picker and the account switcher; the 3D skin stands on the right. Below 1060 px wide it stacks with the skin on top. First run shows "Welcome to Auroras" with Add account in the same card.
+- **Play** is larger with an accent gradient, inner highlight and glow, and lifts on hover. Download, launching, playing and error states keep their own colours. The active sidebar item has an accent tint, an accent icon and a glowing bar.
+- **Sakura** gains a sun with slowly turning rays, drifting mist, a torii and two cherry trees that sway. **Sakura Night** gains a shaded moon with craters, mist and a cherry tree; lanterns no longer hang over the moon. Blossoms are soft sprites stamped in three passes (shadowed underside, canopy, pale highlights) instead of outlined circles, and the tree canvases have headroom so no canopy is cut flat.
+- Measured the same way as above: 1.2 to 5.3 ms per frame at 1x and 2.8 to 7.7 ms at 2x across all seven scenes.
+- Checked: npm test 116/116, npm run test:ui 126/126, Java 365 passing (Tests 91, PerfTests 21, VisualTests 65, HudTests 44, EmoteTests 30, UiTests 38, ModuleTests 46, RadialTests 30), adapter ParseCheck 32 files with 0 problems, and screenshots at 1440x900 and 1000x760. Not run in game.
+
 ## Version support from 1.21 on (this round)
 - **Discovery:** the list comes only from Mojang's `version_manifest_v2.json`; no version is hard-coded. Tested with fixture manifests shaped like Mojang's (Mojang was unreachable here), including 1.21 to 1.21.x hotfixes, year-based 26.x releases, pre-releases, release candidates, week-style and year-style snapshots, an April Fools build, and a snapshot-typed entry whose id looks like a release (it stays a snapshot).
 - **Filters** (`test/versions.test.js`, `test/ui/versions.test.js`): Latest releases returns the newest patch of each release line; All releases lists every stable release from 1.21 on; Snapshots and pre-releases lists only development builds. Stable means Mojang's type is `release`, nothing else.
