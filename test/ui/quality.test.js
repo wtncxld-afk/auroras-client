@@ -93,6 +93,9 @@ describe("content honesty and long names", () => {
       await s.page.evaluate(() => { window.__srv = { online: true, version: "Paper 1.21.4", players: { online: 37, max: 200 }, motd: "VexVanilla survival", icon: null, latency: 42 }; auroras.serverStatus = async (a) => { if (a === "down.example.net") throw new Error("The server refused the connection. It may be offline."); return { address: a, ...window.__srv }; }; });
       await nav(s.page, "Settings"); await nav(s.page, "Home"); await wait(s.page, 400); let t = await s.page.locator("#srv").textContent();
       assert.match(t, /37 \/ 200 online · Paper 1\.21\.4 · 42 ms/); assert.match(t, /VexVanilla survival/);
+      await s.page.evaluate(() => { window.__srv = { ...window.__srv, version: "VeloFlame 1.7.2-26.2", players: { online: 58, max: 1000 }, motd: "🎃 VEX VANILLA 🎃 ▶ .gg/VexVanilla \\ EU\n✨ NEW SEASON OUT JOIN NOW 🏹" }; }); await nav(s.page, "Settings"); await nav(s.page, "Home"); await wait(s.page, 400);
+      const fit = await s.page.evaluate(() => { const c = document.querySelector("#srv"), m = c.querySelector(".motd"), j = c.querySelector("[data-join]").getBoundingClientRect(), r = c.getBoundingClientRect(); return { over: c.scrollWidth - c.clientWidth, motd: m.scrollHeight - m.clientHeight, join: j.right <= r.right }; });
+      assert.deepEqual(fit, { over: 0, motd: 0, join: true }, "a long server status and MOTD stay inside the card");
       await tap(s.page, "[data-srvedit]"); await s.page.locator("#addr").fill("bad address!"); await s.page.locator("#addr").press("Enter"); assert.match(await s.page.locator("#srverr").textContent(), /server address like/);
       await s.page.locator("#addr").fill("down.example.net"); await s.page.locator("#addr").press("Enter"); await wait(s.page, 200); t = await s.page.locator("#srv").textContent(); assert.match(t, /refused the connection/); assert.ok(await s.page.locator("[data-srvretry]").count());
     } finally { await s.close(); }

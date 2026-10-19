@@ -96,14 +96,14 @@ h2{font-size:13px;font-weight:500;margin-bottom:10px}
 .list{padding:4px}
 .tag{font-size:11px;padding:1px 7px;border-radius:99px;border:1px solid var(--line);color:var(--mute);white-space:nowrap}
 .tag.ok{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 35%,var(--line))}
-.srv{padding:var(--sp-4);display:grid;gap:var(--sp-3);align-content:start}
+.srv{padding:var(--sp-4);display:grid;grid-template-columns:minmax(0,1fr);gap:var(--sp-3);align-content:start;min-width:0}.homegrid>section{min-width:0}.srv .top .min{flex:1}
 .homegrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:var(--sp-5);align-items:start}.homegrid h2{color:var(--mute);font-weight:500}
 .sico{width:40px;height:40px;border-radius:var(--r-s);image-rendering:pixelated;flex:none}
 .srvst{display:flex!important;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sdot{width:7px;height:7px;border-radius:50%;background:var(--faint);flex:none}.sdot.ok{background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 20%,transparent)}.sdot.bad{background:var(--err)}.sdot.wait{background:var(--warn)}
 .spin.sm{width:11px;height:11px;border-width:1.5px}
-.motd{font-size:var(--fs-sm);color:var(--mute);white-space:pre-line;line-height:1.45;max-height:3.2em;overflow:hidden;padding:var(--sp-2) var(--sp-3);background:var(--bg);border-radius:var(--r-s);border:1px solid var(--line)}
+.motd{font-size:var(--fs-sm);color:var(--mute);white-space:pre-line;line-height:1.45;overflow-wrap:anywhere;padding:var(--sp-2) var(--sp-3);background:var(--bg);border-radius:var(--r-s);border:1px solid var(--line)}
 .srvrow{display:flex;align-items:center;gap:var(--sp-2)}.srvrow .addr{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:500 var(--fs-sm)/1 ui-monospace,Menlo,Consolas,monospace;color:var(--mute)}
-.srvform{display:flex;gap:var(--sp-2)}.srv .top small{white-space:normal}.srv .top .srvst{white-space:nowrap}
+.srvform{display:flex;gap:var(--sp-2)}.srv .top small{white-space:normal}.srv .top .srvst{white-space:nowrap;overflow:hidden}.srv .top .srvst{align-items:flex-start;white-space:normal}.srvst .sdot{margin-top:5px}.srvst .sttx{min-width:0;white-space:normal;line-height:1.4}.motd>span{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}.srvst .sttx .spin{vertical-align:-2px;margin-right:6px}
 .news .row{gap:var(--sp-3)}.news b{font-weight:500;white-space:normal;display:block}.dotk{width:6px;height:6px;border-radius:50%;background:var(--acc);margin-top:7px;flex:none;opacity:.8}
 .srv .top{display:flex;align-items:center;gap:12px}
 .srv .ico{width:40px;height:40px;background:linear-gradient(135deg,var(--vio),var(--acc2));color:var(--acc-ink);border:0;font-size:15px}
@@ -1217,8 +1217,8 @@ function srvCard(){const name="VexVanilla",ico=SV.st&&SV.st.icon?`<img class="si
   const desk=!!(window.auroras&&auroras.serverStatus),st=SV.st;let line,dot="";
   if(!desk){line="Live status needs the desktop app";dot="off"}else if(SV.loading&&!st){line=`<span class="spin sm" aria-hidden="true"></span>Checking…`;dot="wait"}else if(SV.err){line=esc(SV.err);dot="bad"}
   else if(st){line=[st.players?`${st.players.online.toLocaleString()}${st.players.max!=null?" / "+st.players.max.toLocaleString():""} online`:"Online",st.version?esc(st.version):"",st.latency!=null?st.latency+" ms":""].filter(Boolean).join(" · ");dot="ok"}
-  return `<div class="top">${ico}<div class="min"><b>${name}</b><small class="srvst"><i class="sdot ${dot}" aria-hidden="true"></i>${line}</small></div><button class="ibtn sm" data-srvedit aria-label="Change server address" title="Change address">${ic("edit",14)}</button></div>
-  ${st&&st.motd?`<div class="motd">${esc(st.motd)}</div>`:""}<div class="srvrow"><code class="addr" title="${esc(SV.addr)}">${esc(SV.addr)}</code>${SV.err&&desk?`<button class="btn sm" data-srvretry>Retry</button>`:""}<button class="btn pri sm" data-join>${ic("play",13)}Join</button></div>`}
+  return `<div class="top">${ico}<div class="min"><b>${name}</b><small class="srvst"><i class="sdot ${dot}" aria-hidden="true"></i><span class="sttx">${line}</span></small></div><button class="ibtn sm" data-srvedit aria-label="Change server address" title="Change address">${ic("edit",14)}</button></div>
+  ${st&&st.motd?`<div class="motd" title="${esc(st.motd)}"><span>${esc(st.motd)}</span></div>`:""}<div class="srvrow"><code class="addr" title="${esc(SV.addr)}">${esc(SV.addr)}</code>${SV.err&&desk?`<button class="btn sm" data-srvretry>Retry</button>`:""}<button class="btn pri sm" data-join>${ic("play",13)}Join</button></div>`}
 const drawSrv=()=>{const el=$("#srv");if(el)el.innerHTML=srvCard()};
 async function loadServer(){if(!SV.addr||!(window.auroras&&auroras.serverStatus))return drawSrv();const n=++SV.seq;SV.loading=true;SV.err="";drawSrv();
   try{const r=await auroras.serverStatus(SV.addr);if(n!==SV.seq)return;SV.st=r}catch(e){if(n!==SV.seq)return;SV.st=null;SV.err=errMsg(e)}SV.loading=false;drawSrv()}
