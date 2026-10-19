@@ -23,7 +23,7 @@ public final class ModuleMenu {
     public record Layout(Rect panel, Rect rail, Rect top, Rect search, Rect hudBtn, Rect body, Rect back, List<String> cats, List<Rect> catRects,
                          List<Card> cards, List<Row> rows, Rect headSwitch, Rect hudLink, int content) {}
 
-    public static final int RAIL = 104, TOP = 26, CARD_MIN = 132, CARD_H = 32, GAP = 6, ROW = 22, ROW_SLIDER = 28, PAD = 8, HEAD = 40;
+    public static final int RAIL = 124, TOP = 26, CARD_MIN = 132, CARD_H = 32, GAP = 6, ROW = 22, ROW_SLIDER = 28, PAD = 8, HEAD = 40;
     /** Keys edited elsewhere: the switch in the panel header, and HUD position (the HUD editor's job). */
     static final Set<String> HIDDEN = Set.of("enabled", "anchor", "offX", "offY");
 

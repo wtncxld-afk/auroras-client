@@ -129,7 +129,7 @@ public class ModuleScreen extends AScreen {
             if (changed) c.fill(r.x() + 1, y + 7, r.x() + 2, y + 15, t.opaque("acc"));
             switch (UiKit.controlFor(d)) {
                 case SWITCH -> { double kk = knob(menu.open + "." + d.key(), Boolean.parseBoolean(menu.value(d))); AUi.toggle(c, ctl.right() - AUi.SWITCH_W, y + 6, kk, hov, true); }
-                case SLIDER -> { String v = menu.display(d); c.text(v, r.right() - 4 - Gfx.width(v), y + 5, t.opaque("mute"), false);
+                case SLIDER -> { String v = menu.display(d); c.text(v, r.right() - 4 - Gfx.width(v), y + 7, t.opaque("mute"), false);
                     AUi.slider(c, ctl.x(), ctl.y() + fadeIn - 2, ctl.w(), d.min(), d.max(), Double.parseDouble(menu.value(d)), hov, foc); }
                 case SEGMENTED -> { java.util.List<String> labels = d.options().stream().map(UiKit::optionLabel).toList(); int total = 2; for (String s2 : labels) total += Gfx.width(s2) + 10;
                     AUi.segmented(c, ctl.right() - total, y + 4, labels, d.options().indexOf(menu.value(d)), -1, foc); }

@@ -41,12 +41,16 @@ public class RadialPreview {
         int[] pill = RadialMenu.bakePill(bw, bh, 0x8FD3FF, 0.95f); blit(bg, pill, bw, bh, m.cx, m.cy + m.hubR * 0.44f + bh / 2f, 1, 1);
         text(bg, atlas, tk, bf, badge, m.cx - tk.width(bf, badge, 1) / 2, m.cy + m.hubR * 0.44f + bh / 2f + bf.ascent() * 0.5 - 1, 0x06141F, 1);
         TextKit.Face bf2 = tk.face("semibold", 11 * gs); text(bg, atlas, tk, bf2, "Auroras Client", 16 * gs + 18 * gs, 12 * gs + bf2.ascent(), 0xFFFFFF, 1);
-        fill(bg, 12 * gs, 10 * gs, 18 * gs, 18 * gs, 0xFF8FD3FF);
+        String lp = System.getenv("AURORAS_LOGO"); // the mod's logo.png; a plain square without it
+        if (lp != null) { java.awt.Graphics2D g = bg.createGraphics(); g.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR); g.drawImage(ImageIO.read(new File(lp)), 12 * gs, 10 * gs, 18 * gs, 18 * gs, null); g.dispose(); }
+        else fill(bg, 12 * gs, 10 * gs, 18 * gs, 18 * gs, 0xFF8FD3FF);
         ImageIO.write(bg, "png", new File(a[1])); System.out.println("wrote " + a[1]);
     }
     static float[] mask(BufferedImage im) { float[] m = new float[im.getWidth() * im.getHeight()]; for (int y = 0; y < im.getHeight(); y++) for (int x = 0; x < im.getWidth(); x++) { int p = im.getRGB(x, y); m[y * im.getWidth() + x] = ((p >>> 24) == 0 ? 0 : (p & 255)) / 255f * ((p >>> 24) / 255f); } return m; }
     static BufferedImage background(int W, int H) {
         BufferedImage b = new BufferedImage(W, H, BufferedImage.TYPE_INT_ARGB);
+        String bgp = System.getenv("AURORAS_BG"); // optional backdrop image (e.g. a sky preview), scaled to fill
+        if (bgp != null) try { java.awt.Graphics2D g = b.createGraphics(); g.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR); g.drawImage(ImageIO.read(new File(bgp)), 0, 0, W, H, null); g.dispose(); return b; } catch (Exception e) { throw new RuntimeException(e); }
         for (int y = 0; y < H; y++) for (int x = 0; x < W; x++) { int c = ((x / 64 + y / 64) % 2 == 0) ? 0x3E7B3A : 0x4E8C45; if (y < H / 3) c = 0x6C8FBF + ((x / 32 + y / 32) % 2) * 0x050505; b.setRGB(x, y, 0xFF000000 | c); }
         return b;
     }
