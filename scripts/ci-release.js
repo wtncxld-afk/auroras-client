@@ -13,7 +13,8 @@ fs.writeFileSync(path.join(root, "release.json"), JSON.stringify({ githubRepo: r
 const id = String(process.env.AZURE_CLIENT_ID || "").trim(), friendsUrl = String(process.env.FRIENDS_URL || "").trim().replace(/\/+$/, "");
 if (id && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) { console.error("AZURE_CLIENT_ID doesn't look like an Application (client) ID"); process.exit(2); }
 if (friendsUrl && !/^https:\/\/[^\s/]+(\/\S*)?$/.test(friendsUrl)) { console.error("FRIENDS_URL must be an https:// address"); process.exit(2); }
-if (id || friendsUrl) fs.writeFileSync(path.join(root, "auth.json"), JSON.stringify({ ...(id ? { msClientId: id } : {}), ...(friendsUrl ? { friendsUrl } : {}) }, null, 2) + "\n");
+// Keeps what auth.json already ships (such as the owner's Azure ID) unless a repository variable replaces it.
+if (id || friendsUrl) { const f = path.join(root, "auth.json"); let cur = {}; try { cur = JSON.parse(fs.readFileSync(f, "utf8")); } catch {} fs.writeFileSync(f, JSON.stringify({ ...cur, ...(id ? { msClientId: id } : {}), ...(friendsUrl ? { friendsUrl } : {}) }, null, 2) + "\n"); }
 for (const dir of fs.readdirSync(path.join(root, "client-mod", "adapters"))) {
   const gp = path.join(root, "client-mod", "adapters", dir, "gradle.properties"); if (!fs.existsSync(gp)) continue;
   fs.writeFileSync(gp, fs.readFileSync(gp, "utf8").replace(/^mod_version=.*$/m, "mod_version=" + version));

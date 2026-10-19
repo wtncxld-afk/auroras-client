@@ -34,5 +34,5 @@ test("client ID: Settings first, then the copy shipped in auth.json; junk ignore
   assert.strictEqual(M.clientId({ msClientId: "" }, { msClientId: other }), other);
   assert.strictEqual(M.clientId({ msClientId: "nope" }, { msClientId: "" }), "");
   assert.strictEqual(M.clientId(null, null), "");
-  assert.strictEqual(M.clientId({}, require("../auth.json")), "", "the shipped auth.json is empty until the owner fills it in");
+  assert.strictEqual(M.clientId({}, require("../auth.json")), "5540599b-7cbe-424f-ad58-50fc1a040a0c", "the owner's own Azure app ID ships in auth.json");
 });
