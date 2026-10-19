@@ -1,7 +1,7 @@
 # Auroras Client (desktop launcher + client mod)
 
 ## Get the app (no building)
-Download **AurorasClientSetup-<version>.exe** from this repository's **Releases** page and run it. That's all: the launcher downloads Minecraft, Java and, for Fabric instances on a supported version, the ready-made Auroras mod and Fabric API when you press Play. It keeps the mod up to date by itself, and Settings > Updates tells you when a new launcher is out.
+Download **AurorasClientSetup-<version>.exe** from the **Releases** page of [auroras-releases](https://github.com/wtncxld-afk/auroras-releases) (this code repository can be private) and run it. That's all: the launcher downloads Minecraft, Java and, for Fabric instances on a supported version, the ready-made Auroras mod and Fabric API when you press Play. It keeps the mod up to date by itself, and Settings > Updates tells you when a new launcher is out.
 
 ## Publish it (once, for the owner of the copy)
 1. Put this folder in a GitHub repository (GitHub Desktop: File > Add local repository, then Publish). Use the branch `main`.
