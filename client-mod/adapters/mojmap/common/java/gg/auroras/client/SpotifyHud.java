@@ -44,7 +44,7 @@ final class SpotifyHud {
         HudKit.SpotifyCard c = HudKit.spotifyCard(e.s("layout"), showArt, prog);
         e.w = Hud.scaled(c.w(), e.scale); e.h = Hud.scaled(c.h(), e.scale); Hud.resolveInto(e.anchor, e.offX, e.offY, e.w, e.h, sw, sh, e.pos);
         String title, artist; boolean has = n != null && n.status().isEmpty() && !n.title().isEmpty();
-        if (n == null) { title = "Spotify"; artist = "Not connected in the launcher"; } else if (!n.status().isEmpty()) { title = "Spotify"; artist = cap(n.status()); }
+        if (n == null) { title = "Spotify"; artist = "Play something in the Spotify app"; } else if (!n.status().isEmpty()) { title = "Spotify"; artist = cap(n.status()); }
         else if (n.title().isEmpty()) { title = "Spotify"; artist = "Nothing playing"; } else { title = n.title(); artist = n.artist(); }
         if (n != null && n.version() != trackVersion) { if (!title.equals(lastTitle)) trackIn = reduced ? 1 : 0; trackVersion = n.version(); lastTitle = title; }
         trackIn = Math.min(1, trackIn + dt / 0.25); double a = fade * (0.35 + 0.65 * trackIn); int op = e.opacity;

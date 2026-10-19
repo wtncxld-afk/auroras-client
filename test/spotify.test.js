@@ -53,3 +53,23 @@ test("the mod's reader understands the file the launcher writes", (t) => {
   assert.strictEqual(out2, "alb9|true");
   assert.throws(() => S.writeArt(d, Buffer.from("nope")), /PNG/);
 });
+
+// No-account mode: reading the Spotify app's window title from Windows' tasklist.
+const SPT = require("../spotify.js");
+const row = (title) => `"Spotify.exe","4242","Console","1","120,000 K","Running","PC\\me","0:00:12","${title.replace(/"/g, '""')}"`;
+test("no-account mode: a playing song is read from the window title", () => {
+  const out = [row("N/A"), row("N/A"), row("Daft Punk - One More Time - Radio Edit")].join("\r\n");
+  assert.deepStrictEqual(SPT.parseTasklist(out), { running: true, playing: true, artist: "Daft Punk", title: "One More Time - Radio Edit" });
+  const np = SPT.localNowPlaying(SPT.parseTasklist(out), null, 5);
+  assert.deepStrictEqual(np, { status: "", title: "One More Time - Radio Edit", artist: "Daft Punk", playing: true, progressMs: 0, durationMs: 0, at: 5, artId: "" });
+});
+test("no-account mode: paused keeps the last song, closed says to open Spotify", () => {
+  const paused = SPT.parseTasklist([row("N/A"), row("Spotify Premium")].join("\n"));
+  assert.deepStrictEqual(paused, { running: true, playing: false });
+  const last = { status: "", title: "Song", artist: "Band", playing: true, progressMs: 0, durationMs: 0, at: 1, artId: "" };
+  assert.deepStrictEqual(SPT.localNowPlaying(paused, last, 9), { ...last, playing: false, at: 9 });
+  assert.strictEqual(SPT.localNowPlaying(paused, null, 9).status, "paused");
+  const none = SPT.parseTasklist("INFO: No tasks are running which match the specified criteria.");
+  assert.deepStrictEqual(none, { running: false }); assert.match(SPT.localNowPlaying(none, last).status, /open Spotify/);
+  assert.strictEqual(SPT.parseTasklist(row("Spotify Free")).playing, false);
+});

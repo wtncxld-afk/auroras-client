@@ -57,4 +57,28 @@ async function poll(fetchFn, clientId, token, now = Date.now()) {
 function writeNowPlaying(configDir, np, artReady = false) { fs.mkdirSync(configDir, { recursive: true }); const { artUrl, ...rest } = np, f = path.join(configDir, "nowplaying.json"), tmp = f + ".tmp"; fs.writeFileSync(tmp, JSON.stringify({ ...rest, artId: rest.artId || "", art: !!(artReady && rest.artId) })); fs.renameSync(tmp, f); }
 /** Saves a cover (already resized to a 64x64 PNG by the caller) atomically next to nowplaying.json. */
 function writeArt(configDir, png) { if (!Buffer.isBuffer(png) || png.length < 8 || png.readUInt32BE(0) !== 0x89504e47) throw new Error("Not a PNG"); fs.mkdirSync(configDir, { recursive: true }); const f = path.join(configDir, "nowplaying-art.png"), tmp = f + ".tmp"; fs.writeFileSync(tmp, png); fs.renameSync(tmp, f); }
-module.exports = { REDIRECT, SCOPE, pkce, authUrl, parseCallback, exchange, refresh, parseNowPlaying, pickArt, poll, writeNowPlaying, writeArt };
+/**
+ * No-account mode (Windows): the Spotify desktop app names its window "Artist - Song" while a song plays and
+ * "Spotify Premium" / "Spotify Free" / "Spotify" when paused. `tasklist /v /fo csv /nh /fi "imagename eq Spotify.exe"`
+ * lists its windows; nothing is sent anywhere and no sign-in is needed. No cover art or progress in this mode.
+ */
+const csvRow = (line) => { const out = []; let cur = "", q = false;
+  for (let i = 0; i < line.length; i++) { const c = line[i];
+    if (q) { if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; } else if (c === '"') q = false; else cur += c; }
+    else if (c === '"') q = true; else if (c === ",") { out.push(cur); cur = ""; } else cur += c; }
+  out.push(cur); return out; };
+function parseTasklist(text) {
+  const titles = String(text || "").split(/\r?\n/).map((l) => l.trim()).filter((l) => /^"spotify\.exe"/i.test(l)).map((l) => csvRow(l).pop() || "");
+  if (!titles.length) return { running: false };
+  const song = titles.find((t) => t.includes(" - ") && !/^spotify\b/i.test(t));
+  if (song) { const i = song.indexOf(" - "); return { running: true, playing: true, artist: song.slice(0, i).trim().slice(0, 120), title: song.slice(i + 3).trim().slice(0, 120) }; }
+  return { running: true, playing: false };
+}
+/** Turns one window reading into what the HUD shows. A paused song keeps its last title, marked paused. */
+function localNowPlaying(read, last, now = Date.now()) {
+  if (!read.running) return statusOnly("open Spotify to show what's playing", now);
+  if (read.playing) return { status: "", title: read.title, artist: read.artist, playing: true, progressMs: 0, durationMs: 0, at: now, artId: "" };
+  if (last && last.title) return { ...last, status: "", playing: false, at: now };
+  return statusOnly("paused", now);
+}
+module.exports = { parseTasklist, localNowPlaying, REDIRECT, SCOPE, pkce, authUrl, parseCallback, exchange, refresh, parseNowPlaying, pickArt, poll, writeNowPlaying, writeArt };

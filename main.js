@@ -496,13 +496,22 @@ ipcMain.handle("spotify:connect", async () => {
 ipcMain.handle("spotify:disconnect", () => { writeSpotifyToken(null); return true; });
 const spPollers = new Map();
 function startSpotify(key, configDir) {
-  const cid = readSettings().spotifyClientId; if (!cid || !readSpotifyToken()) return;
+  const cid = readSettings().spotifyClientId; if (!cid || !readSpotifyToken()) return startLocalSpotify(key, configDir);
   let busy = false, artId = ""; const tick = async () => { if (busy) return; busy = true;
     try { const r = await spotify.poll(spFetch, cid, readSpotifyToken()); if (r.token) writeSpotifyToken(r.token); else writeSpotifyToken(null);
       // Cover art: downloaded once per album from Spotify's image host, shrunk to 64x64 and saved as PNG for the mod.
       if (r.np.artId && r.np.artId !== artId && r.np.artUrl) { try { const ar = await net.fetch(r.np.artUrl); if (ar.ok) { const img = nativeImage.createFromBuffer(Buffer.from(await ar.arrayBuffer())); if (!img.isEmpty()) { spotify.writeArt(configDir, img.resize({ width: 64, height: 64, quality: "best" }).toPNG()); artId = r.np.artId; } } } catch {} }
       spotify.writeNowPlaying(configDir, r.np, !!r.np.artId && r.np.artId === artId); } catch {} busy = false; };
   tick(); spPollers.set(key, setInterval(tick, 5000));
+}
+/** No Spotify account connected: on Windows, read what the Spotify app is playing from its window title (see spotify.js). */
+function startLocalSpotify(key, configDir) {
+  if (process.platform !== "win32") return;
+  let busy = false, last = null; const tick = () => { if (busy) return; busy = true;
+    require("child_process").execFile("tasklist", ["/v", "/fo", "csv", "/nh", "/fi", "imagename eq Spotify.exe"], { timeout: 5000, windowsHide: true }, (err, out) => {
+      busy = false; if (err) return; try { const np = spotify.localNowPlaying(spotify.parseTasklist(out), last); if (np.title) last = np; spotify.writeNowPlaying(configDir, np, false); } catch {} });
+  };
+  tick(); spPollers.set(key, setInterval(tick, 2500));
 }
 function stopSpotify(key) { const t = spPollers.get(key); if (t) clearInterval(t); spPollers.delete(key); }
 

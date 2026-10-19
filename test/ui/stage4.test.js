@@ -96,7 +96,7 @@ describe("Spotify settings", () => {
   test("client ID is validated; connect and disconnect go through the desktop app", async () => {
     const s = await launch();
     try {
-      await nav(s.page, "Settings"); await s.page.locator("#spid").fill("nope"); await tap(s.page, '[data-save="sp"]'); await wait(s.page, 100);
+      await nav(s.page, "Settings"); assert.match(await s.page.locator("#spmore").evaluate((d) => d.parentElement.textContent), /no sign-in/); await s.page.evaluate(() => { document.getElementById("spmore").open = true; }); await s.page.locator("#spid").fill("nope"); await tap(s.page, '[data-save="sp"]'); await wait(s.page, 100);
       assert.match(await s.page.locator("#spres").textContent(), /client ID/);
       await s.page.locator("#spid").fill("0123456789abcdef0123456789abcdef"); await tap(s.page, '[data-save="sp"]'); await wait(s.page, 100); assert.match(await s.page.locator("#spres").textContent(), /Saved/);
       await tap(s.page, "[data-spconnect]"); await wait(s.page, 100); assert.match(await s.page.locator("#spres").textContent(), /Spotify connected/);
