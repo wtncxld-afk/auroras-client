@@ -66,7 +66,7 @@ public final class VisualTests {
             && m.build("minecraft:overworld", midnight, 10) && m.themeFor("minecraft:overworld").id().equals("aurora") && m.themeFor("minecraft:the_end").id().equals("cosmic"));
         Sky.Theme au = th.get("aurora"); int domeQuads = m.domeQuads();
         m.build("minecraft:overworld", noon, 10); int dayQuads = m.quads;
-        check("sky mesh: at noon there are no stars, aurora or nebula: only the dome, the ground and daytime effects", dayQuads >= domeQuads && dayQuads <= domeQuads + SkyFx.budget(Quality.BALANCED).cloudPuffs() * SkyMesh.BLOB_QUADS + SkyFx.budget(Quality.BALANCED).petals(), dayQuads, domeQuads);
+        check("sky mesh: at noon there are no stars, aurora or nebula: only the dome, the ground and daytime effects", dayQuads >= domeQuads && dayQuads <= domeQuads + 3 * SkyMesh.GLOW_QUADS + SkyFx.budget(Quality.BALANCED).cloudPuffs() * SkyMesh.CLOUD_PUFFS * SkyMesh.BLOB_QUADS + SkyFx.budget(Quality.BALANCED).petals() * SkyMesh.PETAL_QUADS, dayQuads, domeQuads);
         boolean domeColors = true; for (int s = 0; s < 32; s++) domeColors &= (m.col[s * 4] & 0xFFFFFF) == Sky.skyColor(au, 0, noon, Sky.Adjust.NONE) && (m.col[s * 4] >>> 24) == 255;
         check("sky mesh: the dome's horizon ring has the core sky color for that time, fully opaque", domeColors);
         m.build("minecraft:overworld", midnight, 10); int nightQuads = m.quads;
@@ -74,7 +74,8 @@ public final class VisualTests {
         check("sky mesh: every quad is counter-clockwise seen from the camera, so back-face culling can't hide any", wrongWinding(m) == 0, wrongWinding(m));
         float maxR = 0; for (int i = 0; i < m.quads * 4; i++) maxR = Math.max(maxR, (float) Math.sqrt(m.pos[i * 3] * m.pos[i * 3] + m.pos[i * 3 + 1] * m.pos[i * 3 + 1] + m.pos[i * 3 + 2] * m.pos[i * 3 + 2]));
         check("sky mesh: nothing is farther than the dome (100 blocks), inside the far plane at any render distance", maxR <= SkyMesh.DOME + 0.01f, maxR);
-        check("sky mesh: layers get nearer in drawing order (dome, nebula, constellations, stars, meteors, aurora, clouds, petals)", SkyMesh.DOME > SkyMesh.NEBULA && SkyMesh.NEBULA > SkyMesh.CONSTELLATIONS && SkyMesh.CONSTELLATIONS > SkyMesh.STARS
+        check("sky mesh: layers get nearer in drawing order (dome, nebula, dust, glow, horizon and ground, constellations, stars, meteors, aurora, clouds, petals)", SkyMesh.DOME > SkyMesh.NEBULA && SkyMesh.NEBULA > SkyMesh.DUST
+            && SkyMesh.DUST > SkyMesh.GLOW && SkyMesh.GLOW > SkyMesh.HORIZON && SkyMesh.HORIZON > SkyMesh.CONSTELLATIONS && SkyMesh.CONSTELLATIONS > SkyMesh.STARS
             && SkyMesh.STARS > SkyMesh.METEORS && SkyMesh.METEORS > SkyMesh.AURORA && SkyMesh.AURORA > SkyMesh.CLOUDS && SkyMesh.CLOUDS > SkyMesh.PETALS);
         float[] pos1 = Arrays.copyOf(m.pos, m.quads * 12); int[] col1 = Arrays.copyOf(m.col, m.quads * 4); SkyMesh m2 = new SkyMesh(th); m2.configure(skySettings("sky.theme", "aurora")); m2.build("minecraft:overworld", midnight, 10);
         check("sky mesh: the same settings and time always give the same quads", m2.quads == m.quads && Arrays.equals(pos1, Arrays.copyOf(m2.pos, m2.quads * 12)) && Arrays.equals(col1, Arrays.copyOf(m2.col, m2.quads * 4)));
@@ -109,9 +110,10 @@ public final class VisualTests {
             && noStars.stars(au).dim == 0, s.dim);
         // aurora alone: dome, haze, ground, then 3 quads per column (under-edge fade, edge to middle, middle to top)
         SkyMesh a = new SkyMesh(th); a.configure(skySettings("sky.theme", "aurora", "sky.skyQuality", "HIGH", "sky.starDensity", "0", "sky.shootingStars", "0")); a.build("minecraft:overworld", midnight, 10);
-        int start = a.domeQuads(), cols = (a.quads - start) / 3; boolean soft = cols > 0 && (a.quads - start) % 3 == 0; int bright = 0;
+        int start = a.auroraFrom, cols = (a.auroraTo - start) / 3; boolean soft = cols > 0 && (a.auroraTo - start) % 3 == 0; int bright = 0;
         for (int c = 0; c < cols && soft; c++) { int q0 = start + c * 3; soft &= minA(a, q0) == 0 && minA(a, q0 + 2) == 0; bright = Math.max(bright, maxA(a, q0 + 1)); }
         check("sky aurora: every curtain column fades to transparent below its lower edge and at its top", soft && bright > 40, cols, bright);
+        blendRuns(th);
         // sunset: the glow is strongest on the sun's side (west, -x, in the evening; east, +x, in the morning)
         SkyMesh d = new SkyMesh(th); d.configure(skySettings("sky.theme", "sunset", "sky.skyQuality", "HIGH")); Sky.Theme su = th.get("sunset"); int half = d.segs / 2;
         d.build("minecraft:overworld", 12500, 0); int eveW = d.col[half * 4], eveE = d.col[0];
@@ -125,6 +127,56 @@ public final class VisualTests {
         SkyMesh still = new SkyMesh(th); still.configure(skySettings("sky.theme", "aurora", "sky.animate", "false")); still.build("minecraft:overworld", midnight, 5); int[] s0 = Arrays.copyOf(still.col, still.quads * 4); float[] sp0 = Arrays.copyOf(still.pos, still.quads * 12);
         still.build("minecraft:overworld", midnight, 50);
         check("sky motion: with Animate off the sky holds perfectly still", Arrays.equals(s0, Arrays.copyOf(still.col, still.quads * 4)) && Arrays.equals(sp0, Arrays.copyOf(still.pos, still.quads * 12)));
+    }
+    /** Run index of quad q in the last build, or -1. */
+    static int runOf(SkyMesh m, int q) { for (int r = 0; r < m.runs; r++) if (q < m.runEnd[r]) return r; return -1; }
+    /** Additive glow, the sun and moon glow, nebula depth, the horizon fade, petals and themes that keep their night sky by day. */
+    static void blendRuns(Map<String, Sky.Theme> th) {
+        long noon = 6000, midnight = 18000, dusk = 12800;
+        boolean cover = true, alternate = true, glowClip = true; int maxRuns = 0;
+        for (String id : Sky.THEME_IDS) for (long t : new long[]{noon, dusk, midnight, 23500}) {
+            SkyMesh m = new SkyMesh(th); m.configure(skySettings("sky.theme", id, "sky.skyQuality", "HIGH")); m.build("minecraft:overworld", t, 42);
+            cover &= m.runs > 0 && m.runEnd[m.runs - 1] == m.quads && !m.runAdd[0]; maxRuns = Math.max(maxRuns, m.runs);
+            for (int r = 1; r < m.runs; r++) alternate &= m.runAdd[r] != m.runAdd[r - 1] && m.runEnd[r] > m.runEnd[r - 1];
+            // light never shows below the horizon: an additive vertex more than 2 degrees under it is fully transparent
+            for (int q = 0; q < m.quads; q++) { int r = runOf(m, q); if (!m.runAdd[r]) continue;
+                for (int k = 0; k < 4; k++) { int i = q * 4 + k; float x = m.pos[i * 3], y = m.pos[i * 3 + 1], z = m.pos[i * 3 + 2]; double len = Math.sqrt(x * x + y * y + z * z);
+                    if (y / len < -0.035 && (m.col[i] >>> 24) != 0) glowClip = false; } }
+        }
+        check("sky blend: quads come in runs of one blend mode that cover the frame in order, starting with the normally blended dome", cover && alternate && maxRuns <= 12, maxRuns);
+        check("sky blend: nothing additive glows below the horizon (it would light up the ground)", glowClip);
+        SkyMesh a = new SkyMesh(th); a.configure(skySettings("sky.theme", "aurora", "sky.skyQuality", "HIGH")); a.build("minecraft:overworld", midnight, 10);
+        boolean auroraAdd = a.auroraTo > a.auroraFrom; for (int q = a.auroraFrom; q < a.auroraTo; q++) auroraAdd &= a.runAdd[runOf(a, q)];
+        boolean domeNormal = true; for (int q = 0; q < a.domeQuads() - a.segs * (SkyMesh.HAZE_RINGS + 2); q++) domeNormal &= !a.runAdd[runOf(a, q)];
+        check("sky blend: the aurora is drawn additively (it glows where curtains overlap), the dome normally", auroraAdd && domeNormal);
+        SkyMesh p = new SkyMesh(th); p.configure(skySettings("sky.theme", "sakura", "sky.skyQuality", "HIGH")); p.build("minecraft:overworld", noon, 10);
+        SkyMesh np = new SkyMesh(th); np.configure(skySettings("sky.theme", "sakura", "sky.skyQuality", "HIGH", "sky.petals", "false")); np.build("minecraft:overworld", noon, 10);
+        int petalQuads = p.quads - np.quads;
+        check("sky petals: clouds and petals blend normally; each petal is a petal shape of 3 quads", !p.runAdd[p.runs - 1] && petalQuads > 0 && petalQuads % SkyMesh.PETAL_QUADS == 0, petalQuads);
+        // sun glow: at noon the sun is straight up, so the brightest additive centre is near the zenith
+        SkyMesh s = new SkyMesh(th); s.configure(skySettings("sky.theme", "sunset", "sky.skyQuality", "HIGH")); s.build("minecraft:overworld", noon, 10);
+        float bestY = -1; int bestA = 0; for (int q = 0; q < s.quads; q++) if (s.runAdd[runOf(s, q)]) { int i = q * 4; if ((s.col[i] >>> 24) > bestA) { bestA = s.col[i] >>> 24; bestY = s.pos[i * 3 + 1] / SkyMesh.GLOW; } }
+        check("sky sun: a soft glow is drawn around the sun (straight up at noon)", bestA > 40 && bestY > 0.97f, bestA, bestY);
+        SkyMesh big = new SkyMesh(th); big.configure(skySettings("sky.theme", "sunset", "sky.skyQuality", "HIGH", "sky.sunSize", "2")); big.build("minecraft:overworld", noon, 10);
+        float r1 = 0, r2 = 0; for (int q = 0; q < s.quads && q < big.quads; q++) { if (s.runAdd[runOf(s, q)]) r1 = Math.max(r1, Math.abs(s.pos[q * 12 + 3])); if (big.runAdd[runOf(big, q)]) r2 = Math.max(r2, Math.abs(big.pos[q * 12 + 3])); }
+        check("sky sun: the Sun size setting scales the glow", r2 > r1 * 1.3f, r1, r2);
+        SkyMesh mo = new SkyMesh(th); mo.configure(skySettings("sky.theme", "midnight", "sky.skyQuality", "HIGH", "sky.starDensity", "0", "sky.shootingStars", "0", "sky.clouds", "false")); mo.build("minecraft:overworld", midnight, 10);
+        int moonA = 0; for (int q = 0; q < mo.quads; q++) if (mo.runAdd[runOf(mo, q)] && mo.pos[q * 12 + 1] / SkyMesh.GLOW > 0.97f) moonA = Math.max(moonA, mo.col[q * 4] >>> 24);
+        check("sky moon: at midnight the moon (straight up) has a glow in its own colour", moonA > 40 && (mo.col[0] & 0xFFFFFF) != 0, moonA);
+        // nebula depth: Cosmic at midnight has additive light, then a normally blended run (dust lanes and the horizon), then additive stars
+        SkyMesh c = new SkyMesh(th); c.configure(skySettings("sky.theme", "cosmic", "sky.skyQuality", "HIGH")); c.build("minecraft:overworld", midnight, 10);
+        SkyMesh cn = new SkyMesh(th); cn.configure(skySettings("sky.theme", "cosmic", "sky.skyQuality", "HIGH", "sky.nebula", "false")); cn.build("minecraft:overworld", midnight, 10);
+        int extra = c.quads - cn.quads, blobs = SkyFx.budget(Quality.HIGH).nebulaBlobs();
+        check("sky nebula: washes, bright knots and dark dust lanes (more than one layer per nebula cloud)", extra >= blobs * 2 * SkyMesh.BLOB_QUADS && c.runs > cn.runs, extra, c.runs, cn.runs);
+        // themes whose day sky is itself dark keep part of the night sky by day; bright day skies don't
+        SkyMesh cd = new SkyMesh(th); cd.configure(skySettings("sky.theme", "cosmic", "sky.skyQuality", "HIGH")); cd.build("minecraft:overworld", noon, 10);
+        SkyMesh ad = new SkyMesh(th); ad.configure(skySettings("sky.theme", "aurora", "sky.skyQuality", "HIGH")); ad.build("minecraft:overworld", noon, 10);
+        check("sky day: Cosmic and Endless Void keep faint stars by day, Aurora's bright day sky has none", SkyMesh.darkDay(th.get("cosmic")) > 0 && SkyMesh.darkDay(th.get("void")) > 0 && SkyMesh.darkDay(th.get("aurora")) == 0
+            && cd.quads > ad.quads + 500, cd.quads, ad.quads);
+        // the horizon fade: right above the horizon the band is opaque, a few degrees up it is transparent
+        SkyMesh h = new SkyMesh(th); h.configure(skySettings("sky.theme", "aurora", "sky.skyQuality", "HIGH")); h.build("minecraft:overworld", midnight, 10);
+        int q0 = -1; for (int q = 0; q < h.quads; q++) if (Math.abs(Math.sqrt(h.pos[q * 12] * h.pos[q * 12] + h.pos[q * 12 + 1] * h.pos[q * 12 + 1] + h.pos[q * 12 + 2] * h.pos[q * 12 + 2]) - SkyMesh.HORIZON) < 0.01) { q0 = q; break; }
+        check("sky horizon: light layers thin out into the horizon (an opaque-to-clear band in the dome's horizon colours)", q0 >= 0 && h.col[q0 * 4] >>> 24 == 255 && h.col[q0 * 4 + 2] >>> 24 == 0 && Math.abs(h.pos[q0 * 12 + 1]) < 0.01f, q0);
     }
     static int minA(SkyMesh m, int q) { int r = 255; for (int k = 0; k < 4; k++) r = Math.min(r, m.col[q * 4 + k] >>> 24); return r; }
     static int maxA(SkyMesh m, int q) { int r = 0; for (int k = 0; k < 4; k++) r = Math.max(r, m.col[q * 4 + k] >>> 24); return r; }

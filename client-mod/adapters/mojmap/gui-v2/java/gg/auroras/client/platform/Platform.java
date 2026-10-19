@@ -6,7 +6,6 @@ package gg.auroras.client.platform;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.platform.NativeImage;
-import com.mojang.blaze3d.vertex.VertexConsumer;
 import gg.auroras.client.AurorasClient;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElement;
@@ -15,14 +14,9 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.Identifier;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 
 public final class Platform {
     private Platform() {}
@@ -65,46 +59,15 @@ public final class Platform {
     }
 
     // ---- Custom Skies ----
-    // 26.3 replaced much of the low-level renderer (Iris's 26.3 sources import com.mojang.renderpearl.api.commands.RenderPass,
-    // and SkyRenderer's methods receive an open pass), so the immediate buffer source and the depth clear are looked up by
-    // name here instead of compiled against. 26.x ships unobfuscated, so these are the real runtime names. If any is
-    // missing, skySupported() says so at startup and the menu keeps Custom Skies locked; the build is never broken by it.
-    // RenderTypes.debugFilledBox and VertexConsumer are used directly: Fabric API's own 26.1 and 26.3 test mods use both.
-    static Method immediate, getBuffer, endBatch, getDevice, createEncoder, mainTarget, depthTexture, clearDepth; static Constructor<?> bytes;
-    static Object skySource; static Boolean skyOk;
-    /** Whether the renderer calls Custom Skies needs exist in this game (looked up once, no drawing). */
-    public static boolean skySupported() {
-        if (skyOk != null) return skyOk;
-        try {
-            Class<?> bb = Class.forName("com.mojang.blaze3d.vertex.ByteBufferBuilder"); bytes = bb.getConstructor(int.class);
-            immediate = Class.forName("net.minecraft.client.renderer.MultiBufferSource").getMethod("immediate", bb);
-            getBuffer = immediate.getReturnType().getMethod("getBuffer", RenderType.class); endBatch = immediate.getReturnType().getMethod("endBatch", RenderType.class);
-            getDevice = Class.forName("com.mojang.blaze3d.systems.RenderSystem").getMethod("getDevice"); createEncoder = getDevice.getReturnType().getMethod("createCommandEncoder");
-            mainTarget = Minecraft.class.getMethod("getMainRenderTarget"); depthTexture = mainTarget.getReturnType().getMethod("getDepthTexture");
-            clearDepth = createEncoder.getReturnType().getMethod("clearDepthTexture", depthTexture.getReturnType(), double.class);
-            skyOk = true;
-        } catch (ReflectiveOperationException | LinkageError e) {
-            System.out.println("[Auroras] Custom Skies can't hook this Minecraft version's renderer (" + e + "); keeping the vanilla sky"); skyOk = false;
-        }
-        return skyOk;
-    }
+    // The drawing calls differ per 26.x release (26.1 still has MultiBufferSource; 26.2 drops it and moves to render
+    // passes; 26.3 moves the GPU API to com.mojang.renderpearl), so each release has its own versions/<target>/
+    // platform/SkyDraw, compiled against that release.
+    /** Whether this release can draw Custom Skies. */
+    public static boolean skySupported() { return SkyDraw.supported(); }
     /** Time of day in ticks (0 = sunrise), as core Sky expects. 26.x moved it to the world clocks (Iris reads the same call). */
     public static long dayTime(ClientLevel level) { return level.getDefaultClockTime(); }
-    /**
-     * Draws the frame's sky quads (core SkyMesh: camera at the origin, 4 vertices each) at the start of the sky pass, through
-     * Minecraft's translucent position-color quad type, then clears depth (see gui-v1's Platform for why that is safe).
-     */
-    public static boolean skyQuads(float[] pos, int[] col, int quads) {
-        if (!skySupported()) return false;
-        try {
-            if (skySource == null) skySource = immediate.invoke(null, bytes.newInstance(1 << 18));
-            RenderType type = RenderTypes.debugFilledBox(); VertexConsumer b = (VertexConsumer) getBuffer.invoke(skySource, type);
-            for (int i = 0, n = quads * 4; i < n; i++) b.addVertex(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]).setColor(col[i]);
-            endBatch.invoke(skySource, type);
-            Object depth = depthTexture.invoke(mainTarget.invoke(Minecraft.getInstance()));
-            if (depth != null) clearDepth.invoke(createEncoder.invoke(getDevice.invoke(null)), depth, 1.0);
-            return true;
-        } catch (InvocationTargetException e) { throw new IllegalStateException(String.valueOf(e.getCause()), e.getCause());
-        } catch (ReflectiveOperationException e) { throw new IllegalStateException(e.toString(), e); }
+    /** Draws the frame's sky quads (core SkyMesh: camera at the origin, 4 vertices each, in blend runs) at the start of the sky pass. */
+    public static boolean skyQuads(float[] pos, int[] col, int quads, int runs, int[] runEnd, boolean[] runAdd) {
+        SkyDraw.draw(pos, col, quads, runs, runEnd, runAdd); return true;
     }
 }

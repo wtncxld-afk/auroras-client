@@ -4,12 +4,8 @@ package gg.auroras.client.platform;
 // HudElementRegistry: our elements before chat, and replacements for the vanilla crosshair and boss bar), textures, and
 // the two places Custom Skies touches the renderer (the day time and drawing the sky quads).
 
-import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.platform.NativeImage;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.ByteBufferBuilder;
-import com.mojang.blaze3d.vertex.VertexConsumer;
 import gg.auroras.client.AurorasClient;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElement;
@@ -18,9 +14,6 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.Identifier;
 
@@ -65,25 +58,15 @@ public final class Platform {
     }
 
     // ---- Custom Skies ----
-    /** Whether this line can draw Custom Skies. 1.21.11 uses the calls below directly, so a mismatch shows up when it's built. */
-    public static boolean skySupported() { return true; }
+    /** Whether this line can draw Custom Skies (versions/<target>/platform/SkyDraw says, for the release it was built for). */
+    public static boolean skySupported() { return SkyDraw.supported(); }
     /** Time of day in ticks (0 = sunrise), as core Sky expects. 1.21.11 still has Level#getDayTime. */
     public static long dayTime(ClientLevel level) { return level.getDayTime(); }
-    static MultiBufferSource.BufferSource skySource;
     /**
-     * Draws the frame's sky quads (core SkyMesh: camera at the origin, 4 vertices each) at the start of the sky pass.
-     * RenderTypes.debugFilledBox is Minecraft's own translucent position-color quad type (Fabric API's 1.21.11 test mod
-     * draws with it). In case it writes depth, the depth buffer is cleared afterwards: nothing else has been drawn into the
-     * frame yet (the sky pass comes first and vanilla's sky never writes depth), so terrain beyond 100 blocks still shows.
-     * Uses the modelview Minecraft set for the level (camera rotation only). Returns true when it drew.
+     * Draws the frame's sky quads (core SkyMesh: camera at the origin, 4 vertices each, in blend runs) at the start of
+     * the sky pass; versions/<target>/platform/SkyDraw has the release's own drawing calls. Returns true when it drew.
      */
-    public static boolean skyQuads(float[] pos, int[] col, int quads) {
-        if (skySource == null) skySource = MultiBufferSource.immediate(new ByteBufferBuilder(1 << 18));
-        RenderType type = RenderTypes.debugFilledBox(); VertexConsumer b = skySource.getBuffer(type);
-        for (int i = 0, n = quads * 4; i < n; i++) b.addVertex(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]).setColor(col[i]);
-        skySource.endBatch(type);
-        RenderTarget main = Minecraft.getInstance().getMainRenderTarget();
-        if (main.getDepthTexture() != null) RenderSystem.getDevice().createCommandEncoder().clearDepthTexture(main.getDepthTexture(), 1.0);
-        return true;
+    public static boolean skyQuads(float[] pos, int[] col, int quads, int runs, int[] runEnd, boolean[] runAdd) {
+        SkyDraw.draw(pos, col, quads, runs, runEnd, runAdd); return true;
     }
 }

@@ -1,11 +1,12 @@
 package gg.auroras.client;
 
-// ADAPTER mojmap (Minecraft 1.21.11 and 26.x) — UNCOMPILED. Custom Skies on versions where Fabric API has no sky hook.
+// ADAPTER mojmap (Minecraft 1.21.11 and 26.x) — compiled in CI for all four targets, not yet run in game. Custom Skies on versions where Fabric API has no sky hook.
 //
 // How it works: LevelRendererSkyMixin calls begin() at the start of Minecraft's sky pass (the lambda LevelRenderer
 // hands to the frame graph). If the dimension has a theme, begin() asks core SkyMesh for this frame's quads (dome,
 // ground, nebula, constellations, stars, shooting stars, layered aurora, clouds, petals: the same Sky / SkyFx maths as
-// the launcher preview) and Platform.skyQuads() draws them. SkyRendererMixin then skips the vanilla sky disc, sunrise
+// the launcher preview) in blend runs (glowing layers additive) and Platform.skyQuads() draws them through the
+// per-release platform/SkyDraw (buffer source on 1.21.11 / 26.1, render passes on 26.2 / 26.3). SkyRendererMixin then skips the vanilla sky disc, sunrise
 // glow, stars, dark disc and End sky for that frame, but only when begin() really drew, so a failed hook leaves the
 // vanilla sky instead of a hole. Minecraft's own sun and moon are still drawn on top.
 //
@@ -42,7 +43,7 @@ public final class AurorasSky {
             Config.ProfileManager pm = AurorasClient.PM; if (pm.revision() != seen) { seen = pm.revision(); mesh.configure(pm::get); }
             String dim = level.dimension() == Level.NETHER ? "minecraft:the_nether" : level.dimension() == Level.END ? "minecraft:the_end" : "minecraft:overworld";
             if (!mesh.build(dim, Platform.dayTime(level), (System.nanoTime() - START) / 1e9)) return;
-            covering = Platform.skyQuads(mesh.pos, mesh.col, mesh.quads);
+            covering = Platform.skyQuads(mesh.pos, mesh.col, mesh.quads, mesh.runs, mesh.runEnd, mesh.runAdd);
         } catch (RuntimeException e) {
             // never break the frame: log once and leave the vanilla sky for the rest of the session
             broken = true; covering = false; System.out.println("[Auroras] Custom Skies turned off for this session, the renderer refused it: " + e);

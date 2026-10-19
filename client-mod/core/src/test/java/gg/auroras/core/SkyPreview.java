@@ -12,7 +12,9 @@ import java.util.Map;
  * Renders one frame of the in-game Custom Sky (the exact SkyMesh quads the adapter hands to Minecraft) into a PNG, so the
  * look can be reviewed without Minecraft. It is a small software rasterizer that does what the GPU does with those quads:
  * a perspective camera at the origin, each quad split into two triangles, perspective-correct vertex-color interpolation
- * and straight alpha blending in draw order, no depth test (the mesh is ordered far to near).
+ * and blending in draw order, no depth test (the mesh is ordered far to near): straight alpha blending, or additive
+ * (rgb * alpha added, glBlendFunc(SRC_ALPHA, ONE)) for the runs SkyMesh marks additive. Add additive=false after the
+ * camera arguments to draw everything with normal blending, as an adapter without an additive render type would.
  *
  * Run from client-mod/core:
  *   java -cp out gg.auroras.core.SkyPreview ../../visuals out.png [W H theme ticks seconds quality yawDeg pitchDeg fovDeg key=value...]
@@ -27,16 +29,18 @@ public class SkyPreview {
         Config.Registry reg = new Config.Registry(); Map<String, String> m = new HashMap<>();
         for (Config.SettingDef d : reg.get("sky").settings()) m.put("sky." + d.key(), d.def());
         m.put(Config.Registry.QUALITY, "BALANCED"); m.put("sky.theme", theme); m.put("sky.skyQuality", q);
-        for (int k = 11; k < a.length; k++) { int e = a[k].indexOf('='); if (e > 0) m.put(a[k].substring(0, e), a[k].substring(e + 1)); }
+        boolean additive = true;
+        for (int k = 11; k < a.length; k++) { int e = a[k].indexOf('='); if (a[k].equals("additive=false")) additive = false; else if (e > 0) m.put(a[k].substring(0, e), a[k].substring(e + 1)); }
         SkyMesh mesh = new SkyMesh(Sky.load(Files.readString(vis.resolve("themes.json")))); mesh.configure(m::get);
         if (!mesh.build("minecraft:overworld", ticks, sec)) throw new IllegalStateException("theme " + theme + " draws nothing");
-        BufferedImage img = render(mesh.pos, mesh.col, mesh.quads, W, H, Math.toRadians(yaw), Math.toRadians(pitch), Math.toRadians(fov));
+        boolean[] add = new boolean[mesh.quads]; if (additive) for (int r = 0, from = 0; r < mesh.runs; from = mesh.runEnd[r], r++) for (int qi = from; qi < mesh.runEnd[r]; qi++) add[qi] = mesh.runAdd[r];
+        BufferedImage img = render(mesh.pos, mesh.col, mesh.quads, add, W, H, Math.toRadians(yaw), Math.toRadians(pitch), Math.toRadians(fov));
         File f = new File(out); if (f.getParentFile() != null) f.getParentFile().mkdirs(); ImageIO.write(img, "png", f);
         System.out.println("wrote " + out + " (" + theme + ", " + q + ", " + mesh.quads + " quads)");
     }
 
     /** Rasterizes the quads. Camera looks along +x rotated by yaw (around y) and pitch (up), vertical field of view fov. */
-    static BufferedImage render(float[] pos, int[] col, int quads, int W, int H, double yaw, double pitch, double fov) {
+    static BufferedImage render(float[] pos, int[] col, int quads, boolean[] add, int W, int H, double yaw, double pitch, double fov) {
         float[] r = new float[W * H], g = new float[W * H], b = new float[W * H];
         // camera basis: forward f, right rt, up u
         double fx = Math.cos(pitch) * Math.cos(yaw), fy = Math.sin(pitch), fz = Math.cos(pitch) * Math.sin(yaw);
@@ -58,7 +62,7 @@ public class SkyPreview {
                 if (in0) System.arraycopy(p0, 0, tmp[m++], 0, 7);
                 if (in0 != in1) { double t = (near - p0[2]) / (p1[2] - p0[2]); for (int c = 0; c < 7; c++) tmp[m][c] = p0[c] + (p1[c] - p0[c]) * t; m++; }
             }
-            for (int k = 1; k + 1 < m; k++) raster(tmp[0], tmp[k], tmp[k + 1], focal, W, H, r, g, b);
+            for (int k = 1; k + 1 < m; k++) raster(tmp[0], tmp[k], tmp[k + 1], focal, W, H, r, g, b, add[qd]);
         }
         BufferedImage img = new BufferedImage(W, H, BufferedImage.TYPE_INT_RGB);
         for (int i = 0; i < W * H; i++) img.setRGB(i % W, i / W, (q8(r[i]) << 16) | (q8(g[i]) << 8) | q8(b[i]));
@@ -66,7 +70,7 @@ public class SkyPreview {
     }
     static int q8(float v) { return Math.round(Math.max(0, Math.min(1, v)) * 255); }
 
-    static void raster(double[] p0, double[] p1, double[] p2, double focal, int W, int H, float[] R, float[] G, float[] B) {
+    static void raster(double[] p0, double[] p1, double[] p2, double focal, int W, int H, float[] R, float[] G, float[] B, boolean add) {
         double[][] v = {p0, p1, p2}; double[] sx = new double[3], sy = new double[3], iw = new double[3];
         for (int k = 0; k < 3; k++) { iw[k] = 1 / v[k][2]; sx[k] = W / 2.0 + v[k][0] * focal * iw[k]; sy[k] = H / 2.0 - v[k][1] * focal * iw[k]; }
         double area = (sx[1] - sx[0]) * (sy[2] - sy[0]) - (sx[2] - sx[0]) * (sy[1] - sy[0]); if (Math.abs(area) < 1e-9) return;
@@ -78,7 +82,9 @@ public class SkyPreview {
             if (w0 < 0 || w1 < 0 || w2 < 0) continue;
             double a0 = w0 * iw[0], a1 = w1 * iw[1], a2 = w2 * iw[2], s = a0 + a1 + a2; a0 /= s; a1 /= s; a2 /= s;
             double cr = a0 * p0[3] + a1 * p1[3] + a2 * p2[3], cg = a0 * p0[4] + a1 * p1[4] + a2 * p2[4], cb = a0 * p0[5] + a1 * p1[5] + a2 * p2[5], al = a0 * p0[6] + a1 * p1[6] + a2 * p2[6];
-            int i = y * W + x; R[i] += (float) ((cr - R[i]) * al); G[i] += (float) ((cg - G[i]) * al); B[i] += (float) ((cb - B[i]) * al);
+            int i = y * W + x;
+            if (add) { R[i] = Math.min(1, R[i] + (float) (cr * al)); G[i] = Math.min(1, G[i] + (float) (cg * al)); B[i] = Math.min(1, B[i] + (float) (cb * al)); }
+            else { R[i] += (float) ((cr - R[i]) * al); G[i] += (float) ((cg - G[i]) * al); B[i] += (float) ((cb - B[i]) * al); }
         }
     }
 }
