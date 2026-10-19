@@ -57,11 +57,12 @@ tasks.withType(JavaCompile).configureEach { it.options.compilerArgs += ['-Xmaxer
 tasks.register('mcJavap') {
     doLast {
         def jars = sourceSets.main.compileClasspath.files.findAll { it.name.endsWith('.jar') }
-        jars.findAll { it.name.contains('minecraft') || it.name.contains('fabric') }.each { println "classpath: ${it}" }
+        jars.findAll { it.name.contains('minecraft') }.each { println "classpath: ${it}" }
         def classes = (project.findProperty('javapClasses') ?: '').toString().split(',').collect { it.trim() }.findAll { it }
-        def javap = "${System.getProperty('java.home')}/bin/javap"
+        String javap = System.getProperty('java.home') + '/bin/javap'
+        String cp = jars.collect { it.absolutePath }.join(File.pathSeparator)
         classes.each { c ->
-            def p = new ProcessBuilder([javap, '-p', '-cp', jars.join(File.pathSeparator), c]).redirectErrorStream(true).start()
+            def p = new ProcessBuilder(javap, '-p', '-cp', cp, c.toString()).redirectErrorStream(true).start()
             println "==== javap ${c}"; println p.inputStream.text; p.waitFor()
         }
     }

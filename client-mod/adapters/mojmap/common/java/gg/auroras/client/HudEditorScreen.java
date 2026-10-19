@@ -10,7 +10,6 @@ import gg.auroras.client.platform.Keys;
 import gg.auroras.core.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.Component;
 
 import java.util.*;
 
@@ -85,7 +84,7 @@ public class HudEditorScreen extends AScreen {
     }
     private void savePreset() {
         try { String name = "Layout " + (HudKit.loadLayouts(AurorasClient.REG, AurorasClient.DIR).size() + 1); HudKit.saveLayout(AurorasClient.DIR, name, HudKit.captureLayout(AurorasClient.REG, AurorasClient.PM));
-            if (minecraft != null && minecraft.player != null) minecraft.player.sendSystemMessage(Component.literal("[Auroras] Saved HUD layout “" + name + "”.")); }
+            AurorasClient.chat(Minecraft.getInstance(), "[Auroras] Saved HUD layout “" + name + "”."); }
         catch (Exception ex) { System.out.println("[Auroras] couldn't save layout: " + ex.getMessage()); }
     }
     private void nextPreset() {

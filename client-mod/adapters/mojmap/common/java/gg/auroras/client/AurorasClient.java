@@ -109,7 +109,7 @@ public class AurorasClient implements ClientModInitializer {
     static void startBenchmark(Minecraft mc) {
         if (benchRunning) return;
         BENCH.summary(); benchRunning = true; benchUntilNs = System.nanoTime() + 60_000_000_000L; GC.sample();
-        if (mc.player != null) mc.player.sendSystemMessage(Component.literal("[Auroras] Benchmark started. Don't move for 60 seconds."));
+        chat(mc, "[Auroras] Benchmark started. Don't move for 60 seconds.");
     }
     static void finishBenchmark() {
         benchRunning = false; long[] gc = GC.sample(); Perf.FrameStats.Summary s = BENCH.summary();
@@ -121,6 +121,8 @@ public class AurorasClient implements ClientModInitializer {
             Files.writeString(f, line, StandardOpenOption.APPEND);
         } catch (Exception e) { System.out.println("[Auroras] couldn't write benchmark: " + e.getMessage()); }
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player != null) mc.player.sendSystemMessage(Component.literal(String.format(Locale.ROOT, "[Auroras] Benchmark: avg %.0f fps, 1%% low %.0f fps, frame %.1f ms. Saved to config/auroras/benchmarks.csv", s.avgFps(), s.onePercentLowFps(), s.avgFrameMs())));
+        chat(mc, String.format(Locale.ROOT, "[Auroras] Benchmark: avg %.0f fps, 1%% low %.0f fps, frame %.1f ms. Saved to config/auroras/benchmarks.csv", s.avgFps(), s.onePercentLowFps(), s.avgFrameMs()));
     }
+    /** A local chat line (only you see it; nothing is sent to the server). */
+    static void chat(Minecraft mc, String text) { if (mc.player != null) mc.gui.getChat().addMessage(Component.literal(text)); }
 }
