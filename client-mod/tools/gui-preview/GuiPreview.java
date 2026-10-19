@@ -24,6 +24,10 @@ public class GuiPreview {
         if (skin != null) { BufferedImage sk = ImageIO.read(new File(skin)); int[] face = new int[64]; for (int y = 0; y < 8; y++) for (int x = 0; x < 8; x++) { int hat = sk.getRGB(40 + x, 8 + y); face[y * 8 + x] = (hat >>> 24) > 128 ? hat : sk.getRGB(8 + x, 8 + y); }
             net.minecraft.resources.Identifier fid = net.minecraft.resources.Identifier.fromNamespaceAndPath("auroras_client", "radial/face"); gg.auroras.client.platform.Platform.texture(fid, face, 8, 8); gg.auroras.client.ui.Glass.face = fid; gg.auroras.client.ui.Glass.player = "cxld"; }
         for (String id : List.of("sky", "keystrokes", "fps", "zoom", "cape", "particlefx")) if (AurorasClient.REG.get(id) != null && AurorasClient.REG.get(id).available()) AurorasClient.PM.setEnabled(id, true);
+        String themes = System.getenv("AURORAS_THEMES"); // optional: a folder of backdrops named <theme>.png; renders the Visuals page in every menu theme
+        if (themes != null) { for (MenuTheme.Theme th : MenuTheme.THEMES) { AurorasClient.PM.set(Config.Registry.MENU_THEME, th.id()); File f = new File(themes, th.id() + ".png");
+                shot(f.exists() ? ImageIO.read(f) : bg, W, H, ModuleScreen.section("Visuals", RadialMenu.PETALS.get(1).categories(), null), null, "theme-" + th.id(), out); }
+            AurorasClient.PM.set(Config.Registry.MENU_THEME, "aurora"); return; }
         shot(bg, W, H, ModuleScreen.section("Visuals", RadialMenu.PETALS.get(1).categories(), null), null, "visuals", out);
         shot(bg, W, H, ModuleScreen.section("HUD", RadialMenu.PETALS.get(0).categories(), null), null, "hud", out);
         shot(bg, W, H, ModuleScreen.section("All modules", null, null), null, "all-modules", out);

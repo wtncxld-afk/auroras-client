@@ -28,6 +28,7 @@ public final class Gfx {
     public void pop() { g.setTransform(stack.pop()); }
     public void translate(float x, float y) { g.translate(x, y); }
     public void scale(float s) { g.scale(s, s); }
+    public void rotate(float rad) { g.rotate(rad); }
     public void texture(net.minecraft.resources.Identifier id, int x, int y, int w, int h, int argb) {
         if (LOGO != null && id.path().endsWith("logo.png")) { g.drawImage(LOGO, x, y, w, h, null); return; }
         BufferedImage im = image(id); if (im != null) region(id, x, y, w, h, 0, 0, im.getWidth(), im.getHeight(), im.getWidth(), im.getHeight(), argb);

@@ -31,6 +31,20 @@ public final class UiTokens {
     static Map<String, Integer> ints(Map<String, Object> r, String k) { Map<String, Integer> o = new LinkedHashMap<>(); for (Map.Entry<String, Object> e : Json.obj(r.get(k), k).entrySet()) o.put(e.getKey(), (int) Math.round((Double) e.getValue())); return o; }
     static double unit(Map<String, Object> g, String k) { double v = Json.num(g, k); if (v < 0 || v > 1) throw new IllegalArgumentException("game." + k + " must be 0..1"); return v; }
 
+    /**
+     * These tokens recoloured for a menu theme: its accents, and the surfaces leaned toward its tint (by up to 35%, so
+     * text contrast barely moves; UiTests checks it stays at AA or better for every theme).
+     */
+    public UiTokens themed(MenuTheme.Theme t) {
+        Map<String, Integer> c = new LinkedHashMap<>(color); c.put("acc", t.acc()); c.put("acc2", t.acc2());
+        double[] k = {0.2, 0.32, 0.3, 0.26, 0.22}; String[] s = {"bg", "side", "s1", "s2", "s3"};
+        for (int i = 0; i < s.length; i++) c.put(s[i], mixRgb(color.get(s[i]), t.tint(), k[i]));
+        return new UiTokens(c, space, radius, font, size, fast, base, slow, ease, panelAlpha, scrimAlpha, selectedAlpha, guide);
+    }
+    static int mixRgb(int a, int b, double t) {
+        int r = (int) Math.round(((a >> 16) & 255) + (((b >> 16) & 255) - ((a >> 16) & 255)) * t), g = (int) Math.round(((a >> 8) & 255) + (((b >> 8) & 255) - ((a >> 8) & 255)) * t), bl = (int) Math.round((a & 255) + ((b & 255) - (a & 255)) * t);
+        return r << 16 | g << 8 | bl;
+    }
     public int c(String name) { Integer v = color.get(name); if (v == null) throw new IllegalArgumentException("No color token " + name); return v; }
     /** Color token with opacity 0..1 as 0xAARRGGBB. */
     public int argb(String name, double alpha) { return ((int) Math.round(Sky.clamp(alpha, 0, 1) * 255) << 24) | c(name); }

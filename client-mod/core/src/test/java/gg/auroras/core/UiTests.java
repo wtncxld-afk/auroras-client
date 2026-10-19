@@ -76,6 +76,24 @@ public class UiTests {
         float[] half = new float[128 * 128]; for (int y = 0; y < 128; y++) for (int x = 0; x < 64; x++) half[y * 128 + x] = 1;
         int[] ic = UiArt.icon(half, 128, 128, 15); int mid = ic[7 * 15 + 7] >>> 24;
         check("art: icons shrink by area averaging (a half-covered pixel comes out half opaque)", (ic[7 * 15] >>> 24) == 255 && (ic[7 * 15 + 14] >>> 24) == 0 && mid > 100 && mid < 155, mid);
+        // menu themes and their background effects (MenuTheme)
+        Config.Registry treg = new Config.Registry();
+        check("themes: every theme id is a valid setting, others are refused, and Aurora is the default", MenuTheme.IDS.stream().allMatch(id -> treg.validate(Config.Registry.MENU_THEME, id) == null) && treg.validate(Config.Registry.MENU_THEME, "neon") != null
+            && treg.defaults().get(Config.Registry.MENU_THEME).equals("aurora") && treg.validate(Config.Registry.MENU_FX, "false") == null && MenuTheme.of("nope").id().equals("aurora"));
+        check("themes: each has its own accent and effect", MenuTheme.THEMES.stream().map(MenuTheme.Theme::acc).distinct().count() == MenuTheme.THEMES.size() && MenuTheme.THEMES.stream().map(MenuTheme.Theme::fx).distinct().count() == MenuTheme.THEMES.size());
+        MenuTheme.Effect sak = new MenuTheme.Effect(MenuTheme.of("sakura"), 1, 7); double[] y0 = new double[sak.ps.length]; for (int k = 0; k < y0.length; k++) y0[k] = sak.ps[k].y;
+        sak.update(1 / 60.0, false); int down = 0; for (int k = 0; k < y0.length; k++) if (sak.ps[k].y > y0[k]) down++; boolean y1 = down >= y0.length * 0.9, y0ok = true;
+        boolean onScreen = true; for (int f = 0; f < 6000; f++) sak.update(1 / 60.0, false); for (MenuTheme.P q : sak.ps) onScreen &= q.x >= -0.06 && q.x <= 1.06 && q.y >= -0.06 && q.y <= 1.06;
+        check("effects: sakura petals fall and keep coming back from the top (none lost after 100 s)", sak.ps.length > 20 && y1 && onScreen, down);
+        MenuTheme.Effect emb = new MenuTheme.Effect(MenuTheme.of("ember"), 1, 3); double[] e0 = new double[emb.ps.length]; for (int k = 0; k < e0.length; k++) e0[k] = emb.ps[k].y; emb.update(1 / 60.0, false);
+        int up = 0; for (int k = 0; k < e0.length; k++) if (emb.ps[k].y < e0[k]) up++; check("effects: embers rise", up >= e0.length * 0.9, up, e0.length);
+        MenuTheme.Effect still = new MenuTheme.Effect(MenuTheme.of("frost"), 1, 5); double sx = still.ps[0].x, sy = still.ps[0].y; still.update(0.5, true);
+        check("effects: reduced motion keeps everything still; amount scales the count", still.ps[0].x == sx && still.ps[0].y == sy && new MenuTheme.Effect(MenuTheme.of("frost"), 0.5, 5).ps.length == still.ps.length / 2 && new MenuTheme.Effect(MenuTheme.of("frost"), 0, 5).ps.length == 0);
+        MenuTheme.Effect a60 = new MenuTheme.Effect(MenuTheme.of("void"), 1, 9), a30 = new MenuTheme.Effect(MenuTheme.of("void"), 1, 9); for (int f = 0; f < 60; f++) a60.update(1 / 60.0, false); for (int f = 0; f < 30; f++) a30.update(1 / 30.0, false);
+        check("effects: motion is frame-rate independent (30 and 60 fps end in the same place)", Math.abs(a60.ps[0].x - a30.ps[0].x) < 1e-9 && Math.abs(a60.ps[0].y - a30.ps[0].y) < 1e-9);
+        boolean readable = true; for (MenuTheme.Theme th : MenuTheme.THEMES) { UiTokens tt = t.themed(th); readable &= contrast(tt.c("text"), tt.c("s1")) >= 7 && contrast(tt.c("mute"), tt.c("s2")) >= 4.5 && contrast(tt.c("accInk"), tt.c("acc")) >= 4.5 && contrast(tt.c("acc"), tt.c("bg")) >= 3; }
+        check("themes: every theme keeps text readable (7:1 body, 4.5:1 secondary, accents 3:1 on the background)", readable);
+        int[] pt = UiArt.petal(32); check("art: a petal is solid in the middle and clear in the corners", (pt[16 * 32 + 16] >>> 24) > 200 && (pt[0] >>> 24) == 0 && (pt[16 * 32] >>> 24) < 40);
         System.out.println("\n" + pass + " passed, " + fail + " failed"); if (fail > 0) System.exit(1);
     }
     static boolean mono(UiTokens t) { double p = -1; for (int k = 0; k <= 50; k++) { double v = t.easeAt(k / 50.0); if (v < p - 1e-9) return false; p = v; } return true; }

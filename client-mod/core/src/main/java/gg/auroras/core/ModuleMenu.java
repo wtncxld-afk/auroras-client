@@ -35,7 +35,8 @@ public final class ModuleMenu {
     public ModuleMenu group(List<String> cats) { group = cats == null || cats.isEmpty() ? null : List.copyOf(cats); category = "All"; scroll = 0; return this; }
     /** The client's own settings (menu key, visual quality), shown like a module's settings page. Keys are "settings.*". */
     public static final Config.Module CLIENT = new Config.Module("settings", "Client settings", Config.Category.ANIMATIONS, Config.Impact.COSMETIC, true,
-        "Applies to every profile", List.of(new Config.SettingDef("guiKey", Config.Type.KEY, "344", 0, 0, List.of()), new Config.SettingDef("quality", Config.Type.ENUM, "BALANCED", 0, 0, List.of("LOW", "BALANCED", "HIGH"))));
+        "Applies to every profile", List.of(new Config.SettingDef("guiKey", Config.Type.KEY, "344", 0, 0, List.of()), new Config.SettingDef("quality", Config.Type.ENUM, "BALANCED", 0, 0, List.of("LOW", "BALANCED", "HIGH")),
+            new Config.SettingDef("menuTheme", Config.Type.ENUM, "aurora", 0, 0, MenuTheme.IDS), new Config.SettingDef("menuFx", Config.Type.BOOL, "true", 0, 0, List.of())));
     public List<String> categories() { List<String> all = UiKit.categories(reg.modules()); return group == null ? all : all.stream().filter(c -> c.equals("All") || group.contains(c)).toList(); }
     public List<Config.Module> visible() { List<Config.Module> v = UiKit.filter(reg.modules(), category, query); return group == null ? v : v.stream().filter(m -> group.contains(m.cat().label)).toList(); }
     public Config.Module openModule() { return open == null ? null : open.equals(CLIENT.id()) ? CLIENT : reg.get(open); }
@@ -115,7 +116,7 @@ public final class ModuleMenu {
     public static String label(String key) {
         String s = LABELS.get(key); if (s != null) return s; s = key.replaceAll("([A-Z])", " $1").toLowerCase(Locale.ROOT); return Character.toUpperCase(s.charAt(0)) + s.substring(1);
     }
-    private static final Map<String, String> LABELS = Map.ofEntries(Map.entry("bgOpacity", "Background opacity"), Map.entry("guiKey", "Menu key"), Map.entry("quality", "Visual quality"), Map.entry("offX", "Horizontal offset"), Map.entry("offY", "Vertical offset"), Map.entry("tintStrength", "Tint strength"),
+    private static final Map<String, String> LABELS = Map.ofEntries(Map.entry("bgOpacity", "Background opacity"), Map.entry("guiKey", "Menu key"), Map.entry("quality", "Visual quality"), Map.entry("menuTheme", "Menu theme"), Map.entry("menuFx", "Background effects"), Map.entry("offX", "Horizontal offset"), Map.entry("offY", "Vertical offset"), Map.entry("tintStrength", "Tint strength"),
             Map.entry("showArt", "Cover art"), Map.entry("showProgress", "Progress bar"), Map.entry("marquee", "Scroll long titles"), Map.entry("skyQuality", "Sky quality"), Map.entry("h24", "24-hour clock"), Map.entry("windowMs", "Window (ms)"),
             Map.entry("scrollAdjust", "Scroll to change zoom"), Map.entry("skipFront", "Skip front view with F5"), Map.entry("hideRain", "Hide rain splashes"), Map.entry("multiplier", "Amount kept"), Map.entry("level", "Brightness"), Map.entry("graphWidth", "Graph width (px)"), Map.entry("showGraph", "Frame graph"), Map.entry("dynamic", "Widen while moving"),
             Map.entry("bgColor", "Background colour"), Map.entry("radius", "Corner radius"), Map.entry("textMode", "Text colour"), Map.entry("chromaSpeed", "Colour speed"),

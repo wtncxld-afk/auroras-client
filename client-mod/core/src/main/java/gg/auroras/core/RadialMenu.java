@@ -68,21 +68,22 @@ public final class RadialMenu {
         int n = OUTLINE; float[] xs = new float[n], ys = new float[n]; float g = glow(), t = stroke();
         float[] base = cov(s, cx, cy, shape, 0, xs, ys), inner = cov(s, cx, cy, shape, -t, xs, ys);
         float[] g1 = cov(s, cx, cy, shape, g * 0.3f, xs, ys), g2 = cov(s, cx, cy, shape, g * 0.6f, xs, ys), g3 = cov(s, cx, cy, shape, g, xs, ys), in2 = cov(s, cx, cy, shape, -t - g * 0.5f, xs, ys);
-        int glowRgb = lerpRgb(0xFFFFFF, ACCENT, lift);
+        int glowRgb = lerpRgb(0xFFFFFF, accent, lift);
         Raster.over(img, minus(g3, g2), glowRgb, 0.05f + 0.07f * lift);
         Raster.over(img, minus(g2, g1), glowRgb, 0.12f + 0.12f * lift);
         Raster.over(img, minus(g1, base), glowRgb, 0.26f + 0.18f * lift);
         // frosted body: a deep tint so white labels read over any world, lit from the top like glass
         Raster.over(img, base, 0x1A2333, 0.34f);
         Raster.over(img, mul(base, topLight(s, cy, shape)), 0xE9F2FF, 0.22f + 0.10f * lift);
-        Raster.over(img, base, ACCENT, 0.10f * lift);
+        Raster.over(img, base, accent, 0.10f * lift);
         Raster.over(img, minus(inner, in2), 0xFFFFFF, 0.12f + 0.06f * lift);
         Raster.over(img, minus(base, inner), lerpRgb(0xFFFFFF, 0xDFF4FF, lift), 0.80f + 0.18f * lift);
     }
     static float[] cov(int s, float cx, float cy, Raster.Shape shape, float grow, float[] xs, float[] ys) {
         Raster.star(shape, cx, cy, grow, xs.length, xs, ys); float[] c = new float[s * s]; Raster.cover(xs, ys, xs.length, 0, 0, s, s, 1, c); return c;
     }
-    static final int ACCENT = 0x8FD3FF;
+    /** The theme's accent (MenuTheme), used for the hover glow. */
+    public int accent = 0x8FD3FF;
     /** Vertical light across the shape: 1 at its top, 0 just past its middle (the glass sheen). */
     static float[] topLight(int s, float cy, Raster.Shape shape) {
         float top = (float) (cy - shape.radius(-Math.PI / 2)), span = (float) (shape.radius(-Math.PI / 2) * 1.2); float[] o = new float[s * s];

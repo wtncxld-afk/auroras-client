@@ -13,6 +13,7 @@ import gg.auroras.client.platform.Gfx;
 import gg.auroras.client.platform.Keys;
 import gg.auroras.client.ui.AUi;
 import gg.auroras.client.ui.Glass;
+import gg.auroras.client.ui.MenuFx;
 import gg.auroras.core.*;
 
 import java.util.HashMap;
@@ -48,6 +49,7 @@ public class ModuleScreen extends AScreen {
         L = menu.layout(width, height); UiTokens t = AUi.tokens(); double a = openAnim, ease = Motion.out(a);
         c.fill(0, 0, width, height, AUi.fade(0xFF05070C, 0.46 * a));
         Glass.vgrad(c, 0, 0, width, height * 0.4, AUi.fade(0xFF05070C, 0.35 * a), 0);
+        MenuFx.draw(c, width, height, a); // the theme's background effect (sakura petals, aurora, stars...)
         ModuleMenu.Rect p = L.panel(); int lift = (int) Math.round((1 - ease) * 8); float zoom = (float) (0.975 + 0.025 * ease);
         // grow from the panel's centre with a sub-pixel rise; hit testing uses the rounded lift (the difference is under a pixel)
         c.push(); c.translate((float) (p.x() + p.w() / 2.0), (float) (p.y() + p.h() / 2.0 + (1 - ease) * 8)); c.scale(zoom); c.translate((float) -(p.x() + p.w() / 2.0), (float) -(p.y() + p.h() / 2.0));

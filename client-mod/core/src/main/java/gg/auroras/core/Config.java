@@ -119,7 +119,7 @@ public final class Config {
         }
         public Collection<Module> modules() { return mods.values(); }
         public Module get(String id) { return mods.get(id); }
-        public static final String GUI_KEY = "settings.guiKey", QUALITY = "settings.quality";
+        public static final String GUI_KEY = "settings.guiKey", QUALITY = "settings.quality", MENU_THEME = "settings.menuTheme", MENU_FX = "settings.menuFx";
         private static final Pattern HEX = Pattern.compile("[0-9A-Fa-f]{6}");
         /** Plain decimal numbers only (no exponents, suffixes or spaces), so the launcher can apply exactly the same rule. */
         private static final Pattern INTEGER = Pattern.compile("-?\\d{1,9}"), DECIMAL = Pattern.compile("-?\\d{1,9}(\\.\\d{1,12})?");
@@ -127,6 +127,8 @@ public final class Config {
         public String validate(String fullKey, String v) {
             if (v == null || v.length() > 64 || v.contains("\n") || v.contains("\r")) return "bad value";
             if (fullKey.equals(QUALITY)) return Quality.parse(v) != null ? null : "quality must be LOW, BALANCED or HIGH";
+            if (fullKey.equals(MENU_THEME)) return MenuTheme.IDS.contains(v) ? null : "unknown menu theme";
+            if (fullKey.equals(MENU_FX)) return v.equals("true") || v.equals("false") ? null : fullKey + " must be true or false";
             if (fullKey.equals(GUI_KEY)) return v.matches("-?\\d{1,3}") && Integer.parseInt(v) >= 0 && Integer.parseInt(v) <= 348 ? null : "bad key code";
             int dot = fullKey.indexOf('.'); if (dot < 1) return "unknown key " + fullKey;
             Module m = mods.get(fullKey.substring(0, dot)); if (m == null) return "unknown module in " + fullKey;
@@ -142,7 +144,7 @@ public final class Config {
             } catch (NumberFormatException e) { return fullKey + " is not a number"; }
         }
         public Map<String, String> defaults() {
-            Map<String, String> m = new TreeMap<>(); m.put(GUI_KEY, "344"); m.put(QUALITY, "BALANCED");
+            Map<String, String> m = new TreeMap<>(); m.put(GUI_KEY, "344"); m.put(QUALITY, "BALANCED"); m.put(MENU_THEME, "aurora"); m.put(MENU_FX, "true");
             for (Module mod : mods.values()) for (SettingDef s : mod.settings()) m.put(mod.id() + "." + s.key(), s.def());
             return m;
         }

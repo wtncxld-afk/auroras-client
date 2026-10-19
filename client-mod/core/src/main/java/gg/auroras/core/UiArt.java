@@ -34,6 +34,21 @@ public final class UiArt {
         }
         return o;
     }
+    /**
+     * A sakura petal in a size x size square, pointing right: an oval, fuller toward its tip, with the small notch real
+     * cherry petals have, and a soft vein of extra light down its middle.
+     */
+    public static int[] petal(int size) {
+        int[] o = new int[size * size]; double c = size / 2.0, a = size * 0.46, b = size * 0.27;
+        for (int y = 0; y < size; y++) for (int x = 0; x < size; x++) {
+            double px = x + 0.5 - c, py = y + 0.5 - c, u = px / a, bw = b * (0.75 + 0.25 * (u + 1) / 2), v = py / bw, e = Math.sqrt(u * u + v * v);
+            double edge = (1 - e) * Math.min(a, bw), cov = Math.max(0, Math.min(1, edge + 0.5));
+            double nx = px - a * 0.98, notch = Math.max(0, Math.min(1, Math.sqrt(nx * nx + py * py * 2.2) - size * 0.09 + 0.5));
+            double vein = 0.82 + 0.18 * Math.max(0, 1 - Math.abs(py) / (b * 0.35));
+            o[y * size + x] = white(cov * notch * vein);
+        }
+        return o;
+    }
     /** 1 x n vertical ramp, opaque at the top to clear at the bottom (gradients, sheen). */
     public static int[] ramp(int n) { int[] o = new int[n]; for (int i = 0; i < n; i++) o[i] = white(1 - (i + 0.5) / n); return o; }
 

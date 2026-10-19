@@ -65,6 +65,11 @@ public final class Glass {
         Identifier id = tex("icon_" + name, S, 0, () -> UiArt.icon(mask(name), 128, 128, S), S, S);
         c.push(); c.scale((float) (1 / gs())); c.texture(id, X, Y, S, S, argb); c.pop();
     }
+    /** A sakura petal (core UiArt.petal) size GUI units long, centred on (cx, cy), turned rot radians, tinted argb. */
+    public static void petal(Gfx c, double cx, double cy, double size, double rot, int argb) {
+        int S = Math.max(4, px(size)); Identifier id = tex("petal", S, 0, () -> UiArt.petal(S), S, S);
+        c.push(); c.scale((float) (1 / gs())); c.translate((float) (cx * gs()), (float) (cy * gs())); c.rotate((float) rot); c.texture(id, -S / 2, -S / 2, S, S, argb); c.pop();
+    }
     /** Text in the Auroras font: size in GUI units, x at its left, baseline at y. */
     public static void text(Gfx c, String weight, double size, String s, double x, double baseline, int argb) {
         double g = gs(); c.push(); c.scale((float) (1 / g)); AuroraFont.draw(c, weight, size * g, s, Math.round(x * g), Math.round(baseline * g), argb, false); c.pop();

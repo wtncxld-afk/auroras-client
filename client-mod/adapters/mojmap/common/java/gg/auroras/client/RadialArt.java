@@ -15,28 +15,28 @@ import java.io.InputStream;
 import java.util.concurrent.CompletableFuture;
 
 final class RadialArt {
-    final int w, h; final RadialMenu layout; final int pillW, pillH; volatile boolean baked; boolean uploaded;
+    final int w, h, accent; final RadialMenu layout; final int pillW, pillH; volatile boolean baked; boolean uploaded;
     private NativeImage[] rest = new NativeImage[RadialMenu.N], hover = new NativeImage[RadialMenu.N]; private NativeImage hub, pill;
     static final String BADGE = "AURORAS";
-    private RadialArt(int w, int h, double gs) {
-        this.w = w; this.h = h; layout = new RadialMenu(w, h);
+    private RadialArt(int w, int h, double gs, int accent) {
+        this.w = w; this.h = h; this.accent = accent; layout = new RadialMenu(w, h); layout.accent = accent;
         pillH = (int) Math.round(11 * gs); pillW = (int) Math.ceil(AuroraFont.width("semibold", 7 * gs, BADGE)) + (int) Math.round(14 * gs);
     }
     static Identifier petal(int k, boolean hv) { return Identifier.fromNamespaceAndPath("auroras_client", "radial/petal_" + k + (hv ? "_hover" : "")); }
     static final Identifier HUB = Identifier.fromNamespaceAndPath("auroras_client", "radial/hub"), PILL = Identifier.fromNamespaceAndPath("auroras_client", "radial/pill");
 
-    private static RadialArt current; private static CompletableFuture<RadialArt> pending; private static int pendingW, pendingH;
-    /** Starts baking for this window size in the background if it isn't baked or baking already. */
+    private static RadialArt current; private static CompletableFuture<RadialArt> pending; private static int pendingW, pendingH, pendingAcc;
+    /** Starts baking for this window size and menu theme in the background if it isn't baked or baking already. */
     static synchronized void prepare(int w, int h, double gs) {
-        if (w <= 0 || h <= 0) return;
-        if (current != null && current.w == w && current.h == h) return;
-        if (pending != null && pendingW == w && pendingH == h) return;
-        pendingW = w; pendingH = h; RadialArt a = new RadialArt(w, h, gs);
+        if (w <= 0 || h <= 0) return; int acc = gg.auroras.client.ui.AUi.theme().acc();
+        if (current != null && current.w == w && current.h == h && current.accent == acc) return;
+        if (pending != null && pendingW == w && pendingH == h && pendingAcc == acc) return;
+        pendingW = w; pendingH = h; pendingAcc = acc; RadialArt a = new RadialArt(w, h, gs, acc);
         pending = CompletableFuture.supplyAsync(() -> { a.bake(); return a; });
     }
     /** The art for this size, uploading it if it's ready; bakes right now (one short pause) if nothing was prepared. */
     static synchronized RadialArt get(int w, int h, double gs) {
-        if (current == null || current.w != w || current.h != h) {
+        if (current == null || current.w != w || current.h != h || current.accent != gg.auroras.client.ui.AUi.theme().acc()) {
             prepare(w, h, gs);
             RadialArt a = pending.join(); pending = null; current = a;
         }
@@ -50,7 +50,7 @@ final class RadialArt {
             rest[k] = Platform.image(m.bakePetal(k, false, icon, 128, 128), s, s); hover[k] = Platform.image(m.bakePetal(k, true, icon, 128, 128), s, s);
         }
         hub = Platform.image(m.bakeHub(), m.hubSide(), m.hubSide());
-        pill = Platform.image(RadialMenu.bakePill(pillW, pillH, 0x8FD3FF, 0.95f), pillW, pillH);
+        pill = Platform.image(RadialMenu.bakePill(pillW, pillH, accent, 0.95f), pillW, pillH);
         baked = true;
     }
     private void upload() {

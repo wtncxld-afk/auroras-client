@@ -60,6 +60,7 @@ public class RadialScreen extends AScreen {
         g.push(); g.scale((float) (1 / gs)); // from here on: real screen pixels
         double open = m.hubProgress();
         g.fill(0, 0, art.w, art.h, (int) Math.round(0.40 * 255 * open) << 24 | 0x05070C);
+        g.push(); g.scale((float) gs); gg.auroras.client.ui.MenuFx.draw(g, width, height, open); g.pop(); // the theme's background effect, in GUI units
         int side = m.side();
         for (int k = 0; k < RadialMenu.N; k++) {
             float s = m.scale(k), al = m.alpha(k), hv = (float) m.hover[k]; if (al <= 0.003f) continue;

@@ -7,6 +7,8 @@ package gg.auroras.client.ui;
 
 import gg.auroras.core.UiKit;
 import gg.auroras.core.UiTokens;
+import gg.auroras.core.Config;
+import gg.auroras.core.MenuTheme;
 import gg.auroras.client.platform.Gfx;
 
 import java.io.InputStream;
@@ -19,11 +21,17 @@ public final class AUi {
     public static UiTokens T;
     /** Loads the bundled tokens once. If the file is missing or broken the built-in copy below keeps the GUI usable. */
     public static UiTokens tokens() {
-        if (T != null) return T;
-        try (InputStream in = AUi.class.getResourceAsStream("/assets/auroras_client/design-tokens.json")) { T = UiTokens.parse(new String(in.readAllBytes(), StandardCharsets.UTF_8)); }
-        catch (Exception e) { System.out.println("[Auroras] design tokens couldn't be loaded, using defaults: " + e.getMessage()); T = UiTokens.parse(FALLBACK); }
-        return T;
+        if (T == null) {
+            try (InputStream in = AUi.class.getResourceAsStream("/assets/auroras_client/design-tokens.json")) { T = UiTokens.parse(new String(in.readAllBytes(), StandardCharsets.UTF_8)); }
+            catch (Exception e) { System.out.println("[Auroras] design tokens couldn't be loaded, using defaults: " + e.getMessage()); T = UiTokens.parse(FALLBACK); }
+        }
+        // recoloured for the menu theme chosen in Client settings (cached until it changes)
+        MenuTheme.Theme th = theme(); if (th != themedFor) { themedFor = th; themed = T.themed(th); }
+        return themed;
     }
+    private static UiTokens themed; private static MenuTheme.Theme themedFor;
+    /** The menu theme from the client settings (Aurora if unset). */
+    public static MenuTheme.Theme theme() { try { return MenuTheme.of(gg.auroras.client.AurorasClient.PM.get(Config.Registry.MENU_THEME)); } catch (Exception e) { return MenuTheme.THEMES.get(0); } }
     static final String FALLBACK = "{\"schema\":1,\"color\":{\"bg\":\"#0b0d12\",\"side\":\"#0f1218\",\"s1\":\"#141821\",\"s2\":\"#1a1f2a\",\"s3\":\"#222836\",\"line\":\"#232938\",\"lineStrong\":\"#2f3747\",\"text\":\"#e8ecf4\",\"mute\":\"#8a93a6\",\"faint\":\"#5d6577\",\"acc\":\"#8fd3ff\",\"accInk\":\"#06141f\",\"acc2\":\"#5fd0d6\",\"vio\":\"#a78bfa\",\"ok\":\"#6fcf97\",\"warn\":\"#e0b45a\",\"err\":\"#e57373\"},"
         + "\"space\":{\"1\":4,\"2\":8},\"radius\":{\"s\":6,\"m\":10,\"l\":14},\"font\":{\"md\":13},\"size\":{\"control\":32},\"motion\":{\"fast\":120,\"base\":160,\"slow\":240,\"ease\":[0.2,0.7,0.2,1]},\"game\":{\"panelAlpha\":0.92,\"scrimAlpha\":0.45,\"selectedAlpha\":0.16,\"guide\":\"#b58cff\"}}";
 

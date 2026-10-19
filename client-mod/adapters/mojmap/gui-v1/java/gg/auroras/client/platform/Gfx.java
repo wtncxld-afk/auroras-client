@@ -18,6 +18,8 @@ public final class Gfx {
     public void pop() { g.pose().popMatrix(); }
     public void translate(float x, float y) { g.pose().translate(x, y); }
     public void scale(float s) { g.pose().scale(s, s); }
+    /** Turns what is drawn next by rad radians (clockwise on screen) around the current origin. */
+    public void rotate(float rad) { g.pose().rotate(rad); }
     /** The whole texture drawn into w x h, tinted by argb (alpha fades it). */
     public void texture(Identifier id, int x, int y, int w, int h, int argb) { g.blit(RenderPipelines.GUI_TEXTURED, id, x, y, 0f, 0f, w, h, w, h, argb); }
     /** A sprite from the GUI atlas (textures/gui/sprites/<path>.png, e.g. mob_effect/speed) drawn into w x h, tinted by argb. */
