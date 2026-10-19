@@ -8,11 +8,11 @@ States: **Tested** (verified in a real game), **Partially Supported** (some chec
 
 | Minecraft | Type | Loader | Build | Launch test | Module menu | HUD | HUD editor | Custom skies | Emotes | Known issues |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 26.1 | Release | fabric | not built | untested | Experimental | Experimental | Experimental | Unsupported | Experimental | Adapter code exists but has never been built. |
+| 26.1 | Release | fabric | not built | untested | Experimental | Experimental | Experimental | Experimental | Experimental | Adapter code exists but has never been built. |
 | 26.1-rc-1 | Release candidate | fabric | no adapter | untested | Unsupported | Unsupported | Unsupported | Unsupported | Unsupported | Auroras builds are only made for releases; the client mod stays disabled on development builds. |
 | 26.1-pre-1 | Pre-release | fabric | no adapter | untested | Unsupported | Unsupported | Unsupported | Unsupported | Unsupported | Auroras builds are only made for releases; the client mod stays disabled on development builds. |
 | 26.1-snapshot-1 | Snapshot | fabric | no adapter | untested | Unsupported | Unsupported | Unsupported | Unsupported | Unsupported | Auroras builds are only made for releases; the client mod stays disabled on development builds. |
-| 1.21.11 | Release | fabric | not built | untested | Experimental | Experimental | Experimental | Unsupported | Experimental | Adapter code exists but has never been built. |
+| 1.21.11 | Release | fabric | not built | untested | Experimental | Experimental | Experimental | Experimental | Experimental | Adapter code exists but has never been built. |
 | 1.21.11-rc1 | Release candidate | fabric | no adapter | untested | Unsupported | Unsupported | Unsupported | Unsupported | Unsupported | Auroras builds are only made for releases; the client mod stays disabled on development builds. |
 | 1.21.10 | Release | fabric | no adapter | untested | Unsupported | Unsupported | Unsupported | Unsupported | Unsupported | No Auroras adapter for this version yet; the client mod stays disabled. |
 | 1.21.9 | Release | fabric | no adapter | untested | Unsupported | Unsupported | Unsupported | Unsupported | Unsupported | No Auroras adapter for this version yet; the client mod stays disabled. |

@@ -38,6 +38,84 @@ public final class VisualTests {
         { Config.Registry reg = new Config.Registry(); Config.Module sky = reg.get("sky"); List<String> keys = sky.settings().stream().map(x -> x.key()).toList();
           check("sky fx: the sky module has speed, opacity, meteor, nebula, wave, cloud, petal, constellation and quality settings", keys.containsAll(List.of("animSpeed", "effectsOpacity", "shootingStars", "nebulaSpeed", "auroraWaves", "clouds", "petals", "constellations", "skyQuality")), keys); }
     }
+    /** Default sky settings from the registry, with overrides. */
+    static java.util.function.Function<String, String> skySettings(String... kv) {
+        Config.Registry reg = new Config.Registry(); Map<String, String> m = new HashMap<>();
+        for (Config.SettingDef d : reg.get("sky").settings()) m.put("sky." + d.key(), d.def()); m.put(Config.Registry.QUALITY, "BALANCED");
+        for (int k = 0; k < kv.length; k += 2) m.put(kv[k], kv[k + 1]);
+        return m::get;
+    }
+    /** Quads whose first non-degenerate triangle isn't counter-clockwise seen from the origin. */
+    static int wrongWinding(SkyMesh m) {
+        int bad = 0;
+        for (int q = 0; q < m.quads; q++) {
+            int o = q * 12; float[] p = m.pos;
+            float ax = p[o + 3] - p[o], ay = p[o + 4] - p[o + 1], az = p[o + 5] - p[o + 2], bx = p[o + 6] - p[o], by = p[o + 7] - p[o + 1], bz = p[o + 8] - p[o + 2];
+            float nx = ay * bz - az * by, ny = az * bx - ax * bz, nz = ax * by - ay * bx;
+            if (nx * nx + ny * ny + nz * nz < 1e-12f) { float cx = p[o + 9] - p[o], cy = p[o + 10] - p[o + 1], cz = p[o + 11] - p[o + 2]; nx = by * cz - bz * cy; ny = bz * cx - bx * cz; nz = bx * cy - by * cx; }
+            if (nx * nx + ny * ny + nz * nz < 1e-12f) continue; // fully degenerate (nothing to draw either way)
+            if (nx * p[o] + ny * p[o + 1] + nz * p[o + 2] > 0) bad++;
+        }
+        return bad;
+    }
+    static void skyMesh(Map<String, Sky.Theme> th) {
+        // the quads the 1.21.11+ adapter hands to Minecraft
+        SkyMesh m = new SkyMesh(th); m.configure(skySettings("sky.theme", "aurora", "sky.endTheme", "cosmic"));
+        long noon = 6000, midnight = 18000;
+        check("sky mesh: the Nether keeps the vanilla sky unless it has a theme; the overworld and the End use theirs", !m.build("minecraft:the_nether", midnight, 10) && m.quads == 0
+            && m.build("minecraft:overworld", midnight, 10) && m.themeFor("minecraft:overworld").id().equals("aurora") && m.themeFor("minecraft:the_end").id().equals("cosmic"));
+        Sky.Theme au = th.get("aurora"); int domeQuads = Quality.BALANCED.domeRings * 32 + 32;
+        m.build("minecraft:overworld", noon, 10); int dayQuads = m.quads;
+        check("sky mesh: at noon there are no stars, aurora or nebula: only the dome, the ground and daytime effects", dayQuads >= domeQuads && dayQuads <= domeQuads + SkyFx.budget(Quality.BALANCED).cloudPuffs() * SkyMesh.BLOB_SIDES + SkyFx.budget(Quality.BALANCED).petals(), dayQuads, domeQuads);
+        boolean domeColors = true; for (int s = 0; s < 32; s++) domeColors &= (m.col[s * 4] & 0xFFFFFF) == Sky.skyColor(au, 0, noon, Sky.Adjust.NONE) && (m.col[s * 4] >>> 24) == 255;
+        check("sky mesh: the dome's horizon ring has the core sky color for that time, fully opaque", domeColors);
+        m.build("minecraft:overworld", midnight, 10); int nightQuads = m.quads;
+        check("sky mesh: at midnight stars, aurora and nebula are added", nightQuads > dayQuads + 500, nightQuads, dayQuads);
+        check("sky mesh: every quad is counter-clockwise seen from the camera, so back-face culling can't hide any", wrongWinding(m) == 0, wrongWinding(m));
+        float maxR = 0; for (int i = 0; i < m.quads * 4; i++) maxR = Math.max(maxR, (float) Math.sqrt(m.pos[i * 3] * m.pos[i * 3] + m.pos[i * 3 + 1] * m.pos[i * 3 + 1] + m.pos[i * 3 + 2] * m.pos[i * 3 + 2]));
+        check("sky mesh: nothing is farther than the dome (100 blocks), inside the far plane at any render distance", maxR <= SkyMesh.DOME + 0.01f, maxR);
+        check("sky mesh: layers get nearer in drawing order (dome, nebula, constellations, stars, meteors, aurora, clouds, petals)", SkyMesh.DOME > SkyMesh.NEBULA && SkyMesh.NEBULA > SkyMesh.CONSTELLATIONS && SkyMesh.CONSTELLATIONS > SkyMesh.STARS
+            && SkyMesh.STARS > SkyMesh.METEORS && SkyMesh.METEORS > SkyMesh.AURORA && SkyMesh.AURORA > SkyMesh.CLOUDS && SkyMesh.CLOUDS > SkyMesh.PETALS);
+        float[] pos1 = Arrays.copyOf(m.pos, m.quads * 12); int[] col1 = Arrays.copyOf(m.col, m.quads * 4); SkyMesh m2 = new SkyMesh(th); m2.configure(skySettings("sky.theme", "aurora")); m2.build("minecraft:overworld", midnight, 10);
+        check("sky mesh: the same settings and time always give the same quads", m2.quads == m.quads && Arrays.equals(pos1, Arrays.copyOf(m2.pos, m2.quads * 12)) && Arrays.equals(col1, Arrays.copyOf(m2.col, m2.quads * 4)));
+        boolean fits = true; for (String id : Sky.THEME_IDS) for (String q : List.of("LOW", "BALANCED", "HIGH")) {
+            SkyMesh mm = new SkyMesh(th); mm.configure(skySettings("sky.theme", id, "sky.skyQuality", q, "sky.starDensity", "3", "sky.shootingStars", "3")); int cap = mm.capacity(th.get(id));
+            for (long t = 0; t < 24000; t += 1500) for (double sec = 0; sec < 600; sec += 37.3) { mm.build("minecraft:overworld", t, sec); fits &= mm.quads <= cap; } }
+        check("sky mesh: every theme at every quality stays within its precomputed capacity at all times", fits);
+        SkyMesh low = new SkyMesh(th); low.configure(skySettings("sky.skyQuality", "LOW", "sky.clouds", "false", "sky.petals", "false", "sky.constellations", "false", "sky.shootingStars", "0", "sky.starDensity", "0"));
+        low.build("minecraft:overworld", midnight, 10);
+        check("sky mesh: Low quality with effects and stars off is just the dome and ground (no aurora or nebula)", low.quads == Quality.LOW.domeRings * 32 + 32, low.quads);
+        SkyMesh off = new SkyMesh(th); off.configure(skySettings("sky.aurora", "false", "sky.nebula", "false")); off.build("minecraft:overworld", midnight, 10); m.build("minecraft:overworld", midnight, 10);
+        check("sky mesh: switching the aurora and nebula off removes their quads", off.quads < m.quads - 200, off.quads, m.quads);
+        SkyMesh bright = new SkyMesh(th); bright.configure(skySettings("sky.brightness", "0.2")); bright.build("minecraft:overworld", noon, 10);
+        check("sky mesh: sky color settings (brightness) reach the dome", (bright.col[0] & 0xFFFFFF) == Sky.skyColor(au, 0, noon, new Sky.Adjust(0.2, 1, 1, 0xFFFFFF, 0)) && (bright.col[0] & 0xFFFFFF) != (m.col[0] & 0xFFFFFF));
+        SkyMesh hot = new SkyMesh(th); hot.configure(skySettings("sky.skyQuality", "HIGH")); for (int w = 0; w < 200; w++) hot.build("minecraft:overworld", midnight + w, w * 0.016);
+        long b0 = alloc(); long t0 = System.nanoTime(); for (int w = 0; w < 500; w++) hot.build("minecraft:overworld", midnight + w, w * 0.016); double ms = (System.nanoTime() - t0) / 1e6 / 500; long bytes = alloc() - b0;
+        check("sky mesh: building a High quality night sky allocates nothing per frame", bytes < 20_000, bytes);
+        check("sky mesh: building a High quality night sky takes under 2 ms on this machine", ms < 2, ms);
+        System.out.printf(Locale.ROOT, "      (High night sky: %d quads, %.3f ms per build on this machine)%n", hot.quads, ms);
+    }
+    static void capeWatch() {
+        Cosmetics.CapeWatch w = new Cosmetics.CapeWatch();
+        check("cape file: looked at on the first tick", w.due(0, true));
+        check("cape file: an existing cape.png is loaded when Custom Capes is on", w.update(0, true, true, 1000, 5000) == Cosmetics.CapeWatch.Action.LOAD && w.loaded(true) == Cosmetics.CapeWatch.Action.KEEP && w.active());
+        check("cape file: looked at no more than once a second", !w.due(500, true) && w.due(1000, true));
+        check("cape file: the same file isn't loaded again", w.update(1000, true, true, 1000, 5000) == Cosmetics.CapeWatch.Action.KEEP);
+        check("cape file: a new time or a new size reloads it", w.update(2000, true, true, 2000, 5000) == Cosmetics.CapeWatch.Action.LOAD && w.loaded(true) == Cosmetics.CapeWatch.Action.KEEP
+            && w.update(3000, true, true, 2000, 6000) == Cosmetics.CapeWatch.Action.LOAD && w.loaded(true) == Cosmetics.CapeWatch.Action.KEEP);
+        check("cape file: switching Custom Capes off is noticed at once and drops the texture", w.due(3100, false) && w.update(3100, false, true, 2000, 6000) == Cosmetics.CapeWatch.Action.CLEAR && !w.active());
+        check("cape file: while off, nothing is looked at", !w.due(9000, false));
+        check("cape file: switching it on again reloads the same file at once", w.due(9100, true) && w.update(9100, true, true, 2000, 6000) == Cosmetics.CapeWatch.Action.LOAD && w.loaded(true) == Cosmetics.CapeWatch.Action.KEEP);
+        check("cape file: deleting cape.png (Cape Studio > Remove) drops the texture", w.update(10100, true, false, 0, 0) == Cosmetics.CapeWatch.Action.CLEAR && w.update(11100, true, false, 0, 0) == Cosmetics.CapeWatch.Action.KEEP);
+        check("cape file: a file that can't be used isn't retried every second, only when it changes", w.update(12100, true, true, 5, 10) == Cosmetics.CapeWatch.Action.LOAD && w.loaded(false) == Cosmetics.CapeWatch.Action.KEEP && !w.active()
+            && w.update(13100, true, true, 5, 10) == Cosmetics.CapeWatch.Action.KEEP && w.update(14100, true, true, 6, 10) == Cosmetics.CapeWatch.Action.LOAD);
+        w.loaded(true); check("cape file: a broken replacement drops the old cape", w.update(15100, true, true, 7, 10) == Cosmetics.CapeWatch.Action.LOAD && w.loaded(false) == Cosmetics.CapeWatch.Action.CLEAR);
+        int[] old = new int[22 * 17]; for (int k = 0; k < old.length; k++) old[k] = 0xFF000000 | k; int[] padded = Cosmetics.legacyCape(old); boolean same = true, clear = true;
+        for (int y = 0; y < 32; y++) for (int x = 0; x < 64; x++) { if (x < 22 && y < 17) same &= padded[y * 64 + x] == old[y * 22 + x]; else clear &= padded[y * 64 + x] == 0; }
+        check("cape: an old 22x17 cape becomes 64x32 with its pixels in the same place and the rest transparent", padded.length == 64 * 32 && same && clear && iae(() -> Cosmetics.legacyCape(new int[64 * 32])));
+        boolean hd = true; for (int s = 1; s <= 8; s *= 2) hd &= Cosmetics.capeScale(64 * s, 32 * s) == s;
+        check("cape: HD capes 64x32 times 1, 2, 4 and 8 are accepted at their own resolution; other sizes are refused with the allowed sizes", hd && iae(() -> Cosmetics.capeScale(96, 48)) && iae(() -> Cosmetics.capeScale(64 * 16, 32 * 16)));
+    }
     public static void main(String[] a) throws Exception {
         Path dir = Path.of(a.length > 0 ? a[0] : "../../visuals");
         // JSON
@@ -126,7 +204,7 @@ public final class VisualTests {
         check("golden: visuals/sky-golden.json is up to date (run Golden after changing sky math)", Files.readString(dir.resolve("sky-golden.json")).equals(Golden.sky(th)));
         check("golden: visuals/registry.json is up to date (run Golden after changing modules)", Files.readString(dir.resolve("registry.json")).equals(Golden.registry(reg)));
         check("golden: visuals/adapters.json is up to date (run Golden after changing adapters)", Files.readString(dir.resolve("adapters.json")).equals(Golden.adapters()));
-        skyFx(th);
+        skyFx(th); skyMesh(th); capeWatch();
         System.out.println("\n" + pass + " passed, " + fail + " failed"); if (fail > 0) System.exit(1);
     }
     static boolean carryOk() { Particles q = new Particles(100, 1); int s = 0; for (int k = 0; k < 10; k++) s += q.emit(2.5, 0.2, 0, 0, 0, 0, 0, 9, 1, 0); return s == 5; }

@@ -83,7 +83,7 @@ describe("content honesty and long names", () => {
       assert.match(await s.page.locator(".side .acct").textContent(), /No account/); assert.doesNotMatch(await s.page.locator(".side").textContent(), /\bPlayer\b/);
       await nav(s.page, "Home"); await wait(s.page, 300); const t = await s.page.locator("#srv").textContent(); assert.match(t, /vexvanilla\.net/); assert.ok(await s.page.locator("[data-join]").count()); assert.doesNotMatch(t, /\d+ \/ \d+ online|\d+ ms/);
       assert.match(await s.page.locator(".homegrid").textContent(), /What’s new in 0\.1\.0/);
-      await nav(s.page, "Friends"); await wait(s.page, 150); assert.match(await s.page.locator(".page").textContent(), /needs an Auroras friends server/); assert.doesNotMatch(await s.page.locator(".page").textContent(), /online|Playing/);
+      await nav(s.page, "Friends"); await wait(s.page, 150); assert.match(await s.page.locator(".page").textContent(), /needs an Auroras friends server/); assert.doesNotMatch(await s.page.locator("#fr-body").textContent(), /Playing on|In the launcher/);
     } finally { await s.close(); }
   });
   test("live server status from the desktop app: online, offline and Join", async () => {

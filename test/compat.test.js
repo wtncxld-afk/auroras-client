@@ -12,8 +12,8 @@ test("with nothing validated, the best any feature can be is Experimental, and o
   assert.deepStrictEqual(Object.values(m["1.21.4"].features), ["experimental", "experimental", "experimental", "experimental", "experimental"]);
   assert.strictEqual(m["1.21.4"].build, "not built"); assert.strictEqual(m["1.21.4"].launch, "untested");
   for (const id of ["1.21.5", "1.21", "26.1-rc1", "24w44a"]) assert.ok(Object.values(m[id].features).every((s) => s === "unsupported"), id);
-  // 26.1 has the Mojang-names adapter: experimental everywhere except custom skies, which it doesn't claim
-  assert.deepStrictEqual(m["26.1"].features, { module_gui: "experimental", hud: "experimental", hud_editor: "experimental", sky: "unsupported", emotes: "experimental" });
+  // 26.1 has the Mojang-names adapter: experimental everywhere, custom skies included (ported 2026-10-19, unverified in game)
+  assert.deepStrictEqual(m["26.1"].features, { module_gui: "experimental", hud: "experimental", hud_editor: "experimental", sky: "experimental", emotes: "experimental" });
   assert.match(m["26.1-rc1"].issues[0], /only made for releases/); assert.match(m["1.21.5"].issues[0], /No Auroras adapter/);
   assert.strictEqual(m["26.1-rc1"].type, "rc"); assert.strictEqual(m["24w44a"].type, "snapshot");
 });

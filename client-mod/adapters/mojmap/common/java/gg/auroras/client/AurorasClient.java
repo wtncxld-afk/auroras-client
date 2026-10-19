@@ -43,18 +43,14 @@ public class AurorasClient implements ClientModInitializer {
     static long lastFrameNs, benchUntilNs;
     static boolean benchRunning;
 
-    /**
-     * Modules this build can't do in game yet, whatever the registry says. Custom Skies: Minecraft 1.21.11+ has no Fabric
-     * hook for replacing the sky. Capes: player skins changed shape in 1.21.9 and that part isn't ported yet. The menu
-     * shows them locked with this reason.
-     */
-    static final List<String> NOT_IN_THIS_VERSION = List.of("sky", "cape");
 
     @Override public void onInitializeClient() {
         mcVersion = FabricLoader.getInstance().getModContainer("minecraft").map(c -> c.getMetadata().getVersion().getFriendlyString()).orElse("?");
         // fabric.mod.json already limits this jar to its Minecraft line, so Fabric won't load it on another version.
-        REG.restrict(NOT_IN_THIS_VERSION, "Not in the Minecraft " + mcVersion + " build yet");
         REG.restrict(Platform.NOT_PORTED, "Not in the Minecraft " + mcVersion + " build yet");
+        // Custom Skies is drawn through our own mixins (Fabric has no sky hook for these versions); it stays locked only if
+        // its themes can't be read or this version's renderer lacks the calls it needs.
+        if (!AurorasSky.init() || !Platform.skySupported()) REG.restrict(List.of("sky"), "Custom Skies can't hook into Minecraft " + mcVersion + "'s renderer yet");
         PM = new Config.ProfileManager(REG);
         try { int skipped = PM.load(DIR); if (skipped > 0 || PM.skippedLines > 0) System.out.println("[Auroras] skipped " + skipped + " invalid profile file(s) and " + PM.skippedLines + " invalid setting(s)"); } catch (Exception e) { System.out.println("[Auroras] using default settings: " + e.getMessage()); }
         guiKey = Platform.key("key.auroras.gui", Integer.parseInt(PM.get(Config.Registry.GUI_KEY)));
@@ -62,6 +58,7 @@ public class AurorasClient implements ClientModInitializer {
         emoteKey = Platform.key("key.auroras.emotes", Integer.parseInt(PM.get("emotes.wheelKey")));
         benchKey = Platform.key("key.auroras.benchmark", -1);
         AurorasModules.register();
+        AurorasCape.init(DIR); // Custom Capes: only you see it (see AurorasCape)
         ClientTickEvents.END_CLIENT_TICK.register(c -> {
             while (guiKey.consumeClick()) if (c.screen == null) c.setScreen(new RadialScreen());
             while (hudEditKey.consumeClick()) c.setScreen(new HudEditorScreen(null));
@@ -70,6 +67,7 @@ public class AurorasClient implements ClientModInitializer {
             while (benchKey.consumeClick()) startBenchmark(c);
             AurorasEmotes.tick(c);
             AurorasModules.tick(c);
+            AurorasCape.tick(c);
             // bake the radial menu's art in the background for this window size, so Right Shift opens instantly
             if (c.player != null && c.screen == null) RadialArt.prepare(Gfx.screenW(), Gfx.screenH(), Gfx.guiScale());
         });

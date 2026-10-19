@@ -23,9 +23,9 @@ public final class Adapters {
         public boolean has(Feature f) { return features.contains(f); }
     }
 
-    /** The 1.21.11+ adapter has no sky hook (Fabric has none for these versions), so it doesn't claim Custom Skies. */
-    private static final Set<Feature> MOJMAP = EnumSet.of(Feature.MODULE_GUI, Feature.HUD, Feature.HUD_EDITOR, Feature.EMOTES);
-    private static final String MOJMAP_NOTE = "Written against Mojang's names and Fabric API for this version; never compiled or run. Custom skies and capes aren't ported";
+    /** The 1.21.11+ adapter draws Custom Skies through its own mixins (Fabric has no sky hook for these versions). */
+    private static final Set<Feature> MOJMAP = EnumSet.allOf(Feature.class);
+    private static final String MOJMAP_NOTE = "Written against Mojang's names and Fabric API for this version; never compiled or run. Custom skies and capes use mixins that haven't run in a real game; Nether themes aren't drawn";
     /** Add an entry here (and an adapter module) to support another release. VALIDATED only after a real in-game test pass. */
     public static final List<Adapter> ALL = List.of(
         new Adapter("y1_21_4", "fabric", new McVersion(1, 21, 4), new McVersion(1, 21, 4), Status.SCAFFOLD, EnumSet.allOf(Feature.class), "Written against Fabric API 1.21.4; never compiled or run"),

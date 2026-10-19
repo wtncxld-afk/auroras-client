@@ -16,6 +16,9 @@
     "OverlayTextureMixin",
     "AvatarRendererMixin",
     "PlayerModelMixin",
+    "AbstractClientPlayerMixin",
+    "LevelRendererSkyMixin",
+    "SkyRendererMixin",
     "ScreenEffectRendererMixin"
   ],
   "injectors": {

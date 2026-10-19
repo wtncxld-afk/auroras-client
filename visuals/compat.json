@@ -33,7 +33,7 @@
     "module_gui": "experimental",
     "hud": "experimental",
     "hud_editor": "experimental",
-    "sky": "unsupported",
+    "sky": "experimental",
     "emotes": "experimental"
    },
    "issues": [
@@ -105,7 +105,7 @@
     "module_gui": "experimental",
     "hud": "experimental",
     "hud_editor": "experimental",
-    "sky": "unsupported",
+    "sky": "experimental",
     "emotes": "experimental"
    },
    "issues": [

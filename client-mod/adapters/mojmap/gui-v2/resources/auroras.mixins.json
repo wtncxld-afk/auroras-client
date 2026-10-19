@@ -15,7 +15,10 @@
     "ClientLevelMixin",
     "OverlayTextureMixin",
     "AvatarRendererMixin",
-    "PlayerModelMixin"
+    "PlayerModelMixin",
+    "AbstractClientPlayerMixin",
+    "LevelRendererSkyMixin",
+    "SkyRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 0
