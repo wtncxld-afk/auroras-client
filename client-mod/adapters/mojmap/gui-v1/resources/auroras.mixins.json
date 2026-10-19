@@ -10,6 +10,7 @@
     "EntityMixin",
     "GameRendererMixin",
     "CameraMixin",
+    "LocalPlayerMixin",
     "OptionInstanceMixin",
     "ParticleEngineMixin",
     "ClientLevelMixin",

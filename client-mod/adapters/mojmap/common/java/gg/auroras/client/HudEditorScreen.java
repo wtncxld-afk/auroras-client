@@ -4,6 +4,7 @@ package gg.auroras.client;
 // centre/edges and other elements (hold Alt to place freely), right-click to reset one element. Outlines only exist on
 // this screen, so they never show during normal play. The toolbar and hint use the shared Auroras UI kit. Uses the same Hud/HudKit maths as the launcher's HUD editor.
 
+import gg.auroras.client.platform.Mc;
 import gg.auroras.client.platform.AScreen;
 import gg.auroras.client.platform.Gfx;
 import gg.auroras.client.platform.Keys;
@@ -92,5 +93,5 @@ public class HudEditorScreen extends AScreen {
             presetIdx = (presetIdx + 1) % names.size(); HudKit.applyLayout(AurorasClient.PM, all.get(names.get(presetIdx))); }
         catch (Exception ex) { System.out.println("[Auroras] couldn't load layouts: " + ex.getMessage()); }
     }
-    @Override public void onClose() { AurorasClient.save(); Minecraft.getInstance().setScreen(parent); }
+    @Override public void onClose() { AurorasClient.save(); Mc.setScreen(Minecraft.getInstance(), parent); }
 }

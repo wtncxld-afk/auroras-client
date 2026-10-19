@@ -4,6 +4,7 @@ package gg.auroras.client.mixin;
 // defaultRequire 0): if a name differs in some version, that one feature stays off and the game still starts.
 // CPS counting (mouse presses with no screen open), scroll-to-zoom, and mouse look for freelook and zoom sensitivity.
 
+import gg.auroras.client.platform.Mc;
 import com.mojang.blaze3d.platform.InputConstants;
 import gg.auroras.client.AurorasModules;
 import gg.auroras.client.HudRendererAccess;
@@ -25,11 +26,11 @@ public abstract class MouseHandlerMixin {
     @Inject(method = "onButton(JLnet/minecraft/client/input/MouseButtonInfo;I)V", at = @At("HEAD"))
     private void auroras$click(long window, MouseButtonInfo info, int action, CallbackInfo ci) {
         Minecraft mc = Minecraft.getInstance();
-        if (action == InputConstants.PRESS && mc.screen == null && mc.isWindowActive()) HudRendererAccess.click(info.button());
+        if (action == InputConstants.PRESS && Mc.screen(mc) == null && mc.isWindowActive()) HudRendererAccess.click(info.button());
     }
     @Inject(method = "onScroll(JDD)V", at = @At("HEAD"), cancellable = true)
     private void auroras$scroll(long window, double horizontal, double vertical, CallbackInfo ci) {
-        if (Minecraft.getInstance().screen == null && AurorasModules.scroll(vertical)) ci.cancel();
+        if (Mc.screen(Minecraft.getInstance()) == null && AurorasModules.scroll(vertical)) ci.cancel();
     }
     @Redirect(method = "turnPlayer", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/player/LocalPlayer;turn(DD)V"))
     private void auroras$look(LocalPlayer player, double dx, double dy) {

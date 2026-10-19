@@ -33,4 +33,5 @@ jobs:
         working-directory: client-mod/adapters/mojmap
         run: |
           classes=$(grep -v '^#' ../../../ci/javap-classes.txt | grep . | paste -sd, -)
-          gradle mcJavap --no-daemon -q -Ptarget=${{ matrix.target }} "-PjavapClasses=$classes"
+          code=$(grep -v '^#' ../../../ci/javap-code.txt | grep . | paste -sd, -)
+          gradle mcJavap --no-daemon -q -Ptarget=${{ matrix.target }} "-PjavapClasses=$classes" "-PjavapCode=$code"

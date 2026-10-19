@@ -5,6 +5,7 @@ package gg.auroras.client;
 // limits lives in core ModuleMenu and is unit-tested there; this screen draws what it returns and forwards input.
 // Keyboard: Tab / Shift+Tab move focus, arrows change the focused control, Enter toggles or opens, Esc goes back.
 
+import gg.auroras.client.platform.Mc;
 import gg.auroras.client.platform.AScreen;
 import gg.auroras.client.platform.Gfx;
 import gg.auroras.client.platform.Keys;
@@ -137,7 +138,7 @@ public class ModuleScreen extends AScreen {
     // ---- input ----
     @Override protected boolean click(double mx, double my, int button) {
         searching = L.search().contains(mx, my); if (searching) { focus = 0; caretT0 = System.nanoTime(); return true; }
-        if (L.hudBtn().contains(mx, my)) { minecraft.setScreen(new HudEditorScreen(this)); return true; }
+        if (L.hudBtn().contains(mx, my)) { Mc.setScreen(minecraft, new HudEditorScreen(this)); return true; }
         for (int k = 0; k < L.cats().size(); k++) if (L.catRects().get(k).contains(mx, my)) { menu.back(); menu.setCategory(L.cats().get(k)); lastCategory = menu.category; contentAnim = 0; focus = 2 + k; return true; }
         if (!L.body().contains(mx, my)) return false;
         if (menu.open == null) {
@@ -149,7 +150,7 @@ public class ModuleScreen extends AScreen {
         }
         if (L.back() != null && L.back().contains(mx, my + menu.scroll)) { if (parent != null && ModuleMenu.CLIENT.id().equals(menu.open)) { closeScreen(); return true; } menu.back(); contentAnim = 0; return true; }
         if (L.headSwitch().contains(mx, my + menu.scroll)) { menu.toggle(menu.open); AurorasClient.save(); return true; }
-        if (L.hudLink() != null && L.hudLink().contains(mx, my)) { minecraft.setScreen(new HudEditorScreen(this)); return true; }
+        if (L.hudLink() != null && L.hudLink().contains(mx, my)) { Mc.setScreen(minecraft, new HudEditorScreen(this)); return true; }
         for (ModuleMenu.Row r : L.rows()) {
             if (!r.r().contains(mx, my)) continue; Config.SettingDef d = r.d();
             if (button == 1) { menu.reset(d); return true; } // right click resets
@@ -185,7 +186,7 @@ public class ModuleScreen extends AScreen {
         if (key == Keys.TAB) { focus = UiKit.nextFocus(focus, n, shift() ? -1 : 1); searching = focus == 0; revealFocus(); return true; }
         int cats = L.cats().size(), first = 2 + cats;
         if (focus >= 2 && focus < first && (key == Keys.ENTER || key == Keys.SPACE)) { menu.back(); menu.setCategory(L.cats().get(focus - 2)); lastCategory = menu.category; return true; }
-        if (focus == 1 && (key == Keys.ENTER || key == Keys.SPACE)) { minecraft.setScreen(new HudEditorScreen(this)); return true; }
+        if (focus == 1 && (key == Keys.ENTER || key == Keys.SPACE)) { Mc.setScreen(minecraft, new HudEditorScreen(this)); return true; }
         if (menu.open == null && focus >= first && focus - first < L.cards().size()) {
             Config.Module m = L.cards().get(focus - first).m();
             if (key == Keys.SPACE) { menu.toggle(m.id()); AurorasClient.save(); return true; }
@@ -211,5 +212,5 @@ public class ModuleScreen extends AScreen {
         if (r != null) menu.scroll = UiKit.clampScroll(UiKit.scrollTo(menu.scroll, (int) (r.y() - L.body().y() + menu.scroll), r.h(), L.body().h()), L.content(), L.body().h());
     }
     @Override protected void onClosing() { AurorasClient.save(); }
-    @Override public void onClose() { AurorasClient.save(); if (parent != null) minecraft.setScreen(parent); else super.onClose(); }
+    @Override public void onClose() { AurorasClient.save(); if (parent != null) Mc.setScreen(minecraft, parent); else super.onClose(); }
 }

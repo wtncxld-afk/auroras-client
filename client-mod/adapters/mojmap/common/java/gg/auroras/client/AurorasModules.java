@@ -8,6 +8,7 @@ package gg.auroras.client;
 // Performance: settings are parsed only when the profile revision changes; every hook starts with a boolean check, so a
 // disabled module costs one field read; nothing allocates per frame except particles the player asked for.
 
+import gg.auroras.client.platform.Mc;
 import gg.auroras.client.platform.Gfx;
 import gg.auroras.client.platform.Platform;
 import gg.auroras.core.*;
@@ -99,19 +100,19 @@ public final class AurorasModules {
             if (FREELOOK.active && beforeFreelook != null) mc.options.setCameraType(beforeFreelook); FREELOOK.active = false; beforeFreelook = null;
             if (sprintApplied) { mc.options.keySprint.setDown(false); sprintApplied = false; } if (sneakApplied) { mc.options.keyShift.setDown(false); sneakApplied = false; } status = null; return;
         }
-        while (coordsKey.consumeClick()) if (mc.screen == null && AurorasClient.PM.enabled("coords")) coordsHidden = !coordsHidden;
+        while (coordsKey.consumeClick()) if (Mc.screen(mc) == null && AurorasClient.PM.enabled("coords")) coordsHidden = !coordsHidden;
         // zoom eases every frame in fov(), so it glides at any frame rate
         // toggle sprint: hold Minecraft's own sprint key for the player, so the game's rules (hunger, sneaking, blindness) still decide
         boolean forward = mc.player.input != null && mc.player.input.keyPresses.forward();
         boolean sprint = sprintOn && SPRINT.update(sprintKey.isDown(), forward, mc.player.isShiftKeyDown(), mc.player.getFoodData().getFoodLevel() > 6 || mc.player.getAbilities().mayfly);
         if (sprint) { mc.options.keySprint.setDown(true); sprintApplied = true; } else if (sprintApplied) { mc.options.keySprint.setDown(false); sprintApplied = false; }
         while (sneakKey.consumeClick()) { } // the toggle reads the key's edge itself; drain the press counter so it can't pile up
-        boolean sneak = sneakOn && SNEAK.update(sneakKey.isDown()) && mc.screen == null;
+        boolean sneak = sneakOn && SNEAK.update(sneakKey.isDown()) && Mc.screen(mc) == null;
         if (sneak) { mc.options.keyShift.setDown(true); sneakApplied = true; } else if (sneakApplied) { mc.options.keyShift.setDown(false); sneakApplied = false; }
         status = GameLogic.toggleStatus(sprintOn && sprintStatus, SPRINT.on(), sprint, sneakOn && sneakStatus, SNEAK.on());
         // freelook: a separate camera rotation (CameraMixin) while the player keeps facing forward; shown from behind
-        boolean was = FREELOOK.active, now = freelookOn && mc.screen == null && FREELOOK.key(freelookKey.isDown(), freelookMode, mc.player.getYRot(), mc.player.getXRot());
-        if (!freelookOn || mc.screen != null) FREELOOK.active = false;
+        boolean was = FREELOOK.active, now = freelookOn && Mc.screen(mc) == null && FREELOOK.key(freelookKey.isDown(), freelookMode, mc.player.getYRot(), mc.player.getXRot());
+        if (!freelookOn || Mc.screen(mc) != null) FREELOOK.active = false;
         if (now && !was) { beforeFreelook = mc.options.getCameraType(); if (beforeFreelook.isFirstPerson()) mc.options.setCameraType(CameraType.THIRD_PERSON_BACK); }
         if (!FREELOOK.active && was && beforeFreelook != null) { mc.options.setCameraType(beforeFreelook); beforeFreelook = null; }
         // perspective: a key for the front view, and optionally skipping the front view when cycling with F5
@@ -139,7 +140,7 @@ public final class AurorasModules {
      */
     public static float fov(float fov) {
         long now = System.nanoTime(); double dt = (now - zoomLast) / 1e9; zoomLast = now; Minecraft mc = Minecraft.getInstance();
-        zoom.frame(zoomOn && zoomKey != null && zoomKey.isDown() && mc.screen == null && mc.player != null, dt);
+        zoom.frame(zoomOn && zoomKey != null && zoomKey.isDown() && Mc.screen(mc) == null && mc.player != null, dt);
         return zoom.active() ? (float) (fov * zoom.fovMultiplier()) : fov;
     }
     /** Mouse look (MouseMixin): freelook turns the camera instead of the player; zoom slows the mouse. Returns true when handled. */

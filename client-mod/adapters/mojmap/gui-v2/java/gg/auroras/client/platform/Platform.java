@@ -32,11 +32,11 @@ public final class Platform {
     static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("auroras_client", "main"));
     /** Registers a key mapping with a default given as a GLFW key code (the format the launcher and settings files use). */
     public static KeyMapping key(String name, int glfwKey) {
-        return KeyMappingHelper.registerKeyMapping(new KeyMapping(name, InputConstants.Type.KEYBOARD, glfwKey < 0 ? InputConstants.UNKNOWN.getValue() : Keys.fromGlfw(glfwKey), CATEGORY));
+        return KeyMappingHelper.registerKeyMapping(new KeyMapping(name, Mc.KEYBOARD, glfwKey < 0 ? InputConstants.UNKNOWN.getValue() : Keys.fromGlfw(glfwKey), CATEGORY));
     }
     /** Moves an existing key mapping to a GLFW key code (-1 unbinds) and refreshes Minecraft's key lookup. */
     public static void rebind(KeyMapping k, int glfwKey) {
-        k.setKey(glfwKey < 0 ? InputConstants.UNKNOWN : InputConstants.Type.KEYBOARD.getOrCreate(Keys.fromGlfw(glfwKey))); KeyMapping.resetMapping();
+        k.setKey(glfwKey < 0 ? InputConstants.UNKNOWN : Mc.KEYBOARD.getOrCreate(Keys.fromGlfw(glfwKey))); KeyMapping.resetMapping();
     }
     /** HUD: our layer (before chat), and the crosshair and boss bar wrapped so modules can replace or move them. */
     public static void hud() {

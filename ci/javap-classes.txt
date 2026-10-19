@@ -32,3 +32,5 @@ com.mojang.blaze3d.platform.InputConstants$Type
 com.mojang.blaze3d.platform.Window
 net.fabricmc.fabric.api.client.rendering.v1.hud.HudElement
 net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry
+net.minecraft.client.gui.Hud
+com.mojang.blaze3d.platform.Window

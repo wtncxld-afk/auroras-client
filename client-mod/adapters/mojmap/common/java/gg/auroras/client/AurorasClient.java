@@ -11,6 +11,7 @@ package gg.auroras.client;
 //  - memory and GC are sampled once a second, not every frame
 //  - disabled modules do no work beyond one boolean check
 
+import gg.auroras.client.platform.Mc;
 import gg.auroras.client.platform.Gfx;
 import gg.auroras.client.platform.Platform;
 import gg.auroras.core.*;
@@ -41,7 +42,7 @@ public class AurorasClient implements ClientModInitializer {
     static final Perf.FrameStats BENCH = new Perf.FrameStats(60 * 240);
     static final Perf.GcSampler GC = new Perf.GcSampler();
     static long lastFrameNs, benchUntilNs;
-    static boolean benchRunning;
+    static boolean benchRunning, windowActive = true;
 
 
     @Override public void onInitializeClient() {
@@ -60,16 +61,19 @@ public class AurorasClient implements ClientModInitializer {
         AurorasModules.register();
         AurorasCape.init(DIR); // Custom Capes: only you see it (see AurorasCape)
         ClientTickEvents.END_CLIENT_TICK.register(c -> {
-            while (guiKey.consumeClick()) if (c.screen == null) c.setScreen(new RadialScreen());
-            while (hudEditKey.consumeClick()) c.setScreen(new HudEditorScreen(null));
+            while (guiKey.consumeClick()) if (Mc.screen(c) == null) Mc.setScreen(c, new RadialScreen());
+            while (hudEditKey.consumeClick()) Mc.setScreen(c, new HudEditorScreen(null));
             // the wheel key opens the wheel; pressed again while an emote plays, it stops the emote
-            while (emoteKey.consumeClick()) if (PM.enabled("emotes") && c.screen == null) { if (AurorasEmotes.playing()) AurorasEmotes.cancelAll("cancelled"); else c.setScreen(new EmoteWheelScreen()); }
+            while (emoteKey.consumeClick()) if (PM.enabled("emotes") && Mc.screen(c) == null) { if (AurorasEmotes.playing()) AurorasEmotes.cancelAll("cancelled"); else Mc.setScreen(c, new EmoteWheelScreen()); }
             while (benchKey.consumeClick()) startBenchmark(c);
+            // CPS: clicks made while the game window is in the background never count (checked once a tick, so it
+            // needs no window hook, whose name differs between versions)
+            boolean active = c.isWindowActive(); if (windowActive && !active) HudRendererAccess.focusLost(); windowActive = active;
             AurorasEmotes.tick(c);
             AurorasModules.tick(c);
             AurorasCape.tick(c);
             // bake the radial menu's art in the background for this window size, so Right Shift opens instantly
-            if (c.player != null && c.screen == null) RadialArt.prepare(Gfx.screenW(), Gfx.screenH(), Gfx.guiScale());
+            if (c.player != null && Mc.screen(c) == null) RadialArt.prepare(Gfx.screenW(), Gfx.screenH(), Gfx.guiScale());
         });
         // Per-server and per-world profiles: use the assigned profile while connected, then switch back.
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> client.execute(() -> {
@@ -91,7 +95,7 @@ public class AurorasClient implements ClientModInitializer {
         if (lastFrameNs != 0) { FPS_SMOOTH.frame(now); if (benchRunning) { BENCH.record(now - lastFrameNs); if (now - benchUntilNs >= 0) finishBenchmark(); } }
         lastFrameNs = now; if (dt > 0) HudRenderer.FRAMES.add(dt * 1000);
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || mc.options.hideGui || mc.screen instanceof HudEditorScreen) return;
+        if (mc.player == null || Mc.hudHidden(mc) || Mc.screen(mc) instanceof HudEditorScreen) return;
         AurorasModules.drawTotemOverlay(g);
         HudRenderer.render(g, mc, dt, false, null);
     }
@@ -124,5 +128,5 @@ public class AurorasClient implements ClientModInitializer {
         chat(mc, String.format(Locale.ROOT, "[Auroras] Benchmark: avg %.0f fps, 1%% low %.0f fps, frame %.1f ms. Saved to config/auroras/benchmarks.csv", s.avgFps(), s.onePercentLowFps(), s.avgFrameMs()));
     }
     /** A local chat line (only you see it; nothing is sent to the server). */
-    static void chat(Minecraft mc, String text) { if (mc.player != null) mc.gui.getChat().addMessage(Component.literal(text)); }
+    static void chat(Minecraft mc, String text) { if (mc.player != null) Mc.chat(mc, Component.literal(text)); }
 }

@@ -3,6 +3,7 @@
 //   common/                    Minecraft-facing code written once against Mojang's names
 //   gui-v1/ or gui-v2/         the small layer that differs: 1.21.11 draws through GuiGraphics and GLFW key codes,
 //                              26.x through GuiGraphicsExtractor ("extract render state") and SDL key codes.
+//   versions/<target>/         the few names that change from one release to the next (platform/Mc, the sky-pass mixin)
 plugins {
     id 'net.fabricmc.fabric-loom' version "${loom_version}" apply false
     id 'net.fabricmc.fabric-loom-remap' version "${loom_version}" apply false
@@ -32,7 +33,7 @@ dependencies {
 }
 sourceSets {
     main {
-        java { srcDirs = ['../../core/src/main/java', 'common/java', "${T('platform')}/java"] }
+        java { srcDirs = ['../../core/src/main/java', 'common/java', "${T('platform')}/java", "versions/${project.target}/java"] }
         resources { srcDirs = ['common/resources', "${T('platform')}/resources"] }
     }
 }
@@ -52,7 +53,7 @@ processResources {
 }
 // Show every compiler error at once (javac stops at 100 by default).
 tasks.withType(JavaCompile).configureEach { it.options.compilerArgs += ['-Xmaxerrs', '1000', '-Xmaxwarns', '1000'] }
-// CI aid (.github/workflows/mod-check.yml): prints `javap -p` for the classes in -PjavapClasses=a.B,c.D from this
+// CI aid (.github/workflows/mod-check.yml): prints `javap -p` for the classes in -PjavapClasses=a.B,c.D (and `javap -p -c` for -PjavapCode=...) from this
 // target's compile classpath, so the real Minecraft and Fabric API names can be read in the log.
 tasks.register('mcJavap') {
     doLast {
@@ -61,9 +62,11 @@ tasks.register('mcJavap') {
         def classes = (project.findProperty('javapClasses') ?: '').toString().split(',').collect { it.trim() }.findAll { it }
         String javap = System.getProperty('java.home') + '/bin/javap'
         String cp = jars.collect { it.absolutePath }.join(File.pathSeparator)
-        classes.each { c ->
-            def p = new ProcessBuilder(javap, '-p', '-cp', cp, c.toString()).redirectErrorStream(true).start()
-            println "==== javap ${c}"; println p.inputStream.text; p.waitFor()
+        def code = (project.findProperty('javapCode') ?: '').toString().split(',').collect { it.trim() }.findAll { it }
+        (classes.collect { [it, false] } + code.collect { [it, true] }).each { pair -> String c = pair[0]; boolean withCode = pair[1]
+            List<String> args = [javap, '-p'] + (withCode ? ['-c'] : []) + ['-cp', cp, c.toString()]
+            def p = new ProcessBuilder(args).redirectErrorStream(true).start()
+            println "==== javap${withCode ? ' -c' : ''} ${c}"; println p.inputStream.text; p.waitFor()
         }
     }
 }

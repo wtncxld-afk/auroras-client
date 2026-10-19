@@ -8,6 +8,7 @@ package gg.auroras.client;
 // Mouse: point to highlight, click a section. Keyboard: arrows or Tab move round the ring, Enter opens, 1 to 5 jump,
 // Esc or the menu key closes. Clicking your face opens the full module list.
 
+import gg.auroras.client.platform.Mc;
 import com.mojang.blaze3d.platform.NativeImage;
 import gg.auroras.client.platform.AScreen;
 import gg.auroras.client.platform.Gfx;
@@ -43,7 +44,7 @@ public class RadialScreen extends AScreen {
         double px = mx * gs, py = my * gs;
         if (!keyboard) hovered = m.hit(px, py);
         m.update(dt, hovered, reduced());
-        if (m.done()) { Runnable r = after; after = null; if (r != null) r.run(); else minecraft.setScreen(null); return; }
+        if (m.done()) { Runnable r = after; after = null; if (r != null) r.run(); else Mc.setScreen(minecraft, null); return; }
 
         g.push(); g.scale((float) (1 / gs)); // from here on: real screen pixels
         double open = m.hubProgress();
@@ -91,16 +92,16 @@ public class RadialScreen extends AScreen {
         if (k < 0) return; RadialMenu.Petal p = RadialMenu.PETALS.get(k); m.close(k);
         after = () -> {
             switch (p.id()) {
-                case "hud" -> minecraft.setScreen(new HudEditorScreen(new RadialScreen()));
-                case "settings" -> minecraft.setScreen(ModuleScreen.settings(new RadialScreen()));
-                default -> minecraft.setScreen(ModuleScreen.section(p.label(), p.categories(), new RadialScreen()));
+                case "hud" -> Mc.setScreen(minecraft, new HudEditorScreen(new RadialScreen()));
+                case "settings" -> Mc.setScreen(minecraft, ModuleScreen.settings(new RadialScreen()));
+                default -> Mc.setScreen(minecraft, ModuleScreen.section(p.label(), p.categories(), new RadialScreen()));
             }
         };
     }
     @Override protected boolean click(double x, double y, int button) {
         keyboard = false; double px = x * gs, py = y * gs; int k = m.hit(px, py);
         if (button == 0 && k >= 0) { pressedOn = k; m.press(k); return true; }
-        if (button == 0 && m.onHub(px, py)) { m.close(-1); after = () -> minecraft.setScreen(ModuleScreen.section("All modules", null, new RadialScreen())); return true; }
+        if (button == 0 && m.onHub(px, py)) { m.close(-1); after = () -> Mc.setScreen(minecraft, ModuleScreen.section("All modules", null, new RadialScreen())); return true; }
         return true;
     }
     @Override protected boolean release(double x, double y, int button) {
