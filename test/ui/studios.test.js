@@ -224,14 +224,40 @@ describe("Cape Studio", () => {
     assert.deepStrictEqual((await lastSet(s.page)).set, { "cape.design": "cosmic" }); assert.strictEqual(await s.page.evaluate(() => JSON.parse(localStorage.getItem("capeDesign"))), "cosmic");
   });
   test("make, import, favorite and export designs; wrong image sizes are refused", async () => {
-    await tap(s.page, s.page.locator("summary", { hasText: "Make a design" })); await s.page.locator("#cg-p").selectOption("stars"); await tap(s.page, s.page.locator("#cg-save")); await s.page.locator("#pd-in").fill("Starry"); await tap(s.page, s.page.locator("[data-ok]")); await wait(s.page, 200);
+    await tap(s.page, s.page.locator('[data-cstab="make"]')); await tap(s.page, s.page.locator("summary", { hasText: "Fill from a pattern" })); await s.page.locator("#cg-p").selectOption("stars"); await tap(s.page, s.page.locator("#cg-save")); await s.page.locator("#pd-in").fill("Starry"); await tap(s.page, s.page.locator("[data-ok]")); await wait(s.page, 200);
     assert.ok((await s.page.locator("#cs-grid").textContent()).includes("Starry"));
     await s.page.locator("#cs-imp").setInputFiles({ name: "square.png", mimeType: "image/png", buffer: Buffer.from(await pngB64(s.page, 64, 64, "#f00"), "base64") }); await wait(s.page, 200);
     assert.match(await s.page.locator("#cs-err").textContent(), /must be 64x32.*64x64/);
     await s.page.locator("#cs-imp").setInputFiles({ name: "hd.png", mimeType: "image/png", buffer: Buffer.from(await pngB64(s.page, 128, 64, "#0f0"), "base64") }); await wait(s.page, 300);
     assert.ok((await s.page.locator("#cs-grid").textContent()).includes("hd"));
+    await tap(s.page, s.page.locator('[data-cstab="lib"]'));
     await tap(s.page, s.page.locator('[data-cfav="void"]')); assert.strictEqual(await s.page.locator("#cs-grid .capecard").first().textContent().then((t) => t.includes("Endless Void")), true);
     await tap(s.page, s.page.locator("#cs-exp")); assert.ok(await until(s.page, async () => (await calls(s.page, "saveFile")).some((f) => /^cape-.*\.png$/.test(f))));
+  });
+  test("OptiFine capes (46x22 and HD multiples) are converted to the game's 64x32 layout; several files upload at once", async () => {
+    const before = await s.page.evaluate(() => CS.mine.length);
+    await s.page.locator("#cs-imp").setInputFiles([{ name: "of.png", mimeType: "image/png", buffer: Buffer.from(await pngB64(s.page, 46, 22, "#f0f"), "base64") }, { name: "of-hd.png", mimeType: "image/png", buffer: Buffer.from(await pngB64(s.page, 92, 44, "#0ff"), "base64") }]); await wait(s.page, 400);
+    assert.strictEqual(await s.page.evaluate(() => CS.mine.length), before + 2); assert.strictEqual(await s.page.locator("#cs-err").textContent(), "");
+    const sizes = await s.page.evaluate(() => CS.mine.slice(-2).map((d) => [CS.imgCache[d.id].width, CS.imgCache[d.id].height])); assert.deepStrictEqual(sizes, [[64, 32], [128, 64]]);
+  });
+  test("big capes are scaled to 512x256, the largest the game shows", async () => {
+    await s.page.locator("#cs-imp").setInputFiles({ name: "huge.png", mimeType: "image/png", buffer: Buffer.from(await pngB64(s.page, 2048, 1024, "#00f"), "base64") }); await wait(s.page, 500);
+    assert.deepStrictEqual(await s.page.evaluate(() => { const d = CS.mine.at(-1); return [d.name, CS.imgCache[d.id].width, CS.imgCache[d.id].height]; }), ["huge", 512, 256]);
+  });
+  test("editor: painting changes the cape and the 3D preview at once, mirror paints both halves, undo restores", async () => {
+    await tap(s.page, s.page.locator('[data-cd="midnight"]')); await tap(s.page, s.page.locator('[data-cstab="make"]')); await wait(s.page, 150);
+    await s.page.locator("#ce-col").evaluate((el) => { el.value = "#ff0000"; el.dispatchEvent(new Event("input", { bubbles: true })); });
+    await tap(s.page, s.page.locator("#ce-mirror")); const box = await s.page.locator("#ce-cv").boundingBox(), z = box.width / 22;
+    await s.page.mouse.click(box.x + 2.5 * z, box.y + 5.5 * z); await wait(s.page, 80);
+    const px = (x, y) => s.page.evaluate(([x, y]) => [...CE.cv.getContext("2d").getImageData(x, y, 1, 1).data], [x, y]);
+    assert.deepStrictEqual(await px(2, 5), [255, 0, 0, 255]); assert.deepStrictEqual(await px(9, 5), [255, 0, 0, 255], "mirrored across the outside face");
+    assert.ok(await s.page.evaluate(() => CS.previewing && CS.img.data[(5 * 64 + 2) * 4] === 255), "the 3D preview shows the edit");
+    await tap(s.page, s.page.locator('[data-ceact="undo"]')); assert.notDeepStrictEqual(await px(2, 5), [255, 0, 0, 255]);
+    await tap(s.page, s.page.locator("#ce-mirror")); await tap(s.page, s.page.locator('[data-cstab="lib"]'));
+  });
+  test("the library survives a restart", async () => {
+    const names = await s.page.evaluate(() => CS.mine.map((d) => d.name)); await s.page.reload(); await wait(s.page, 300); await nav(s.page, "Capes"); await wait(s.page, 500);
+    assert.deepStrictEqual(await s.page.evaluate(() => CS.mine.map((d) => d.name)), names); assert.ok(names.includes("Starry"));
   });
   test("no script errors", () => assert.deepStrictEqual(s.errors, []));
 });

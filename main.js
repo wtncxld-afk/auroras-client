@@ -2,6 +2,9 @@ const { app, BrowserWindow, ipcMain, shell, net, safeStorage, dialog, nativeImag
 const path = require("path"), fs = require("fs"), crypto = require("crypto"), { spawn } = require("child_process");
 const launcher = require("./launcher"), launchplan = require("./launchplan");
 const modconfig = require("./modconfig");
+const capelib = require("./capelib"), serverlist = require("./serverlist");
+/** The featured server: first in every instance's in-game server list, and the Join button on Home. */
+const FEATURED = { name: "VexVanilla", ip: "vexvanilla.net" };
 const ziputil = require("./ziputil");
 
 // Modrinth asks every app to send a descriptive User-Agent. Add your GitHub URL or contact email here.
@@ -396,6 +399,8 @@ ipcMain.handle("launch", async (e, { inst: I, uuid, face }) => {
     if (String(I.loader) === "Fabric") lastModStatus.set(key, await prepareAuroras(I, gameDir, send));
     // Your face for the in-game Auroras menu (8x8 PNG from your skin, made by the launcher page). Never blocks the launch.
     if (typeof face === "string") try { modconfig.writeFace(path.join(gameDir, "config", "auroras"), face); } catch (x) { console.log("[auroras] face not saved: " + x.message); }
+    // VexVanilla stays first under Multiplayer in game (the rest of the player's list is untouched). Never blocks the launch.
+    try { serverlist.pin(gameDir, FEATURED); } catch (x) { console.log("[auroras] server list not updated: " + x.message); }
     const cmd = await launcher.prepare({
       inst: { id: I.id, mc: String(I.mc), loader: String(I.loader), loaderVersion: I.loaderVersion ? String(I.loaderVersion) : null, memMb: Math.max(512, Math.min(65536, Math.round((+I.mem || 4) * 1024))), args: String(I.args || ""), java: I.java && I.java.mode === "custom" ? { mode: "custom", path: String(I.java.path || "") } : { mode: "auto" }, server: I.server ? String(I.server) : null },
       auth: { name: auth.name, uuid: String(uuid), token: auth.token, xuid: "", clientId: readSettings().msClientId, userType: "msa" } },
@@ -467,6 +472,11 @@ ipcMain.handle("emotes:save", (_e, { id, emote }) => modconfig.saveEmote(cfgDir(
 ipcMain.handle("emotes:delete", (_e, { id, emoteId }) => modconfig.deleteEmote(cfgDir(id), String(emoteId)));
 ipcMain.handle("cape:write", (_e, { id, png }) => modconfig.writeCape(cfgDir(id), png));
 ipcMain.handle("cape:clear", (_e, id) => modconfig.clearCape(cfgDir(id)));
+const capeLibDir = () => path.join(user(), "capes");
+ipcMain.handle("capelib:list", () => capelib.list(capeLibDir()));
+ipcMain.handle("capelib:save", (_e, d) => capelib.save(capeLibDir(), d || {}));
+ipcMain.handle("capelib:rename", (_e, d) => capelib.rename(capeLibDir(), d || {}));
+ipcMain.handle("capelib:delete", (_e, id) => capelib.remove(capeLibDir(), id));
 ipcMain.handle("emotes:wheel", (_e, { id, slots }) => modconfig.saveWheel(cfgDir(id), slots));
 
 function createWindow() {

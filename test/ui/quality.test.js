@@ -77,11 +77,11 @@ describe("content honesty and long names", () => {
       assert.match(await s.page.locator(".side .acct").textContent(), /AVeryLongPlayerName/);
     } finally { await s.close(); }
   });
-  test("no made-up identity, news or status: no account shows 'No account', the server card asks for an address", async () => {
+  test("no made-up identity, news or status: no account shows 'No account', the server card shows VexVanilla's real address and no invented status", async () => {
     const s = await launch();
     try {
       assert.match(await s.page.locator(".side .acct").textContent(), /No account/); assert.doesNotMatch(await s.page.locator(".side").textContent(), /\bPlayer\b/);
-      await nav(s.page, "Home"); await wait(s.page, 300); const t = await s.page.locator("#srv").textContent(); assert.match(t, /Add the server address/); assert.doesNotMatch(t, /\d+ \/ \d+ online|\d+ ms/);
+      await nav(s.page, "Home"); await wait(s.page, 300); const t = await s.page.locator("#srv").textContent(); assert.match(t, /vexvanilla\.net/); assert.ok(await s.page.locator("[data-join]").count()); assert.doesNotMatch(t, /\d+ \/ \d+ online|\d+ ms/);
       assert.match(await s.page.locator(".homegrid").textContent(), /What’s new in 0\.1\.0/);
       await nav(s.page, "Friends"); assert.match(await s.page.locator(".page").textContent(), /isn’t available yet/); assert.match(await s.page.locator('.nav[data-go="friends"]').textContent(), /Unavailable/);
     } finally { await s.close(); }

@@ -112,9 +112,10 @@ describe("home: accounts and Play", () => {
     await s.page.locator("#amodal [data-ok]").click(); await wait(s.page, 250); assert.strictEqual(await s.page.evaluate("AC.list.length"), 1);
     await s.page.reload(); await wait(s.page, 400); assert.strictEqual(await s.page.evaluate("AC.list.length"), 1);
   });
-  test("Microsoft sign-in without an Azure app ID shows the setup steps, checks the ID, then opens the sign-in window", async () => {
+  test("Microsoft sign-in without a built-in app ID says so in one line; the builder can still add the ID, which is checked, then the sign-in window opens", async () => {
     await s.page.locator(".acct-sw").click(); await s.page.locator("[data-newacct]").click(); await s.page.locator("[data-ms]").click(); await wait(s.page, 150);
-    assert.match(await t("#ms-box"), /Set up Microsoft sign-in/); assert.match(await t("#ms-box"), /Mobile and desktop applications/); assert.strictEqual(await s.page.locator("#ms-box #ms-cid").count(), 1);
+    assert.match(await t("#ms-box"), /isn’t switched on/); assert.ok(!(await s.page.locator("#ms-box #ms-cid").isVisible()), "the app ID field stays folded away");
+    await s.page.locator("#ms-box summary").click(); assert.match(await t("#ms-box"), /Mobile and desktop applications/); assert.strictEqual(await s.page.locator("#ms-box #ms-cid").count(), 1);
     await s.page.fill("#ms-cid", "not-an-id"); await s.page.click("#ms-cid-save"); await wait(s.page, 100);
     assert.match(await t("#ms-cid-err"), /doesn’t look like/); assert.strictEqual((await calls(s.page, "setSettings")).filter((o) => "msClientId" in o).length, 0);
     await s.page.evaluate(() => { window.__authDelay = 400; });

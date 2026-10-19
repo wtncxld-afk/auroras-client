@@ -47,5 +47,9 @@ contextBridge.exposeInMainWorld("auroras", {
   emotesWheel: (o) => ir.invoke("emotes:wheel", o),
   capeWrite: (o) => ir.invoke("cape:write", o),
   capeClear: (id) => ir.invoke("cape:clear", id),
+  capeLibList: () => ir.invoke("capelib:list"),
+  capeLibSave: (d) => ir.invoke("capelib:save", d),
+  capeLibRename: (d) => ir.invoke("capelib:rename", d),
+  capeLibDelete: (id) => ir.invoke("capelib:delete", id),
   onProgress: (f) => ir.on("progress", (_e, d) => f(d)),
 });
