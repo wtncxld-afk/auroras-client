@@ -5,7 +5,7 @@ import java.util.List;
 /**
  * The radial Auroras menu (Right Shift): five glass petals around a hub with the player's face and name. Everything
  * about it that isn't drawing lives here and is unit-tested (RadialTests): layout for any screen size, the organic
- * petal outlines, the anti-aliased artwork baked into textures, hit testing by the real outline, and the open, hover,
+ * petal outlines (five identical blossoms, evenly spaced), the anti-aliased artwork baked into textures, hit testing by the real outline, and the open, hover,
  * press and close animations. All sizes are real screen pixels, so the adapter can draw the baked art 1:1.
  */
 public final class RadialMenu {
@@ -24,16 +24,20 @@ public final class RadialMenu {
     public final int w, h; public final float cx, cy, dist, petalR, hubR;
     public RadialMenu(int w, int h) {
         this.w = w; this.h = h; cx = w / 2f; cy = h / 2f;
-        dist = Math.min(w * 0.5f, h) * 0.265f; petalR = dist * 0.6f; hubR = dist * 0.38f;
+        // petals sit on an even ring with the same gap between every neighbour and between each petal and the hub
+        dist = Math.min(w * 0.5f, h) * 0.29f; petalR = dist * 0.5f; hubR = dist * 0.36f;
     }
     public double angle(int k) { return Math.toRadians(-90 + 72 * k); }
 
-    /** The petal's outline radius at an angle (around its own centre): round, a little wider on the outside, gently uneven like the reference. */
+    /**
+     * The petal's outline radius at an angle (around its own centre). Every petal is the same blossom turned to face
+     * outward: round, fuller on the outside and slightly narrower toward the hub, mirror-symmetric about its own axis.
+     */
     public Raster.Shape shape(int k, float scale) {
-        double dir = angle(k), p2 = 1.3 + k * 2.1, p3 = 0.4 + k * 1.7, r = petalR * scale;
-        return a -> r * (1 + 0.10 * Math.cos(a - dir) + 0.06 * Math.sin(2 * a + p2) + 0.045 * Math.sin(3 * a + p3));
+        double dir = angle(k), r = petalR * scale;
+        return a -> r * (1 + 0.09 * Math.cos(a - dir) - 0.035 * Math.cos(2 * (a - dir)));
     }
-    static final float MAX_SHAPE = 1.0f + 0.10f + 0.06f + 0.045f;
+    static final float MAX_SHAPE = 1.0f + 0.09f;
     public static final float HOVER = 1.06f;
     /** Side of a petal texture (room for the hover size and the glow). */
     public int side() { return 2 * (int) Math.ceil(petalR * HOVER * MAX_SHAPE + glow() + 2); }
@@ -64,15 +68,31 @@ public final class RadialMenu {
         int n = OUTLINE; float[] xs = new float[n], ys = new float[n]; float g = glow(), t = stroke();
         float[] base = cov(s, cx, cy, shape, 0, xs, ys), inner = cov(s, cx, cy, shape, -t, xs, ys);
         float[] g1 = cov(s, cx, cy, shape, g * 0.3f, xs, ys), g2 = cov(s, cx, cy, shape, g * 0.6f, xs, ys), g3 = cov(s, cx, cy, shape, g, xs, ys), in2 = cov(s, cx, cy, shape, -t - g * 0.5f, xs, ys);
-        Raster.over(img, minus(g3, g2), 0xFFFFFF, 0.05f + 0.04f * lift);
-        Raster.over(img, minus(g2, g1), 0xFFFFFF, 0.12f + 0.08f * lift);
-        Raster.over(img, minus(g1, base), 0xFFFFFF, 0.26f + 0.14f * lift);
-        Raster.over(img, base, 0xE9F2FF, 0.24f + 0.10f * lift);
-        Raster.over(img, minus(inner, in2), 0xFFFFFF, 0.14f + 0.06f * lift);
-        Raster.over(img, minus(base, inner), 0xFFFFFF, 0.86f + 0.12f * lift);
+        int glowRgb = lerpRgb(0xFFFFFF, ACCENT, lift);
+        Raster.over(img, minus(g3, g2), glowRgb, 0.05f + 0.07f * lift);
+        Raster.over(img, minus(g2, g1), glowRgb, 0.12f + 0.12f * lift);
+        Raster.over(img, minus(g1, base), glowRgb, 0.26f + 0.18f * lift);
+        // frosted body: a deep tint so white labels read over any world, lit from the top like glass
+        Raster.over(img, base, 0x1A2333, 0.34f);
+        Raster.over(img, mul(base, topLight(s, cy, shape)), 0xE9F2FF, 0.22f + 0.10f * lift);
+        Raster.over(img, base, ACCENT, 0.10f * lift);
+        Raster.over(img, minus(inner, in2), 0xFFFFFF, 0.12f + 0.06f * lift);
+        Raster.over(img, minus(base, inner), lerpRgb(0xFFFFFF, 0xDFF4FF, lift), 0.80f + 0.18f * lift);
     }
     static float[] cov(int s, float cx, float cy, Raster.Shape shape, float grow, float[] xs, float[] ys) {
         Raster.star(shape, cx, cy, grow, xs.length, xs, ys); float[] c = new float[s * s]; Raster.cover(xs, ys, xs.length, 0, 0, s, s, 1, c); return c;
+    }
+    static final int ACCENT = 0x8FD3FF;
+    /** Vertical light across the shape: 1 at its top, 0 just past its middle (the glass sheen). */
+    static float[] topLight(int s, float cy, Raster.Shape shape) {
+        float top = (float) (cy - shape.radius(-Math.PI / 2)), span = (float) (shape.radius(-Math.PI / 2) * 1.2); float[] o = new float[s * s];
+        for (int y = 0; y < s; y++) { float v = Math.max(0, Math.min(1, 1 - (y - top) / span)); v = v * v * (3 - 2 * v); for (int x = 0; x < s; x++) o[y * s + x] = v; }
+        return o;
+    }
+    static float[] mul(float[] a, float[] b) { float[] o = new float[a.length]; for (int i = 0; i < a.length; i++) o[i] = a[i] * b[i]; return o; }
+    static int lerpRgb(int a, int b, float t) {
+        int r = Math.round(((a >> 16) & 255) + (((b >> 16) & 255) - ((a >> 16) & 255)) * t), g = Math.round(((a >> 8) & 255) + (((b >> 8) & 255) - ((a >> 8) & 255)) * t), bl = Math.round((a & 255) + ((b & 255) - (a & 255)) * t);
+        return r << 16 | g << 8 | bl;
     }
     static float[] minus(float[] a, float[] b) { float[] o = new float[a.length]; for (int i = 0; i < a.length; i++) o[i] = Math.max(0, a[i] - b[i]); return o; }
 

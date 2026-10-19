@@ -20,6 +20,9 @@ public class GuiPreview {
         BufferedImage bg = ImageIO.read(new File(a[0])); File out = new File(a[1]); out.mkdirs();
         int W = a.length > 2 ? Integer.parseInt(a[2]) : 1920, H = a.length > 3 ? Integer.parseInt(a[3]) : 1080; Gfx.GS = a.length > 4 ? Double.parseDouble(a[4]) : 3;
         try (var in = GuiPreview.class.getResourceAsStream("/assets/auroras_client/textures/gui/logo.png")) { if (in != null) Gfx.LOGO = ImageIO.read(in); }
+        String skin = System.getenv("AURORAS_SKIN"); // optional 64x64 skin: its face shows in the profile card
+        if (skin != null) { BufferedImage sk = ImageIO.read(new File(skin)); int[] face = new int[64]; for (int y = 0; y < 8; y++) for (int x = 0; x < 8; x++) { int hat = sk.getRGB(40 + x, 8 + y); face[y * 8 + x] = (hat >>> 24) > 128 ? hat : sk.getRGB(8 + x, 8 + y); }
+            net.minecraft.resources.Identifier fid = net.minecraft.resources.Identifier.fromNamespaceAndPath("auroras_client", "radial/face"); gg.auroras.client.platform.Platform.texture(fid, face, 8, 8); gg.auroras.client.ui.Glass.face = fid; gg.auroras.client.ui.Glass.player = "cxld"; }
         for (String id : List.of("sky", "keystrokes", "fps", "zoom", "cape", "particlefx")) if (AurorasClient.REG.get(id) != null && AurorasClient.REG.get(id).available()) AurorasClient.PM.setEnabled(id, true);
         shot(bg, W, H, ModuleScreen.section("Visuals", RadialMenu.PETALS.get(1).categories(), null), null, "visuals", out);
         shot(bg, W, H, ModuleScreen.section("HUD", RadialMenu.PETALS.get(0).categories(), null), null, "hud", out);

@@ -66,6 +66,16 @@ public class UiTests {
         mm.openSettings("sky"); ModuleMenu.Layout lsky = mm.layout(320, 240);
         check("settings: long modules scroll, controls stay inside the panel", lsky.content() > lsky.body().h() && lsky.rows().stream().allMatch(r -> r.ctl().right() <= lsky.body().right() && r.ctl().x() >= lsky.body().x()));
         check("menu: keyboard focus order covers search, categories and rows", mm.focusCount(lsky) == 2 + lsky.cats().size() + lsky.rows().size() + 1 && UiKit.nextFocus(-1, 5, 1) == 0 && UiKit.nextFocus(4, 5, 1) == 0 && UiKit.nextFocus(0, 5, -1) == 4);
+        // smooth shapes (UiArt)
+        int[] dk = UiArt.disk(12); int dc = dk[12 * 24 + 12] >>> 24, dcorner = dk[0] >>> 24, dedge = dk[12 * 24] >>> 24;
+        check("art: a disk is solid inside, clear in the corners, and its edge is anti-aliased", dc == 255 && dcorner == 0 && dedge > 0 && dedge < 255, dc, dcorner, dedge);
+        int[] rg = UiArt.ring(12, 1.5); check("art: a ring is clear in the middle with a solid outline", (rg[12 * 24 + 12] >>> 24) == 0 && (rg[12 * 24] >>> 24) > 200);
+        int[] sh = UiArt.shadow(8, 10); int ss = 36; boolean fades = true; for (int x = 18; x < 35; x++) fades &= (sh[18 * ss + x] >>> 24) >= (sh[18 * ss + x + 1] >>> 24);
+        check("art: a shadow is opaque at the centre and fades out steadily to clear", (sh[18 * ss + 18] >>> 24) == 255 && (sh[18 * ss + 35] >>> 24) < 8 && fades);
+        int[] rp = UiArt.ramp(16); check("art: a ramp runs from opaque to clear", (rp[0] >>> 24) > 240 && (rp[15] >>> 24) < 16 && (rp[0] & 0xFFFFFF) == 0xFFFFFF);
+        float[] half = new float[128 * 128]; for (int y = 0; y < 128; y++) for (int x = 0; x < 64; x++) half[y * 128 + x] = 1;
+        int[] ic = UiArt.icon(half, 128, 128, 15); int mid = ic[7 * 15 + 7] >>> 24;
+        check("art: icons shrink by area averaging (a half-covered pixel comes out half opaque)", (ic[7 * 15] >>> 24) == 255 && (ic[7 * 15 + 14] >>> 24) == 0 && mid > 100 && mid < 155, mid);
         System.out.println("\n" + pass + " passed, " + fail + " failed"); if (fail > 0) System.exit(1);
     }
     static boolean mono(UiTokens t) { double p = -1; for (int k = 0; k <= 50; k++) { double v = t.easeAt(k / 50.0); if (v < p - 1e-9) return false; p = v; } return true; }

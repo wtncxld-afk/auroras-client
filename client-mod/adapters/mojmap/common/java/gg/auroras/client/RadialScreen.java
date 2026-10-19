@@ -170,10 +170,11 @@ public class RadialScreen extends AScreen {
         static boolean ready() { return ready; }
         static String name() { Minecraft mc = Minecraft.getInstance(); return mc.player != null ? mc.player.getName().getString() : mc.getUser().getName(); }
         static void refresh() {
+            try { gg.auroras.client.ui.Glass.player = name(); } catch (Exception ignored) {}
             Path f = AurorasClient.DIR.resolve("face.png"); long s;
             try { s = Files.exists(f) ? Files.getLastModifiedTime(f).toMillis() : 0; } catch (Exception e) { s = 0; }
             if (s == stamp) return; stamp = s; ready = false; if (s == 0) return;
-            try (InputStream in = Files.newInputStream(f)) { NativeImage img = NativeImage.read(in); if (img.getWidth() != 8 || img.getHeight() != 8) throw new IllegalStateException("face.png must be 8x8"); Platform.texture(ID, img); ready = true; }
+            try (InputStream in = Files.newInputStream(f)) { NativeImage img = NativeImage.read(in); if (img.getWidth() != 8 || img.getHeight() != 8) throw new IllegalStateException("face.png must be 8x8"); Platform.texture(ID, img); ready = true; gg.auroras.client.ui.Glass.face = ID; }
             catch (Exception e) { System.out.println("[Auroras] face not shown: " + e.getMessage()); }
         }
     }

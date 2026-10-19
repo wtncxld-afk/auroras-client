@@ -35,109 +35,101 @@ public final class AUi {
         return (al << 24) | (r << 16) | (g << 8) | bl;
     }
 
-    /** Rounded rectangle with a 1-pixel corner cut (2 at r >= 2), optional 1-pixel border. */
-    public static void box(Gfx c, int x, int y, int w, int h, int fill, int border, int r) {
-        if (w <= 0 || h <= 0) return; r = Math.min(r, Math.min(w, h) / 2);
-        if (r <= 0) { c.fill(x, y, x + w, y + h, fill); if (border != 0) outline(c, x, y, w, h, border); return; }
-        c.fill(x + r, y, x + w - r, y + h, fill); c.fill(x, y + r, x + r, y + h - r, fill); c.fill(x + w - r, y + r, x + w, y + h - r, fill);
-        if (r >= 2) { c.fill(x + 1, y + 1, x + r, y + r, fill); c.fill(x + w - r, y + 1, x + w - 1, y + r, fill); c.fill(x + 1, y + h - r, x + r, y + h - 1, fill); c.fill(x + w - r, y + h - r, x + w - 1, y + h - 1, fill); }
-        if (border != 0) {
-            c.fill(x + r, y, x + w - r, y + 1, border); c.fill(x + r, y + h - 1, x + w - r, y + h, border); c.fill(x, y + r, x + 1, y + h - r, border); c.fill(x + w - 1, y + r, x + w, y + h - r, border);
-            if (r >= 2) { c.fill(x + 1, y + 1, x + 2, y + 2, border); c.fill(x + w - 2, y + 1, x + w - 1, y + 2, border); c.fill(x + 1, y + h - 2, x + 2, y + h - 1, border); c.fill(x + w - 2, y + h - 2, x + w - 1, y + h - 1, border); }
-        }
+    /** Rounded rectangle (smooth corners, radius r x 2 GUI units) with an optional hairline border. */
+    public static void box(Gfx c, double x, double y, double w, double h, int fill, int border, int r) {
+        if (w <= 0 || h <= 0) return; double R = Math.min(r * 2, Math.min(w, h) / 2);
+        Glass.rect(c, x, y, w, h, R, fill); if (border != 0) Glass.outline(c, x, y, w, h, R, border);
     }
-    public static void outline(Gfx c, int x, int y, int w, int h, int col) { c.fill(x, y, x + w, y + 1, col); c.fill(x, y + h - 1, x + w, y + h, col); c.fill(x, y, x + 1, y + h, col); c.fill(x + w - 1, y, x + w, y + h, col); }
-    /** 1-pixel focus ring outside a widget, in the accent color. */
-    public static void focusRing(Gfx c, int x, int y, int w, int h) { box(c, x - 2, y - 2, w + 4, h + 4, 0, tokens().opaque("acc"), 2); }
+    public static void outline(Gfx c, int x, int y, int w, int h, int col) { Glass.outline(c, x, y, w, h, 0.5, col); }
+    /** Focus ring just outside a widget, in the accent color. */
+    public static void focusRing(Gfx c, double x, double y, double w, double h) { Glass.outline(c, x - 2, y - 2, w + 4, h + 4, Math.min(8, (h + 4) / 2), fade(tokens().opaque("acc"), 0.9)); }
 
-    public static void text(Gfx c, String s, int x, int y, int col) { c.text(s, x, y, col, false); }
+    /** UI text size (GUI units) and weight: the Auroras font (Inter), sharp at the screen's real resolution. */
+    public static final double TEXT = 7.5; public static final String W = "medium";
+    /** Text with its top at y (the old Minecraft-font convention: 8 units tall line). */
+    public static void text(Gfx c, String s, double x, double y, int col) { Glass.text(c, W, TEXT, s, x, y + 6.6, col); }
     /** Text cut to maxW with an ellipsis (never overflowing its box). */
-    public static void textFit(Gfx c, String s, int x, int y, int maxW, int col) { c.text(UiKit.ellipsize(s, maxW, Gfx::width), x, y, col, false); }
+    public static void textFit(Gfx c, String s, double x, double y, double maxW, int col) { text(c, Glass.fit(W, TEXT, s, maxW), x, y, col); }
+    public static double width(String s) { return Glass.width(W, TEXT, s); }
 
-    // ---- Icons: 8x8 pixel masks, one stroke weight, drawn in a single color ----
-    static final Map<String, String[]> ICONS = Map.ofEntries(
-        Map.entry("hud", new String[]{"########", "#......#", "#.##...#", "#......#", "#......#", "#...##.#", "#......#", "########"}),
-        Map.entry("user", new String[]{"...##...", "..####..", "..####..", "...##...", "........", ".######.", "########", "########"}),
-        Map.entry("droplet", new String[]{"...#....", "..###...", "..###...", ".#####..", ".#####..", "#######.", ".#####..", "..###..."}),
-        Map.entry("info", new String[]{"..####..", ".#....#.", "#..##..#", "#......#", "#..##..#", "#..##..#", ".#....#.", "..####.."}),
-        Map.entry("sparkles", new String[]{"...#....", "...#....", ".#####..", "...#..#.", "...#.###", "......#.", ".#......", "###....."}),
-        Map.entry("moon", new String[]{"..####..", ".###....", "###.....", "###.....", "###.....", "###....#", ".######.", "..####.."}),
-        Map.entry("totem", new String[]{"..####..", "..#..#..", "..####..", "########", ".######.", "..####..", "..#..#..", "..####.."}),
-        Map.entry("shirt", new String[]{".##..##.", "########", "########", "..####..", "..####..", "..####..", "..####..", "..####.."}),
-        Map.entry("dots", new String[]{"........", ".#...#..", "........", "...#...#", "........", ".#...#..", "........", "...#...#"}),
-        Map.entry("film", new String[]{"########", "#.####.#", "########", "#.#..#.#", "#.#..#.#", "########", "#.####.#", "########"}),
-        Map.entry("star", new String[]{"...##...", "...##...", "########", ".######.", "..####..", ".##..##.", ".#....#.", "........"}),
-        Map.entry("lock", new String[]{"..####..", ".#....#.", ".#....#.", "########", "########", "###..###", "########", "########"}),
-        Map.entry("search", new String[]{".####...", "#....#..", "#....#..", "#....#..", ".####...", ".....#..", "......#.", ".......#"}),
-        Map.entry("check", new String[]{"........", ".......#", "......##", "#....##.", "##..##..", ".####...", "..##....", "........"}),
-        Map.entry("gear", new String[]{"..#..#..", ".######.", "##....##", ".#.##.#.", ".#.##.#.", "##....##", ".######.", "..#..#.."}),
-        Map.entry("reset", new String[]{"#.####..", "##....#.", "###....#", ".......#", ".......#", "#......#", ".#....#.", "..####.."}));
-    public static void icon(Gfx c, String name, int x, int y, int col) {
-        String[] m = ICONS.getOrDefault(name, ICONS.get("gear"));
-        for (int r = 0; r < 8; r++) { String row = m[r]; int run = -1; for (int k = 0; k <= 8; k++) { boolean on = k < 8 && row.charAt(k) == '#'; if (on && run < 0) run = k; if (!on && run >= 0) { c.fill(x + run, y + r, x + k, y + r + 1, col); run = -1; } } }
-    }
+    // ---- Icons: smooth line icons (visuals/icons), drawn at 8 GUI units unless sized ----
+    public static void icon(Gfx c, String name, double x, double y, int col) { Glass.icon(c, name, x, y, 8, col); }
     public static String categoryIcon(String label) {
-        return switch (label) { case "HUD & Overlays" -> "hud"; case "Player" -> "user"; case "Color & Rendering" -> "droplet"; case "Information" -> "info"; case "Cosmetics" -> "sparkles";
+        return switch (label) { case "All" -> "grid"; case "HUD & Overlays" -> "hud"; case "Player" -> "user"; case "Color & Rendering" -> "droplet"; case "Information" -> "info"; case "Cosmetics" -> "sparkles";
             case "World & Sky" -> "moon"; case "Totems" -> "totem"; case "Player Visuals" -> "shirt"; case "Particles & Effects" -> "dots"; case "Animations" -> "film"; default -> "gear"; };
     }
 
-    // ---- Widgets (sizes in GUI pixels) ----
-    public static final int SWITCH_W = 18, SWITCH_H = 10, CONTROL_H = 14, ROW_H = 20;
+    // ---- Widgets (sizes in GUI units; drawn smooth by Glass) ----
+    public static final int SWITCH_W = 22, SWITCH_H = 12, CONTROL_H = 14, ROW_H = 24;
+    static final int WHITE = 0xFFFFFFFF, BLACK = 0xFF000000;
     /** Switch; anim 0..1 is the knob position (animate it with UiKit.approach). */
-    public static void toggle(Gfx c, int x, int y, double anim, boolean hover, boolean enabled) {
-        UiTokens t = tokens(); int track = mix(t.opaque("s3"), t.opaque("acc"), anim);
-        if (!enabled) track = fade(track, 0.45);
-        box(c, x, y, SWITCH_W, SWITCH_H, track, hover && enabled ? t.opaque("lineStrong") : t.opaque("line"), 2);
-        int kx = x + 2 + (int) Math.round(anim * (SWITCH_W - 10)); int knob = mix(t.opaque("mute"), t.opaque("accInk"), anim);
-        box(c, kx, y + 2, 6, 6, enabled ? knob : fade(knob, 0.5), 0, 2);
+    public static void toggle(Gfx c, double x, double y, double anim, boolean hover, boolean enabled) {
+        UiTokens t = tokens(); double a = enabled ? 1 : 0.45;
+        int track = mix(fade(WHITE, hover ? 0.16 : 0.11), t.opaque("acc"), anim);
+        Glass.rect(c, x, y, SWITCH_W, SWITCH_H, SWITCH_H / 2.0, fade(track, a));
+        if (anim > 0.02) Glass.shadow(c, x, y, SWITCH_W, SWITCH_H, SWITCH_H / 2.0, 4, fade(t.opaque("acc"), 0.28 * anim * a));
+        double kx = x + SWITCH_H / 2.0 + anim * (SWITCH_W - SWITCH_H), ky = y + SWITCH_H / 2.0;
+        Glass.circle(c, kx, ky + 0.4, 4.6, fade(BLACK, 0.25 * a));
+        Glass.circle(c, kx, ky, 4.4, fade(mix(0xFFD9DEE8, WHITE, anim), a));
     }
-    public static void slider(Gfx c, int x, int y, int w, double min, double max, double v, boolean hover, boolean focus) {
-        UiTokens t = tokens(); int cy = y + CONTROL_H / 2, kx = UiKit.sliderPos(v, x, w, min, max);
-        c.fill(x, cy - 1, x + w, cy + 1, t.opaque("line")); c.fill(x, cy - 1, kx, cy + 1, t.opaque("acc"));
-        box(c, kx - 3, cy - 3, 7, 7, t.opaque("text"), hover || focus ? t.opaque("acc") : t.opaque("lineStrong"), 2);
-        if (focus) focusRing(c, x, y + 1, w, CONTROL_H - 2);
+    public static void slider(Gfx c, double x, double y, double w, double min, double max, double v, boolean hover, boolean focus) {
+        UiTokens t = tokens(); double cy = y + CONTROL_H / 2.0 - 2, f = max > min ? Math.max(0, Math.min(1, (v - min) / (max - min))) : 0, kx = x + f * w;
+        Glass.rect(c, x, cy - 2, w, 4, 2, fade(WHITE, 0.1));
+        if (kx - x > 0.5) { Glass.rect(c, x, cy - 2, kx - x, 4, 2, t.opaque("acc")); Glass.shadow(c, x, cy - 2, kx - x, 4, 2, 3, fade(t.opaque("acc"), 0.25)); }
+        if (hover || focus) Glass.circle(c, kx, cy, 8, fade(t.opaque("acc"), focus ? 0.28 : 0.18));
+        Glass.circle(c, kx, cy + 0.6, 5.4, fade(BLACK, 0.3)); Glass.circle(c, kx, cy, 5, WHITE);
+        Glass.circle(c, kx, cy, 1.8, t.opaque("acc"));
     }
+    /** Each segment's width for these labels (drawing and hit testing use the same numbers). */
+    public static int[] segWidths(List<String> labels) { int[] ws = new int[labels.size()]; for (int k = 0; k < ws.length; k++) ws[k] = (int) Math.ceil(Glass.width(W, 7, labels.get(k))) + 12; return ws; }
+    public static int segTotal(List<String> labels) { int total = 2; for (int v : segWidths(labels)) total += v; return total; }
     /** Segmented control; returns each segment's width so the screen can hit-test with UiKit.segmentAt. */
-    public static int[] segmented(Gfx c, int x, int y, List<String> labels, int sel, int hover, boolean focus) {
-        UiTokens t = tokens(); int[] ws = new int[labels.size()]; int total = 2;
-        for (int k = 0; k < ws.length; k++) { ws[k] = Gfx.width(labels.get(k)) + 10; total += ws[k]; }
-        box(c, x, y, total, CONTROL_H, t.opaque("bg"), t.opaque("line"), 2); int px = x + 1;
+    public static int[] segmented(Gfx c, double x, double y, List<String> labels, int sel, int hover, boolean focus) {
+        UiTokens t = tokens(); int[] ws = segWidths(labels); int total = segTotal(labels);
+        Glass.rect(c, x, y, total, CONTROL_H, 6, t.argb("bg", 0.6)); Glass.outline(c, x, y, total, CONTROL_H, 6, fade(WHITE, 0.07)); double px = x + 1;
         for (int k = 0; k < ws.length; k++) {
-            if (k == sel) box(c, px, y + 1, ws[k], CONTROL_H - 2, t.opaque("s2"), t.opaque("lineStrong"), 2); else if (k == hover) box(c, px, y + 1, ws[k], CONTROL_H - 2, t.argb("s2", 0.6), 0, 2);
-            text(c, labels.get(k), px + 5, y + 3, k == sel ? t.opaque("text") : t.opaque("mute")); px += ws[k];
+            if (k == sel) { Glass.rect(c, px, y + 1, ws[k], CONTROL_H - 2, 5, mix(t.opaque("s3"), t.opaque("acc"), 0.22)); Glass.outline(c, px, y + 1, ws[k], CONTROL_H - 2, 5, fade(t.opaque("acc"), 0.45)); }
+            else if (k == hover) Glass.rect(c, px, y + 1, ws[k], CONTROL_H - 2, 5, fade(WHITE, 0.05));
+            Glass.labelCentred(c, W, 7, labels.get(k), px + ws[k] / 2.0, y + CONTROL_H / 2.0, k == sel ? t.opaque("text") : t.opaque("mute")); px += ws[k];
         }
         if (focus) focusRing(c, x, y, total, CONTROL_H);
         return ws;
     }
     /** Dropdown-style field: value with a chevron; click or arrow keys cycle through options. */
-    public static void dropdown(Gfx c, int x, int y, int w, String value, boolean hover, boolean focus) {
-        UiTokens t = tokens(); box(c, x, y, w, CONTROL_H, t.opaque("bg"), hover ? t.opaque("mute") : t.opaque("line"), 2);
-        textFit(c, value, x + 5, y + 3, w - 16, t.opaque("text"));
-        int ax = x + w - 9, ay = y + 6; c.fill(ax, ay, ax + 5, ay + 1, t.opaque("mute")); c.fill(ax + 1, ay + 1, ax + 4, ay + 2, t.opaque("mute")); c.fill(ax + 2, ay + 2, ax + 3, ay + 3, t.opaque("mute"));
+    public static void dropdown(Gfx c, double x, double y, double w, String value, boolean hover, boolean focus) {
+        UiTokens t = tokens(); Glass.rect(c, x, y, w, CONTROL_H, 6, t.argb("bg", 0.6)); Glass.outline(c, x, y, w, CONTROL_H, 6, fade(WHITE, hover ? 0.18 : 0.08));
+        Glass.label(c, W, 7.5, value, x + 7, y + CONTROL_H / 2.0, w - 22, t.opaque("text"));
+        Glass.icon(c, "chevron", x + w - 13, y + 3.5, 7, t.opaque("mute"));
         if (focus) focusRing(c, x, y, w, CONTROL_H);
     }
-    public static void swatch(Gfx c, int x, int y, int rgb, boolean hover, boolean focus) {
-        UiTokens t = tokens(); box(c, x, y, CONTROL_H, CONTROL_H, 0xFF000000 | rgb, hover ? t.opaque("mute") : t.opaque("lineStrong"), 2);
-        text(c, String.format("%06X", rgb & 0xFFFFFF), x + CONTROL_H + 4, y + 3, t.opaque("mute"));
+    public static void swatch(Gfx c, double x, double y, int rgb, boolean hover, boolean focus) {
+        UiTokens t = tokens(); Glass.shadow(c, x, y, CONTROL_H, CONTROL_H, 5, 3, fade(0xFF000000 | rgb, 0.35));
+        Glass.rect(c, x, y, CONTROL_H, CONTROL_H, 5, 0xFF000000 | rgb); Glass.outline(c, x, y, CONTROL_H, CONTROL_H, 5, fade(WHITE, hover ? 0.5 : 0.22));
+        Glass.label(c, W, 7, "#" + String.format("%06X", rgb & 0xFFFFFF), x + CONTROL_H + 5, y + CONTROL_H / 2.0, 0, t.opaque("mute"));
         if (focus) focusRing(c, x, y, CONTROL_H, CONTROL_H);
     }
-    public static void button(Gfx c, int x, int y, int w, String label, boolean primary, boolean hover, boolean focus, boolean enabled) {
-        UiTokens t = tokens(); int fill = primary ? t.opaque("acc") : t.opaque("s2"), border = primary ? 0 : hover ? t.opaque("mute") : t.opaque("line");
-        if (primary && hover) fill = mix(fill, 0xFFFFFFFF, 0.08); if (!enabled) fill = fade(fill, 0.45);
-        box(c, x, y, w, CONTROL_H + 2, fill, border, 2);
-        int tw = Gfx.width(label); text(c, label, x + (w - tw) / 2, y + 4, primary ? t.opaque("accInk") : enabled ? t.opaque("text") : t.opaque("faint"));
-        if (focus) focusRing(c, x, y, w, CONTROL_H + 2);
+    public static void button(Gfx c, double x, double y, double w, String label, boolean primary, boolean hover, boolean focus, boolean enabled) { button(c, x, y, w, CONTROL_H + 2, null, label, primary, hover, focus, enabled); }
+    /** Button with an optional icon before the label. */
+    public static void button(Gfx c, double x, double y, double w, double h, String icon, String label, boolean primary, boolean hover, boolean focus, boolean enabled) {
+        UiTokens t = tokens(); double a = enabled ? 1 : 0.45; int acc = t.opaque("acc");
+        if (primary) { Glass.shadow(c, x, y, w, h, 6, 5, fade(acc, (hover ? 0.4 : 0.25) * a)); Glass.rect(c, x, y, w, h, 6, fade(hover ? mix(acc, WHITE, 0.12) : acc, a)); }
+        else { Glass.rect(c, x, y, w, h, 6, fade(mix(t.opaque("s2"), acc, hover ? 0.2 : 0.1), a)); Glass.outline(c, x, y, w, h, 6, fade(acc, (hover ? 0.5 : 0.28) * a)); }
+        int ink = primary ? t.opaque("accInk") : enabled ? mix(t.opaque("text"), acc, 0.35) : t.opaque("faint");
+        double tw = Glass.width("semibold", 7.5, label), iw = icon == null ? 0 : 10, lx = x + (w - tw - iw) / 2;
+        if (icon != null) Glass.icon(c, icon, lx, y + h / 2.0 - 4, 8, ink);
+        Glass.label(c, "semibold", 7.5, label, lx + iw, y + h / 2.0, 0, ink);
+        if (focus) focusRing(c, x, y, w, h);
     }
-    /** Tooltip box near the mouse, wrapped to two lines and kept on screen. */
+    /** Tooltip card near the mouse, wrapped to three lines and kept on screen. */
     public static void tooltip(Gfx c, String s, int mx, int my, int sw, int sh) {
-        if (s == null || s.isEmpty()) return; UiTokens t = tokens(); List<String> lines = UiKit.wrap(s, 180, 3, Gfx::width);
-        int w = 0; for (String l : lines) w = Math.max(w, Gfx.width(l)); w += 10; int h = lines.size() * 10 + 6;
-        int x = Math.min(mx + 10, sw - w - 4), y = Math.min(my + 12, sh - h - 4); if (y < 4) y = 4;
-        box(c, x, y, w, h, t.argb("s3", 0.97), t.opaque("lineStrong"), 2);
-        for (int k = 0; k < lines.size(); k++) text(c, lines.get(k), x + 5, y + 4 + k * 10, t.opaque("text"));
+        if (s == null || s.isEmpty()) return; UiTokens t = tokens(); List<String> lines = UiKit.wrap(s, 170, 3, q -> (int) Math.ceil(Glass.width("medium", 7, q)));
+        double w = 0; for (String l : lines) w = Math.max(w, Glass.width("medium", 7, l)); w += 14; double h = lines.size() * 10 + 8;
+        double x = Math.min(mx + 10, sw - w - 4), y = Math.min(my + 12, sh - h - 4); if (y < 4) y = 4;
+        Glass.shadow(c, x, y + 2, w, h, 6, 8, fade(BLACK, 0.45)); Glass.rect(c, x, y, w, h, 6, t.argb("s3", 0.97)); Glass.outline(c, x, y, w, h, 6, fade(WHITE, 0.1));
+        for (int k = 0; k < lines.size(); k++) Glass.label(c, "medium", 7, lines.get(k), x + 7, y + 9 + k * 10, 0, t.opaque("text"));
     }
-    public static void scrollbar(Gfx c, int x, int y, int h, double offset, int content) {
-        int[] th = UiKit.thumb(offset, content, h, 12); if (th == null) return; UiTokens t = tokens();
-        c.fill(x, y + th[0], x + 2, y + th[0] + th[1], t.opaque("lineStrong"));
+    public static void scrollbar(Gfx c, double x, double y, double h, double offset, int content) {
+        int[] th = UiKit.thumb(offset, content, (int) h, 16); if (th == null) return;
+        Glass.rect(c, x, y + th[0], 3, th[1], 1.5, fade(WHITE, 0.18));
     }
 }

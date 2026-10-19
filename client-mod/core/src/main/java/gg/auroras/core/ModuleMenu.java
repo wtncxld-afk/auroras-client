@@ -23,7 +23,7 @@ public final class ModuleMenu {
     public record Layout(Rect panel, Rect rail, Rect top, Rect search, Rect hudBtn, Rect body, Rect back, List<String> cats, List<Rect> catRects,
                          List<Card> cards, List<Row> rows, Rect headSwitch, Rect hudLink, int content) {}
 
-    public static final int RAIL = 124, TOP = 26, CARD_MIN = 132, CARD_H = 32, GAP = 6, ROW = 22, ROW_SLIDER = 28, PAD = 8, HEAD = 40;
+    public static final int RAIL = 124, TOP = 36, CARD_MIN = 140, CARD_H = 36, GAP = 6, ROW = 24, ROW_SLIDER = 30, PAD = 10, HEAD = 46, CAT_H = 18;
     /** Keys edited elsewhere: the switch in the panel header, and HUD position (the HUD editor's job). */
     static final Set<String> HIDDEN = Set.of("enabled", "anchor", "offX", "offY");
 
@@ -42,26 +42,28 @@ public final class ModuleMenu {
     public List<Config.SettingDef> settings(Config.Module m) { List<Config.SettingDef> o = new ArrayList<>(); for (Config.SettingDef d : m.settings()) if (!HIDDEN.contains(d.key())) o.add(d); return o; }
 
     public Layout layout(int sw, int sh) {
-        int w = Math.min(sw - 16, 460), h = Math.min(sh - 16, 280), x = (sw - w) / 2, y = (sh - h) / 2;
+        int w = Math.min(sw - 16, 480), h = Math.min(sh - 16, 300), x = (sw - w) / 2, y = (sh - h) / 2;
         Rect panel = new Rect(x, y, w, h), rail = new Rect(x, y, RAIL, h), top = new Rect(x + RAIL, y, w - RAIL, TOP);
-        Rect hudBtn = new Rect(top.right() - PAD - 64, y + 6, 64, 15), search = new Rect(top.x() + PAD, y + 6, Math.max(60, hudBtn.x() - top.x() - PAD * 2), 15);
-        Rect body = new Rect(top.x() + PAD, y + TOP + PAD, top.w() - PAD * 2, h - TOP - PAD * 2);
-        List<String> cats = categories(); List<Rect> cr = new ArrayList<>(); int cy = y + 30;
-        for (int k = 0; k < cats.size(); k++) { cr.add(new Rect(x + 6, cy, RAIL - 12, 15)); cy += 16; }
+        // top bar: the page title on the left (drawn by the screen), search and the HUD editor button on the right
+        int titleRoom = Math.min(110, Math.max(0, top.w() - PAD * 2 - 70 - 6 - 120));
+        Rect hudBtn = new Rect(top.right() - PAD - 70, y + 9, 70, 18), search = new Rect(top.x() + PAD + titleRoom, y + 9, Math.max(60, hudBtn.x() - 6 - top.x() - PAD - titleRoom), 18);
+        Rect body = new Rect(top.x() + PAD, y + TOP + 4, top.w() - PAD * 2, h - TOP - 4 - PAD);
+        List<String> cats = categories(); List<Rect> cr = new ArrayList<>(); int cy = y + 40;
+        for (int k = 0; k < cats.size(); k++) { cr.add(new Rect(x + 8, cy, RAIL - 16, CAT_H)); cy += CAT_H + 2; }
         List<Card> cards = new ArrayList<>(); List<Row> rows = new ArrayList<>(); Rect back = null, headSwitch = null, hudLink = null; int content;
         Config.Module m = openModule();
         if (m == null) {
             int cols = UiKit.columns(body.w(), CARD_MIN, GAP), cw = UiKit.cardWidth(body.w(), cols, GAP); List<Config.Module> vis = visible();
             for (int i = 0; i < vis.size(); i++) { int cx = body.x() + (i % cols) * (cw + GAP), cyy = body.y() + (i / cols) * (CARD_H + GAP) - (int) Math.round(scroll);
-                Rect r = new Rect(cx, cyy, cw, CARD_H); cards.add(new Card(vis.get(i), r, new Rect(r.right() - 24, cyy + (CARD_H - 10) / 2, 18, 10))); }
+                Rect r = new Rect(cx, cyy, cw, CARD_H); cards.add(new Card(vis.get(i), r, new Rect(r.right() - 30, cyy + (CARD_H - 12) / 2, 22, 12))); }
             content = vis.isEmpty() ? 0 : ((vis.size() + cols - 1) / cols) * (CARD_H + GAP) - GAP;
         } else {
-            back = new Rect(body.x(), body.y(), 15, 15); headSwitch = new Rect(body.right() - 18, body.y() + 3, 18, 10);
+            back = new Rect(body.x(), body.y() + 2, 18, 18); headSwitch = new Rect(body.right() - 26, body.y() + 6, 22, 12);
             int ry = body.y() + HEAD - (int) Math.round(scroll), ctlW = Math.min(150, body.w() / 2);
             if (HudKit.positionable(m)) { hudLink = new Rect(body.x(), ry, body.w(), ROW); ry += ROW; }
             for (Config.SettingDef d : settings(m)) {
                 int rh = UiKit.controlFor(d) == UiKit.Control.SLIDER ? ROW_SLIDER : ROW; Rect r = new Rect(body.x(), ry, body.w(), rh);
-                Rect ctl = UiKit.controlFor(d) == UiKit.Control.SLIDER ? new Rect(body.x() + 4, ry + 15, body.w() - 8, 10) : new Rect(body.right() - ctlW, ry + 4, ctlW, 14);
+                Rect ctl = UiKit.controlFor(d) == UiKit.Control.SLIDER ? new Rect(body.x() + 10, ry + 17, body.w() - 20, 10) : new Rect(body.right() - 8 - ctlW, ry + 5, ctlW, 14);
                 rows.add(new Row(d, r, ctl)); ry += rh;
             }
             content = HEAD + (hudLink != null ? ROW : 0) + rows.stream().mapToInt(r -> r.r().h()).sum();
@@ -113,7 +115,7 @@ public final class ModuleMenu {
     public static String label(String key) {
         String s = LABELS.get(key); if (s != null) return s; s = key.replaceAll("([A-Z])", " $1").toLowerCase(Locale.ROOT); return Character.toUpperCase(s.charAt(0)) + s.substring(1);
     }
-    private static final Map<String, String> LABELS = Map.ofEntries(Map.entry("bgOpacity", "Background opacity"), Map.entry("offX", "Horizontal offset"), Map.entry("offY", "Vertical offset"), Map.entry("tintStrength", "Tint strength"),
+    private static final Map<String, String> LABELS = Map.ofEntries(Map.entry("bgOpacity", "Background opacity"), Map.entry("guiKey", "Menu key"), Map.entry("quality", "Visual quality"), Map.entry("offX", "Horizontal offset"), Map.entry("offY", "Vertical offset"), Map.entry("tintStrength", "Tint strength"),
             Map.entry("showArt", "Cover art"), Map.entry("showProgress", "Progress bar"), Map.entry("marquee", "Scroll long titles"), Map.entry("skyQuality", "Sky quality"), Map.entry("h24", "24-hour clock"), Map.entry("windowMs", "Window (ms)"),
             Map.entry("scrollAdjust", "Scroll to change zoom"), Map.entry("skipFront", "Skip front view with F5"), Map.entry("hideRain", "Hide rain splashes"), Map.entry("multiplier", "Amount kept"), Map.entry("level", "Brightness"), Map.entry("graphWidth", "Graph width (px)"), Map.entry("showGraph", "Frame graph"), Map.entry("dynamic", "Widen while moving"),
             Map.entry("bgColor", "Background colour"), Map.entry("radius", "Corner radius"), Map.entry("textMode", "Text colour"), Map.entry("chromaSpeed", "Colour speed"),
