@@ -20,5 +20,6 @@ for (const dir of fs.readdirSync(path.join(root, "client-mod", "adapters"))) {
   fs.writeFileSync(gp, fs.readFileSync(gp, "utf8").replace(/^mod_version=.*$/m, "mod_version=" + version));
 }
 // Exposed to later workflow steps.
-if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${version}\nsignin=${id ? "yes" : "no"}\n`);
-console.log("Version " + version + " for " + repo + (id ? ", with Microsoft sign-in" : ", without a shipped Azure app ID"));
+let shipped = id; try { shipped = shipped || JSON.parse(fs.readFileSync(path.join(root, "auth.json"), "utf8")).msClientId; } catch {}
+if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${version}\nsignin=${shipped ? "yes" : "no"}\n`);
+console.log("Version " + version + ", downloads and updates from " + repo + (shipped ? ", with Microsoft sign-in" : ", without a shipped Azure app ID"));

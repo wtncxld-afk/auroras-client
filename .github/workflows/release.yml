@@ -73,7 +73,7 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with: { node-version: 22 }
       - id: stamp
-        run: node scripts/ci-release.js "${{ github.repository }}" "${{ github.run_number }}"
+        run: node scripts/ci-release.js "${{ vars.RELEASES_REPO || github.repository }}" "${{ github.run_number }}"
         env:
           AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
           FRIENDS_URL: ${{ vars.FRIENDS_URL }}
@@ -109,6 +109,19 @@ jobs:
           } > notes.md && cat notes.md
       - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
+          tag_name: v${{ needs.app.outputs.version }}
+          name: Auroras Client ${{ needs.app.outputs.version }}
+          make_latest: true
+          body_path: notes.md
+          files: files/*
+      # Private code, public downloads: with the repository variable RELEASES_REPO (owner/name of a public repo) and the
+      # secret RELEASES_TOKEN (a fine-grained token with Contents: read and write on that repo only), the same release is
+      # also published there, and the launcher looks for updates there (ci-release.js writes it into release.json).
+      - if: ${{ vars.RELEASES_REPO != '' }}
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        with:
+          repository: ${{ vars.RELEASES_REPO }}
+          token: ${{ secrets.RELEASES_TOKEN }}
           tag_name: v${{ needs.app.outputs.version }}
           name: Auroras Client ${{ needs.app.outputs.version }}
           make_latest: true
