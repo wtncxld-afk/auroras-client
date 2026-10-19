@@ -29,12 +29,15 @@ describe("Click sounds and more capes", () => {
     assert.ok(after.every((x) => x[2] === false), "nothing plays while off");
     await tap(s.page, '[data-cfgt="snd.on"]'); await wait(s.page, 50);
   });
-  test("eight new original capes in the library, and a SkinMC link", async () => {
+  test("eight new original capes and the Auroras logo cape in the library, and a SkinMC link", async () => {
     await nav(s.page, "Capes"); await wait(s.page, 300);
     const names = await s.page.locator("#cs-grid .capecard .nm").allTextContents();
     for (const n of ["Ember", "Synthwave", "Frost", "Toxic", "Royal", "Storm", "Checkmate", "Rose"]) assert.ok(names.includes(n), n);
     const lit = await s.page.evaluate(() => ["ember", "rose", "checker"].map((id) => { const c = capeCanvas(id), d = c.getContext("2d").getImageData(1, 1, 10, 16).data; const set = new Set(); for (let i = 0; i < d.length; i += 4) set.add(d[i] + "," + d[i + 1] + "," + d[i + 2]); return set.size; }));
     assert.ok(lit.every((n) => n >= 3), "each design draws a real pattern: " + lit);
+    assert.ok(names.includes("Auroras"), "the Auroras logo cape is in the library");
+    const logo = await s.page.evaluate(async () => { const c = await capeCanvasReady("auroras"), d = c.getContext("2d").getImageData(8 * 3, 8 * 4, 8 * 4, 8 * 6).data; let bright = 0; for (let i = 0; i < d.length; i += 4) if (d[i + 2] > 200 && d[i + 3] > 200) bright++; return { w: c.width, h: c.height, bright }; });
+    assert.ok(logo.w === 512 && logo.h === 256 && logo.bright > 50, "the logo cape is HD with the glowing logo on it: " + JSON.stringify(logo));
     await tap(s.page, "#cs-skinmc"); await wait(s.page, 50); assert.strictEqual((await calls(s.page, "open")).at(-1), "https://www.skinmc.net/capes");
   });
 });

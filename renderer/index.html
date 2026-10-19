@@ -1910,24 +1910,26 @@ window.AURORAS_EMOTES={"schema":1,"note":"Built-in emotes shared by the game (cl
   function texturedBox(tex, x0, y0, z0, w, h, d, u, v, inflate = 0, scale = 1) {
     const out = [], X0 = x0 - inflate, Y0 = y0 - inflate, Z0 = z0 - inflate, X1 = x0 + w + inflate, Y1 = y0 + h + inflate, Z1 = z0 + d + inflate;
     const sx = (X1 - X0) / w, sy = (Y1 - Y0) / h, sz = (Z1 - Z0) / d;
+    // HD textures are drawn with up to 4 sub-squares per texture pixel (e = their size), so a detailed cape keeps its detail
+    const n = Math.max(1, Math.min(4, Math.floor(scale))), e = 1 / n;
     const face = (tu, tv, tw, th, corner) => {
-      for (let j = 0; j < th; j++) for (let i = 0; i < tw; i++) {
-        const tx = Math.floor((tu + i) * scale), ty = Math.floor((tv + j) * scale); if (tx < 0 || ty < 0 || tx >= tex.w || ty >= tex.h) continue;
+      for (let jj = 0; jj < th * n; jj++) for (let ii = 0; ii < tw * n; ii++) {
+        const i = ii * e, j = jj * e, tx = Math.floor((tu + i + e / 2) * scale), ty = Math.floor((tv + j + e / 2) * scale); if (tx < 0 || ty < 0 || tx >= tex.w || ty >= tex.h) continue;
         const [r, g, b, a] = px(tex, tx, ty); if (a < 16) continue; out.push(corner(i, j, (r << 16) | (g << 8) | b, a / 255));
       }
     };
     // front (+z): texel i -> x left to right, j -> y top to bottom
-    face(u + d, v + d, w, h, (i, j, c, a) => quad([X0 + i * sx, Y1 - (j + 1) * sy, Z1, X0 + (i + 1) * sx, Y1 - (j + 1) * sy, Z1, X0 + (i + 1) * sx, Y1 - j * sy, Z1, X0 + i * sx, Y1 - j * sy, Z1], [0, 0, 1], c, a));
+    face(u + d, v + d, w, h, (i, j, c, a) => quad([X0 + i * sx, Y1 - (j + e) * sy, Z1, X0 + (i + e) * sx, Y1 - (j + e) * sy, Z1, X0 + (i + e) * sx, Y1 - j * sy, Z1, X0 + i * sx, Y1 - j * sy, Z1], [0, 0, 1], c, a));
     // back (-z): seen from behind, texel i runs +x -> -x
-    face(u + 2 * d + w, v + d, w, h, (i, j, c, a) => quad([X1 - i * sx, Y1 - (j + 1) * sy, Z0, X1 - (i + 1) * sx, Y1 - (j + 1) * sy, Z0, X1 - (i + 1) * sx, Y1 - j * sy, Z0, X1 - i * sx, Y1 - j * sy, Z0], [0, 0, -1], c, a));
+    face(u + 2 * d + w, v + d, w, h, (i, j, c, a) => quad([X1 - i * sx, Y1 - (j + e) * sy, Z0, X1 - (i + e) * sx, Y1 - (j + e) * sy, Z0, X1 - (i + e) * sx, Y1 - j * sy, Z0, X1 - i * sx, Y1 - j * sy, Z0], [0, 0, -1], c, a));
     // right side (-x): texel i runs back -> front
-    face(u, v + d, d, h, (i, j, c, a) => quad([X0, Y1 - (j + 1) * sy, Z0 + i * sz, X0, Y1 - (j + 1) * sy, Z0 + (i + 1) * sz, X0, Y1 - j * sy, Z0 + (i + 1) * sz, X0, Y1 - j * sy, Z0 + i * sz], [-1, 0, 0], c, a));
+    face(u, v + d, d, h, (i, j, c, a) => quad([X0, Y1 - (j + e) * sy, Z0 + i * sz, X0, Y1 - (j + e) * sy, Z0 + (i + e) * sz, X0, Y1 - j * sy, Z0 + (i + e) * sz, X0, Y1 - j * sy, Z0 + i * sz], [-1, 0, 0], c, a));
     // left side (+x): texel i runs front -> back
-    face(u + d + w, v + d, d, h, (i, j, c, a) => quad([X1, Y1 - (j + 1) * sy, Z1 - i * sz, X1, Y1 - (j + 1) * sy, Z1 - (i + 1) * sz, X1, Y1 - j * sy, Z1 - (i + 1) * sz, X1, Y1 - j * sy, Z1 - i * sz], [1, 0, 0], c, a));
+    face(u + d + w, v + d, d, h, (i, j, c, a) => quad([X1, Y1 - (j + e) * sy, Z1 - i * sz, X1, Y1 - (j + e) * sy, Z1 - (i + e) * sz, X1, Y1 - j * sy, Z1 - (i + e) * sz, X1, Y1 - j * sy, Z1 - i * sz], [1, 0, 0], c, a));
     // top (+y): texel j runs back -> front
-    face(u + d, v, w, d, (i, j, c, a) => quad([X0 + i * sx, Y1, Z0 + (j + 1) * sz, X0 + (i + 1) * sx, Y1, Z0 + (j + 1) * sz, X0 + (i + 1) * sx, Y1, Z0 + j * sz, X0 + i * sx, Y1, Z0 + j * sz], [0, 1, 0], c, a));
+    face(u + d, v, w, d, (i, j, c, a) => quad([X0 + i * sx, Y1, Z0 + (j + e) * sz, X0 + (i + e) * sx, Y1, Z0 + (j + e) * sz, X0 + (i + e) * sx, Y1, Z0 + j * sz, X0 + i * sx, Y1, Z0 + j * sz], [0, 1, 0], c, a));
     // bottom (-y): texel j runs front -> back
-    face(u + d + w, v, w, d, (i, j, c, a) => quad([X0 + i * sx, Y0, Z1 - (j + 1) * sz, X0 + (i + 1) * sx, Y0, Z1 - (j + 1) * sz, X0 + (i + 1) * sx, Y0, Z1 - j * sz, X0 + i * sx, Y0, Z1 - j * sz], [0, -1, 0], c, a));
+    face(u + d + w, v, w, d, (i, j, c, a) => quad([X0 + i * sx, Y0, Z1 - (j + e) * sz, X0 + (i + e) * sx, Y0, Z1 - (j + e) * sz, X0 + (i + e) * sx, Y0, Z1 - j * sz, X0 + i * sx, Y0, Z1 - j * sz], [0, -1, 0], c, a));
     return out;
   }
 
@@ -2401,7 +2403,32 @@ midnight:["Midnight","#0a1230","#4f6fd8","#e8eeff","moon"],void:["Endless Void",
 const CAPE_EXTRA={ember:["Ember","#1a0804","#ff7a1a","#ffd34d","flame"],synth:["Synthwave","#12061f","#ff4fd8","#4fd6ff","grid"],frost:["Frost","#0b1d2a","#bfefff","#ffffff","diamond"],
 toxic:["Toxic","#07140a","#5dff6a","#d4ff4f","drip"],royal:["Royal","#1b0f33","#f2c14e","#fff4cc","crown"],storm:["Storm","#0d1220","#8fb3ff","#fff27a","bolt"],
 checker:["Checkmate","#141414","#e8e8e8","#2a2a2a","checker"],rose:["Rose","#2a0a14","#ff4f7a","#ffd1dc","heart"]};
-const CAPE_PRESET={...CAPE_BUILTIN,...CAPE_EXTRA};
+/* The Auroras cape: the client's logo on a night sky with an aurora, drawn in HD (512x256, the largest size the game
+   shows) so the logo stays crisp. Like CAPE_EXTRA it goes to the game as a PNG. */
+const CAPE_LOGO={auroras:["Auroras","#070b16","#6fe3ff","#b58cff","logo"]};
+const CAPE_PRESET={...CAPE_LOGO,...CAPE_BUILTIN,...CAPE_EXTRA};
+const LOGO_IMG=new Image();LOGO_IMG.src=LOGO;
+LOGO_IMG.onload=()=>{CS.img=null;if(typeof drawCapeGrid==="function"&&$("#cs-grid"))drawCapeGrid()};
+function makeLogoCape(base,a,b){const K=8,c=document.createElement("canvas");c.width=64*K;c.height=32*K;const x=c.getContext("2d"),r=new VX.Rng(77);
+  // sides and top/bottom edges: a deep base with the accent along the edges
+  x.fillStyle=base;x.fillRect(0,0,22*K,17*K);
+  for(const fx of[1,12]){const X=fx*K,Y=K,W=10*K,H=16*K;x.save();x.beginPath();x.rect(X,Y,W,H);x.clip();
+    const g=x.createLinearGradient(0,Y,0,Y+H);g.addColorStop(0,"#13254a");g.addColorStop(.55,"#0a1328");g.addColorStop(1,base);x.fillStyle=g;x.fillRect(X,Y,W,H);
+    // aurora: soft ribbons of light across the top of the cape
+    x.filter="blur(7px)";x.lineCap="round";
+    for(const [col,al,y0,amp,w] of[[a,.5,Y+26,7,14],[b,.42,Y+40,6,10],[a,.25,Y+54,5,8]]){x.strokeStyle=col;x.globalAlpha=al;x.lineWidth=w;x.beginPath();
+      for(let i=0;i<=W;i+=4){const yy=y0+Math.sin(i/W*Math.PI*2+y0)*amp;i?x.lineTo(X+i,yy):x.moveTo(X+i,yy)}x.stroke()}
+    x.filter="none";x.globalAlpha=1;
+    // stars
+    for(let i=0;i<34;i++){const sx=X+r.next()*W,sy=Y+r.next()*H*.9,big=r.next()<.15;x.fillStyle=`rgba(255,255,255,${big?.95:.35+r.next()*.4})`;x.fillRect(Math.round(sx),Math.round(sy),big?2:1,big?2:1)}
+    // the logo, glowing, in the upper middle of the cape
+    if(LOGO_IMG.complete&&LOGO_IMG.naturalWidth){const lw=58,lh=lw*LOGO_IMG.naturalHeight/LOGO_IMG.naturalWidth,lx=X+(W-lw)/2,ly=Y+H*.36-lh/2;
+      x.shadowColor=a;x.shadowBlur=18;x.drawImage(LOGO_IMG,lx,ly,lw,lh);x.shadowBlur=8;x.drawImage(LOGO_IMG,lx,ly,lw,lh);x.shadowBlur=0}
+    // a glowing hem and fine side trim
+    const t=x.createLinearGradient(X,0,X+W,0);t.addColorStop(0,a);t.addColorStop(1,b);x.fillStyle=t;x.fillRect(X,Y+H-5,W,3);
+    x.globalAlpha=.35;x.fillRect(X,Y+H-12,W,1);x.globalAlpha=.5;x.fillStyle=a;x.fillRect(X,Y,2,H);x.fillRect(X+W-2,Y,2,H);x.globalAlpha=1;x.restore()}
+  const e=x.createLinearGradient(0,K,0,17*K);e.addColorStop(0,a);e.addColorStop(1,b);x.fillStyle=e;x.fillRect(0,K,K,16*K);x.fillRect(11*K,K,K,16*K);
+  x.fillStyle="#13254a";x.fillRect(K,0,10*K,K);x.fillRect(11*K,0,10*K,K);return c}
 const CS={yaw:Math.PI*0.82,pitch:0.12,dist:78,walk:true,sneak:false,stride:ls.get("capeStride",0.77),design:ls.get("capeDesign","aurora"),mine:[],fav:ls.get("capeFav",[]),raf:0,drag:null,sim:null,pos:0,phase:0,tick:0,img:null,skin:null,skinKey:"",gen:{base:"#101826",a:"#6fe3ff",b:"#b58cff",pattern:"gradient"}};
 /** Draws a 64x32 cape texture: the pattern fills the cape faces (Cosmetics.CAPE_FACES), so it wraps the box like a real cape file. */
 function makeCape(base,a,b,pattern){const c=document.createElement("canvas");c.width=64;c.height=32;const x=c.getContext("2d");x.fillStyle=base;x.fillRect(0,0,22,17);
@@ -2436,9 +2463,9 @@ const CL={desk:()=>!!(window.auroras&&auroras.capeLibList),
 CS.imgCache={};CS.imgWait={};CS.filter=ls.get("capeFilter","all");CS.tab="lib";
 /** Loads each custom design's image once; when one arrives its thumbnail and (if selected) the preview update. */
 function cacheImages(){for(const d of CS.mine)if(!CS.imgWait[d.id])CS.imgWait[d.id]=new Promise(ok=>{const im=new Image();im.onload=()=>{CS.imgCache[d.id]=im;if(CS.design===d.id)CS.img=null;drawThumb(d.id);ok(im)};im.onerror=()=>ok(null);im.src=d.img})}
-const capeCanvas=id=>{if(CAPE_PRESET[id]){const [,base,a,b,p]=CAPE_PRESET[id];return makeCape(base,a,b,p)}const im=CS.imgCache[id];if(im){const c=document.createElement("canvas");c.width=im.width;c.height=im.height;c.getContext("2d").drawImage(im,0,0);return c}return makeCape("#101826","#6fe3ff","#b58cff","gradient")};
+const capeCanvas=id=>{if(CAPE_PRESET[id]){const [,base,a,b,p]=CAPE_PRESET[id];return p==="logo"?makeLogoCape(base,a,b):makeCape(base,a,b,p)}const im=CS.imgCache[id];if(im){const c=document.createElement("canvas");c.width=im.width;c.height=im.height;c.getContext("2d").drawImage(im,0,0);return c}return makeCape("#101826","#6fe3ff","#b58cff","gradient")};
 /** Same as capeCanvas, but waits for a custom design's image, so nothing ever saves the placeholder by mistake. */
-async function capeCanvasReady(id){if(!CAPE_PRESET[id]&&CS.imgWait[id])await CS.imgWait[id];return capeCanvas(id)}
+async function capeCanvasReady(id){if(!CAPE_PRESET[id]&&CS.imgWait[id])await CS.imgWait[id];if(id in CAPE_LOGO)await LOGO_IMG.decode().catch(()=>{});return capeCanvas(id)}
 const texOf=c=>{const d=c.getContext("2d").getImageData(0,0,c.width,c.height);return{w:c.width,h:c.height,data:d.data}};
 /**
  * Turns any supported cape image into the game's layout: 64x32 and its HD sizes as they are; OptiFine's 46x22 (and

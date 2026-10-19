@@ -30,24 +30,26 @@
   function texturedBox(tex, x0, y0, z0, w, h, d, u, v, inflate = 0, scale = 1) {
     const out = [], X0 = x0 - inflate, Y0 = y0 - inflate, Z0 = z0 - inflate, X1 = x0 + w + inflate, Y1 = y0 + h + inflate, Z1 = z0 + d + inflate;
     const sx = (X1 - X0) / w, sy = (Y1 - Y0) / h, sz = (Z1 - Z0) / d;
+    // HD textures are drawn with up to 4 sub-squares per texture pixel (e = their size), so a detailed cape keeps its detail
+    const n = Math.max(1, Math.min(4, Math.floor(scale))), e = 1 / n;
     const face = (tu, tv, tw, th, corner) => {
-      for (let j = 0; j < th; j++) for (let i = 0; i < tw; i++) {
-        const tx = Math.floor((tu + i) * scale), ty = Math.floor((tv + j) * scale); if (tx < 0 || ty < 0 || tx >= tex.w || ty >= tex.h) continue;
+      for (let jj = 0; jj < th * n; jj++) for (let ii = 0; ii < tw * n; ii++) {
+        const i = ii * e, j = jj * e, tx = Math.floor((tu + i + e / 2) * scale), ty = Math.floor((tv + j + e / 2) * scale); if (tx < 0 || ty < 0 || tx >= tex.w || ty >= tex.h) continue;
         const [r, g, b, a] = px(tex, tx, ty); if (a < 16) continue; out.push(corner(i, j, (r << 16) | (g << 8) | b, a / 255));
       }
     };
     // front (+z): texel i -> x left to right, j -> y top to bottom
-    face(u + d, v + d, w, h, (i, j, c, a) => quad([X0 + i * sx, Y1 - (j + 1) * sy, Z1, X0 + (i + 1) * sx, Y1 - (j + 1) * sy, Z1, X0 + (i + 1) * sx, Y1 - j * sy, Z1, X0 + i * sx, Y1 - j * sy, Z1], [0, 0, 1], c, a));
+    face(u + d, v + d, w, h, (i, j, c, a) => quad([X0 + i * sx, Y1 - (j + e) * sy, Z1, X0 + (i + e) * sx, Y1 - (j + e) * sy, Z1, X0 + (i + e) * sx, Y1 - j * sy, Z1, X0 + i * sx, Y1 - j * sy, Z1], [0, 0, 1], c, a));
     // back (-z): seen from behind, texel i runs +x -> -x
-    face(u + 2 * d + w, v + d, w, h, (i, j, c, a) => quad([X1 - i * sx, Y1 - (j + 1) * sy, Z0, X1 - (i + 1) * sx, Y1 - (j + 1) * sy, Z0, X1 - (i + 1) * sx, Y1 - j * sy, Z0, X1 - i * sx, Y1 - j * sy, Z0], [0, 0, -1], c, a));
+    face(u + 2 * d + w, v + d, w, h, (i, j, c, a) => quad([X1 - i * sx, Y1 - (j + e) * sy, Z0, X1 - (i + e) * sx, Y1 - (j + e) * sy, Z0, X1 - (i + e) * sx, Y1 - j * sy, Z0, X1 - i * sx, Y1 - j * sy, Z0], [0, 0, -1], c, a));
     // right side (-x): texel i runs back -> front
-    face(u, v + d, d, h, (i, j, c, a) => quad([X0, Y1 - (j + 1) * sy, Z0 + i * sz, X0, Y1 - (j + 1) * sy, Z0 + (i + 1) * sz, X0, Y1 - j * sy, Z0 + (i + 1) * sz, X0, Y1 - j * sy, Z0 + i * sz], [-1, 0, 0], c, a));
+    face(u, v + d, d, h, (i, j, c, a) => quad([X0, Y1 - (j + e) * sy, Z0 + i * sz, X0, Y1 - (j + e) * sy, Z0 + (i + e) * sz, X0, Y1 - j * sy, Z0 + (i + e) * sz, X0, Y1 - j * sy, Z0 + i * sz], [-1, 0, 0], c, a));
     // left side (+x): texel i runs front -> back
-    face(u + d + w, v + d, d, h, (i, j, c, a) => quad([X1, Y1 - (j + 1) * sy, Z1 - i * sz, X1, Y1 - (j + 1) * sy, Z1 - (i + 1) * sz, X1, Y1 - j * sy, Z1 - (i + 1) * sz, X1, Y1 - j * sy, Z1 - i * sz], [1, 0, 0], c, a));
+    face(u + d + w, v + d, d, h, (i, j, c, a) => quad([X1, Y1 - (j + e) * sy, Z1 - i * sz, X1, Y1 - (j + e) * sy, Z1 - (i + e) * sz, X1, Y1 - j * sy, Z1 - (i + e) * sz, X1, Y1 - j * sy, Z1 - i * sz], [1, 0, 0], c, a));
     // top (+y): texel j runs back -> front
-    face(u + d, v, w, d, (i, j, c, a) => quad([X0 + i * sx, Y1, Z0 + (j + 1) * sz, X0 + (i + 1) * sx, Y1, Z0 + (j + 1) * sz, X0 + (i + 1) * sx, Y1, Z0 + j * sz, X0 + i * sx, Y1, Z0 + j * sz], [0, 1, 0], c, a));
+    face(u + d, v, w, d, (i, j, c, a) => quad([X0 + i * sx, Y1, Z0 + (j + e) * sz, X0 + (i + e) * sx, Y1, Z0 + (j + e) * sz, X0 + (i + e) * sx, Y1, Z0 + j * sz, X0 + i * sx, Y1, Z0 + j * sz], [0, 1, 0], c, a));
     // bottom (-y): texel j runs front -> back
-    face(u + d + w, v, w, d, (i, j, c, a) => quad([X0 + i * sx, Y0, Z1 - (j + 1) * sz, X0 + (i + 1) * sx, Y0, Z1 - (j + 1) * sz, X0 + (i + 1) * sx, Y0, Z1 - j * sz, X0 + i * sx, Y0, Z1 - j * sz], [0, -1, 0], c, a));
+    face(u + d + w, v, w, d, (i, j, c, a) => quad([X0 + i * sx, Y0, Z1 - (j + e) * sz, X0 + (i + e) * sx, Y0, Z1 - (j + e) * sz, X0 + (i + e) * sx, Y0, Z1 - j * sz, X0 + i * sx, Y0, Z1 - j * sz], [0, -1, 0], c, a));
     return out;
   }
 
