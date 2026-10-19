@@ -73,8 +73,10 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with: { node-version: 22 }
       - id: stamp
-        run: node scripts/ci-release.js "${{ vars.RELEASES_REPO || github.repository }}" "${{ github.run_number }}"
+        run: node scripts/ci-release.js "${{ env.RELEASES_TO }}" "${{ github.run_number }}"
         env:
+          # RELEASES_REPO works as a repository variable or a secret (it's only a repo name either way)
+          RELEASES_TO: ${{ vars.RELEASES_REPO || secrets.RELEASES_REPO || github.repository }}
           AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
           FRIENDS_URL: ${{ vars.FRIENDS_URL }}
       - run: npm install --no-audit --no-fund
@@ -92,6 +94,8 @@ jobs:
     needs: [app, mod]
     if: ${{ always() && needs.app.result == 'success' }}
     runs-on: ubuntu-latest
+    env:
+      RELEASES_TO: ${{ vars.RELEASES_REPO || secrets.RELEASES_REPO }}
     steps:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with: { path: files, merge-multiple: true }
@@ -114,13 +118,13 @@ jobs:
           make_latest: true
           body_path: notes.md
           files: files/*
-      # Private code, public downloads: with the repository variable RELEASES_REPO (owner/name of a public repo) and the
+      # Private code, public downloads: with RELEASES_REPO (a repository variable or secret) (owner/name of a public repo) and the
       # secret RELEASES_TOKEN (a fine-grained token with Contents: read and write on that repo only), the same release is
       # also published there, and the launcher looks for updates there (ci-release.js writes it into release.json).
-      - if: ${{ vars.RELEASES_REPO != '' }}
+      - if: ${{ env.RELEASES_TO != '' }}
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
-          repository: ${{ vars.RELEASES_REPO }}
+          repository: ${{ env.RELEASES_TO }}
           token: ${{ secrets.RELEASES_TOKEN }}
           tag_name: v${{ needs.app.outputs.version }}
           name: Auroras Client ${{ needs.app.outputs.version }}
