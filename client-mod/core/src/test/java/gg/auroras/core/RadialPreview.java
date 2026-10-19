@@ -31,12 +31,15 @@ public class RadialPreview {
             text(bg, atlas, tk, f, lab, m.px(k) - tw / 2, m.py(k) + m.petalR * 0.42 * s, 0xFFFFFF, al);
         }
         int hs = m.hubSide(); blit(bg, m.bakeHub(), hs, m.cx, m.cy, (float) (0.9 + 0.1 * m.hubProgress()), (float) m.hubProgress());
-        // face placeholder (the mod draws the player's real 8x8 face here)
-        int fs = Math.round(m.hubR * 0.62f); fill(bg, (int) (m.cx - fs / 2f), (int) (m.cy - m.hubR * 0.62f), fs, fs, 0xFF2D6CDF);
-        TextKit.Face nf = tk.face("semibold", 9 * gs); String name = "Player"; text(bg, atlas, tk, nf, name, m.cx - tk.width(nf, name, 1) / 2, m.cy + m.hubR * 0.28, 0xFFFFFF, 1);
+        // the 3D head, as RadialScreen draws it (skin from AURORAS_SKIN, a 64x64 skin PNG, or the test skin), looking toward the hovered section
+        int[] skin = RadialTests.testSkin(true); String sp = System.getenv("AURORAS_SKIN");
+        if (sp != null) { BufferedImage si = ImageIO.read(new File(sp)); for (int y = 0; y < 16; y++) for (int x = 0; x < 64; x++) skin[y * 64 + x] = si.getRGB(x, y); }
+        int hsz = Math.round(m.hubR * 1.1f / 2) * 2; double yw = hov < 0 ? 12 : Math.cos(m.angle(hov)) * Head3D.MAX_YAW * 0.8, pt = hov < 0 ? -6 : Math.sin(m.angle(hov)) * Head3D.MAX_PITCH * 0.8;
+        blit(bg, new Head3D(skin).render(hsz, yw, pt), hsz, hsz, m.cx, (float) (m.cy - m.hubR * 0.34), 1, 1);
+        TextKit.Face nf = tk.face("semibold", 9 * gs); String name = "Player"; text(bg, atlas, tk, nf, name, m.cx - tk.width(nf, name, 1) / 2, m.cy + m.hubR * 0.30, 0xFFFFFF, 1);
         TextKit.Face bf = tk.face("semibold", 7 * gs); String badge = "AURORAS"; int bw = (int) Math.ceil(tk.width(bf, badge, 1)) + 7 * gs * 2, bh = 11 * gs;
-        int[] pill = RadialMenu.bakePill(bw, bh, 0x8FD3FF, 0.95f); blit(bg, pill, bw, bh, m.cx, m.cy + m.hubR * 0.52f, 1, 1);
-        text(bg, atlas, tk, bf, badge, m.cx - tk.width(bf, badge, 1) / 2, m.cy + m.hubR * 0.52f + bf.ascent() * 0.5 - 1, 0x06141F, 1);
+        int[] pill = RadialMenu.bakePill(bw, bh, 0x8FD3FF, 0.95f); blit(bg, pill, bw, bh, m.cx, m.cy + m.hubR * 0.44f + bh / 2f, 1, 1);
+        text(bg, atlas, tk, bf, badge, m.cx - tk.width(bf, badge, 1) / 2, m.cy + m.hubR * 0.44f + bh / 2f + bf.ascent() * 0.5 - 1, 0x06141F, 1);
         TextKit.Face bf2 = tk.face("semibold", 11 * gs); text(bg, atlas, tk, bf2, "Auroras Client", 16 * gs + 18 * gs, 12 * gs + bf2.ascent(), 0xFFFFFF, 1);
         fill(bg, 12 * gs, 10 * gs, 18 * gs, 18 * gs, 0xFF8FD3FF);
         ImageIO.write(bg, "png", new File(a[1])); System.out.println("wrote " + a[1]);

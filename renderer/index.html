@@ -1181,11 +1181,14 @@ if(!(window.auroras&&auroras.launch))return setPL("error",0,"Playing needs the d
 const c=cur();setPL("launching",0,"");
 try{if(c.loader!=="Vanilla"&&!c.loaderVersion&&auroras.versions){const r=await auroras.versions({snapshots:true}),v=r.versions.find(x=>x.id===c.mc),li=v&&v.loaders&&v.loaders[c.loader];
 if(!(li&&li.available))return setPL("error",0,c.loader+" isn’t available for Minecraft "+c.mc+". Create a new instance with a supported loader.");c.loaderVersion=li.loaderVersion;saveInst()}
-let face=null;try{face=await gameFace(a)}catch(e){}
-await auroras.launch({inst:{id:c.id,name:c.name,mc:c.mc,loader:c.loader,loaderVersion:c.loaderVersion||null,mem:c.mem||4,args:c.args||"",java:c.java||{mode:"auto"},server:opt.server||null},uuid:a.uuid,face});modNote(c)}catch(e){setPL("error",0,errMsg(e))}}
+let face=null,head=null;try{face=await gameFace(a)}catch(e){}try{head=await gameHead(a)}catch(e){}
+await auroras.launch({inst:{id:c.id,name:c.name,mc:c.mc,loader:c.loader,loaderVersion:c.loaderVersion||null,mem:c.mem||4,args:c.args||"",java:c.java||{mode:"auto"},server:opt.server||null},uuid:a.uuid,face,head});modNote(c)}catch(e){setPL("error",0,errMsg(e))}}
 /** The account's face for the in-game Auroras menu: the skin's 8x8 face with its hat layer on top, as a PNG data URL. */
 function gameFace(a){return new Promise((ok,no)=>{if(!a||!a.skin)return ok(null);const im=new Image();im.onload=()=>{try{const c=document.createElement("canvas");c.width=c.height=8;const x=c.getContext("2d");x.imageSmoothingEnabled=false;
 x.drawImage(im,8,8,8,8,0,0,8,8);x.drawImage(im,40,8,8,8,0,0,8,8);ok(c.toDataURL("image/png"))}catch(e){no(e)}};im.onerror=()=>ok(null);im.src=a.skin})}
+/** The skin's head and hat layer (top 64x16 of the skin, every side) for the in-game menu's 3D head, as a PNG data URL. */
+function gameHead(a){return new Promise((ok,no)=>{if(!a||!a.skin)return ok(null);const im=new Image();im.onload=()=>{try{if(im.naturalWidth!==64)return ok(null);const c=document.createElement("canvas");c.width=64;c.height=16;const x=c.getContext("2d");x.imageSmoothingEnabled=false;
+x.drawImage(im,0,0,64,16,0,0,64,16);ok(c.toDataURL("image/png"))}catch(e){no(e)}};im.onerror=()=>ok(null);im.src=a.skin})}
 /** After Play on Fabric: say what happened to the Auroras mod when it isn't simply ready. */
 async function modNote(c){if(c.loader!=="Fabric"||!auroras.modStatus)return;let r;try{r=await auroras.modStatus(c.id)}catch(e){return}if(!r)return;
 const m={installed:"Auroras mod "+r.version+" installed.",updated:"Auroras mod updated to "+r.version+".",removed:"Removed the Auroras mod: "+(r.reason||"")+" Minecraft starts without it.",unavailable:r.reason?r.reason+" Minecraft starts without the Auroras mod.":"",offline:r.kept?"Couldn’t check for an Auroras mod update, so the installed one is used.":"Couldn’t download the Auroras mod ("+(r.reason||"offline")+"). Minecraft starts without it."}[r.status]||"";

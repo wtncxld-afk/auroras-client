@@ -51,6 +51,18 @@ public final class Platform {
     public static NativeImage image(int[] argb, int w, int h) { NativeImage img = new NativeImage(w, h, false); for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) img.setPixel(x, y, argb[y * w + x]); return img; }
     /** Uploads an image as a GUI texture (Spotify cover art). Call on the render thread. */
     public static void texture(Identifier id, NativeImage img) { Minecraft.getInstance().getTextureManager().register(id, new DynamicTexture(id::toString, img)); }
+    /** A GUI texture whose pixels change while it's on screen (the menu's 3D head): one texture, updated in place. Render thread only. */
+    public static final class Live {
+        private final Identifier id; private DynamicTexture tex; private int w, h;
+        public Live(Identifier id) { this.id = id; }
+        public void set(int[] argb, int w, int h) {
+            if (tex == null || w != this.w || h != this.h) {
+                this.w = w; this.h = h; tex = new DynamicTexture(id::toString, image(argb, w, h)); Minecraft.getInstance().getTextureManager().register(id, tex); return;
+            }
+            NativeImage px = tex.getPixels(); for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) px.setPixel(x, y, argb[y * w + x]);
+            tex.upload();
+        }
+    }
 
     // ---- Custom Skies ----
     // 26.3 replaced much of the low-level renderer (Iris's 26.3 sources import com.mojang.renderpearl.api.commands.RenderPass,

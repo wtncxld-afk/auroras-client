@@ -84,8 +84,52 @@ public class RadialTests {
         List<int[]> quads = new ArrayList<>(); tk.draw(f14, "Auroras Client", 10.4, 20.6, 1, (x, y, w, h, u, v, uw, vh) -> quads.add(new int[]{x, y, w, h, u, v, uw, vh}));
         check("font: one atlas quad per visible letter, on whole pixels, inside the atlas", quads.size() == 13 && quads.stream().allMatch(q -> q[4] >= 0 && q[5] >= 0 && q[4] + q[6] <= tk.atlasW && q[5] + q[7] <= tk.atlasH && q[2] == q[6]), quads.size());
         check("font: unknown characters fall back to '?' instead of breaking", tk.width(f14, "中", 1) == tk.width(f14, "?", 1));
+        // 3D head
+        Head3D head = new Head3D(testSkin(false)); int hsz = 120, mid = hsz / 2;
+        int[] still = head.render(hsz, 0, 0);
+        check("head: facing you, the middle shows the front of the face", hueNear(still[mid * hsz + mid], FRONT) && hueNear(still[(hsz / 3) * hsz + mid], FRONT), Integer.toHexString(still[mid * hsz + mid]));
+        check("head: corners stay see-through and the outline is anti-aliased", still[0] == 0 && still[hsz * hsz - 1] == 0 && countPartial(still) > 40, countPartial(still));
+        int[] right = head.render(hsz, 40, 0);
+        check("head: turned to your right, the face moves right and its right side (skin u 0..8) shows on your left", hueNear(right[mid * hsz + hsz / 4 + 4], RIGHT) && hueNear(right[mid * hsz + hsz * 2 / 3], FRONT), Integer.toHexString(right[mid * hsz + hsz / 4 + 4]));
+        int[] left = head.render(hsz, -40, 0);
+        check("head: turned to your left, its left side (skin u 16..24) shows on your right", hueNear(left[mid * hsz + hsz * 3 / 4 - 4], LEFT), Integer.toHexString(left[mid * hsz + hsz * 3 / 4 - 4]));
+        int[] down = head.render(hsz, 0, 26), up = head.render(hsz, 0, -26);
+        check("head: tipped down shows the top of the head above the face, tipped up shows the chin underside", hueNear(down[(hsz / 5) * hsz + mid], TOP) && hueNear(up[(hsz * 4 / 5) * hsz + mid], BOTTOM), Integer.toHexString(down[(hsz / 5) * hsz + mid]), Integer.toHexString(up[(hsz * 4 / 5) * hsz + mid]));
+        check("head: lit from above (the top keeps more of its colour than the underside)", lum(down[(hsz / 5) * hsz + mid]) / lum(0xFF000000 | TOP) > lum(up[(hsz * 4 / 5) * hsz + mid]) / lum(0xFF000000 | BOTTOM) + 0.15);
+        int[] hat = new Head3D(testSkin(true)).render(hsz, 0, 0);
+        check("head: the hat layer covers the face where it's solid and lets it through where it's clear", hueNear(hat[mid * hsz + mid], HAT_C) && hueNear(hat[(hsz * 3 / 4) * hsz + mid], FRONT), Integer.toHexString(hat[mid * hsz + mid]), Integer.toHexString(hat[(hsz * 3 / 4) * hsz + mid]));
+        for (int i = 0; i < 20; i++) head.render(160, i, i); long ht = System.nanoTime(); for (int i = 0; i < 10; i++) head.render(160, i * 3, i); double headMs = (System.nanoTime() - ht) / 1e6 / 10;
+        check("head: a 160 px frame renders in under 4 ms (only redrawn while it moves)", headMs < 4, headMs);
+        Head3D.Follow fa = new Head3D.Follow(), fb = new Head3D.Follow(); double over = 0;
+        for (int i = 0; i < 30; i++) { fa.update(1 / 60.0, 30, 10, false); over = Math.max(over, fa.yaw - 30); }
+        for (int i = 0; i < 72; i++) fb.update(1 / 144.0, 30, 10, false);
+        check("head follow: glides to the mouse without overshoot and the same at 60 and 144 fps", over <= 1e-9 && Math.abs(fa.yaw - fb.yaw) < 0.05 && Math.abs(fa.yaw - 30) < 0.5, fa.yaw, fb.yaw, over);
+        double[] tg = Head3D.Follow.target(10000, -10000, 300);
+        check("head follow: never turns past its limits, and looks up when the mouse is above", tg[0] <= Head3D.MAX_YAW && tg[0] > Head3D.MAX_YAW * 0.99 && tg[1] < 0 && tg[1] >= -Head3D.MAX_PITCH);
+        Head3D.Follow fr = new Head3D.Follow(); fr.update(1 / 60.0, 12, -5, true);
+        check("head follow: reduced motion snaps straight to the mouse", fr.yaw == 12 && fr.pitch == -5);
         System.out.println("\n" + pass + " passed, " + fail + " failed"); if (fail > 0) System.exit(1);
     }
+    static final int FRONT = 0xD9A066, RIGHT = 0x3F7FE0, LEFT = 0x2EB86A, TOP = 0x6B3A1E, BOTTOM = 0xC23A3A, BACK = 0x8A8A8A, HAT_C = 0xE8C21E;
+    /** A test skin (top 64x16): each head side its own colour; with hat, a hat band over the top half of the face only. */
+    static int[] testSkin(boolean hat) {
+        int[] s = new int[Head3D.SKIN_W * Head3D.SKIN_H];
+        for (int y = 0; y < 16; y++) for (int x = 0; x < 32; x++) {
+            int c = y < 8 ? (x >= 8 && x < 16 ? TOP : x >= 16 && x < 24 ? BOTTOM : 0) : (x < 8 ? RIGHT : x < 16 ? FRONT : x < 24 ? LEFT : BACK);
+            if (c != 0) s[y * 64 + x] = 0xFF000000 | c;
+            if (hat && y >= 8 && y < 13 && x >= 8 && x < 16) s[y * 64 + x + 32] = 0xFF000000 | HAT_C;
+        }
+        return s;
+    }
+    static int rgb(int c) { return c & 0xFFFFFF; }
+        static boolean hueNear(int c, int base) {
+        if ((c >>> 24) < 200) return false;
+        double r = (c >> 16) & 255, g = (c >> 8) & 255, b = c & 255, R = (base >> 16) & 255, G = (base >> 8) & 255, B = base & 255;
+        double l1 = Math.max(1, r + g + b), l2 = Math.max(1, R + G + B);
+        return Math.abs(r / l1 - R / l2) < 0.04 && Math.abs(g / l1 - G / l2) < 0.04 && Math.abs(b / l1 - B / l2) < 0.04;
+    }
+    static double lum(int c) { return 0.3 * ((c >> 16) & 255) + 0.59 * ((c >> 8) & 255) + 0.11 * (c & 255); }
+    static int countPartial(int[] img) { int n = 0; for (int c : img) { int a = c >>> 24; if (a > 10 && a < 245) n++; } return n; }
     static RadialMenu open(int w, int h) { RadialMenu m = new RadialMenu(w, h); for (int i = 0; i < 60; i++) m.update(1 / 60.0, -1, false); return m; }
     static boolean closeNow(RadialMenu m) { m.close(-1); m.update(0.001, -1, true); return m.done(); }
     static boolean monotone() { double p = 0; for (int i = 0; i <= 200; i++) { double v = RadialMenu.ease(i / 200.0); if (v < p - 1e-12 || v > 1) return false; p = v; } return true; }

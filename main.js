@@ -426,7 +426,7 @@ ipcMain.handle("update:install", () => {
   setTimeout(() => app.quit(), 300); return true;
 });
 ipcMain.handle("release:check", async () => { try { return await clientmod.launcherUpdate(RELEASES, app.getVersion()); } catch (e) { return { configured: true, error: e.message }; } });
-ipcMain.handle("launch", async (e, { inst: I, uuid, face }) => {
+ipcMain.handle("launch", async (e, { inst: I, uuid, face, head }) => {
   const key = String(I && I.id); if (!I || !/^\d+$/.test(key)) throw new Error("Unknown instance");
   if (running.has(key)) throw new Error("This instance is already starting or running.");
   running.add(key);
@@ -436,6 +436,7 @@ ipcMain.handle("launch", async (e, { inst: I, uuid, face }) => {
     if (String(I.loader) === "Fabric") lastModStatus.set(key, await prepareAuroras(I, gameDir, send));
     // Your face for the in-game Auroras menu (8x8 PNG from your skin, made by the launcher page). Never blocks the launch.
     if (typeof face === "string") try { modconfig.writeFace(path.join(gameDir, "config", "auroras"), face); } catch (x) { console.log("[auroras] face not saved: " + x.message); }
+    if (typeof head === "string") try { modconfig.writeHead(path.join(gameDir, "config", "auroras"), head); } catch (x) { console.log("[auroras] head not saved: " + x.message); }
     // VexVanilla stays first under Multiplayer in game (the rest of the player's list is untouched). Never blocks the launch.
     try { serverlist.pin(gameDir, FEATURED); } catch (x) { console.log("[auroras] server list not updated: " + x.message); }
     const cmd = await launcher.prepare({

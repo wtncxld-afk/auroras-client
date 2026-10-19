@@ -94,4 +94,12 @@ function writeFace(dir, png) {
   fs.mkdirSync(dir, { recursive: true }); const tmp = path.join(dir, "face.png.tmp" + process.pid); fs.writeFileSync(tmp, b); fs.renameSync(tmp, path.join(dir, "face.png"));
   return { ok: true };
 }
-module.exports = { writeFace, writeCape, clearCape, registry, rules, read, update, assignPlace, listLayouts, saveLayout, deleteLayout, EMOTE_LIB, listEmotes, saveEmote, deleteEmote, saveWheel };
+/** The player's head for the in-game menu's 3D head: the top 64x16 of the skin (head and hat layer, every side). */
+function writeHead(dir, png) {
+  const b = Buffer.isBuffer(png) ? png : Buffer.from(String(png).replace(/^data:image\/png;base64,/, ""), "base64");
+  if (b.length < 33 || b.length > 16384 || !b.subarray(0, 8).equals(PNG_SIG) || b.toString("latin1", 12, 16) !== "IHDR") throw new Error("That isn’t a small PNG image.");
+  if (b.readUInt32BE(16) !== 64 || b.readUInt32BE(20) !== 16) throw new Error("The head image must be 64x16.");
+  fs.mkdirSync(dir, { recursive: true }); const tmp = path.join(dir, "head.png.tmp" + process.pid); fs.writeFileSync(tmp, b); fs.renameSync(tmp, path.join(dir, "head.png"));
+  return { ok: true };
+}
+module.exports = { writeFace, writeHead, writeCape, clearCape, registry, rules, read, update, assignPlace, listLayouts, saveLayout, deleteLayout, EMOTE_LIB, listEmotes, saveEmote, deleteEmote, saveWheel };

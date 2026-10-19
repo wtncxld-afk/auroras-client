@@ -7,6 +7,9 @@ package gg.auroras.client;
 //
 // Mouse: point to highlight, click a section. Keyboard: arrows or Tab move round the ring, Enter opens, 1 to 5 jump,
 // Esc or the menu key closes. Clicking your face opens the full module list.
+//
+// Your head in the middle is a real 3D cube (core Head3D: your skin's head and hat, every side) that turns to follow the
+// mouse with a smooth spring, ray-traced at the screen's real pixel size and only re-drawn while it moves.
 
 import gg.auroras.client.platform.Mc;
 import com.mojang.blaze3d.platform.NativeImage;
@@ -16,6 +19,7 @@ import gg.auroras.client.platform.Keys;
 import gg.auroras.client.platform.Platform;
 import gg.auroras.client.ui.AuroraFont;
 import gg.auroras.core.Config;
+import gg.auroras.core.Head3D;
 import gg.auroras.core.RadialMenu;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
@@ -27,13 +31,14 @@ import java.nio.file.Path;
 public class RadialScreen extends AScreen {
     private RadialArt art; private RadialMenu m; private double gs = 2; private long last = System.nanoTime();
     private int hovered = -1, pressedOn = -1; private boolean keyboard; private Runnable after;
+    private final Head3D.Follow look = new Head3D.Follow(); private double hubHover;
     public RadialScreen() { super("Auroras"); }
 
     @Override protected void init() {
         gs = Gfx.guiScale(); int w = Gfx.screenW(), h = Gfx.screenH();
         RadialArt a = RadialArt.get(w, h, gs);
         if (m == null || art != a) { art = a; RadialMenu fresh = new RadialMenu(w, h); if (m != null) { fresh.phase = m.phase; fresh.t = m.t; } m = fresh; }
-        Face.refresh();
+        Face.refresh(); Head.refresh();
     }
     private boolean reduced() { return AurorasModules.reducedMotion(); }
 
@@ -44,6 +49,12 @@ public class RadialScreen extends AScreen {
         double px = mx * gs, py = my * gs;
         if (!keyboard) hovered = m.hit(px, py);
         m.update(dt, hovered, reduced());
+        double hx = m.cx, hy = m.cy - m.hubR * 0.34;
+        double[] aim = keyboard ? new double[]{hovered < 0 ? 0 : Math.cos(m.angle(hovered)) * Head3D.MAX_YAW * 0.8, hovered < 0 ? 0 : Math.sin(m.angle(hovered)) * Head3D.MAX_PITCH * 0.8}
+                : Head3D.Follow.target(px - hx, py - hy, Math.max(120, art.h * 0.32));
+        look.update(dt, aim[0], aim[1], reduced());
+        double hubTarget = !keyboard && hovered < 0 && m.onHub(px, py) ? 1 : 0;
+        hubHover += (hubTarget - hubHover) * (reduced() ? 1 : 1 - Math.exp(-dt * 16));
         if (m.done()) { Runnable r = after; after = null; if (r != null) r.run(); else Mc.setScreen(minecraft, null); return; }
 
         g.push(); g.scale((float) (1 / gs)); // from here on: real screen pixels
@@ -67,11 +78,19 @@ public class RadialScreen extends AScreen {
     private void drawHub(Gfx g, float open) {
         int hs = m.hubSide(); float s = 0.9f + 0.1f * open; int size = Math.round(hs * s), x = Math.round(m.cx - size / 2f), y = Math.round(m.cy - size / 2f);
         g.texture(RadialArt.HUB, x, y, size, size, argb(open));
-        float r = m.hubR * s; int fs = Math.round(r * 0.62f) / 8 * 8; if (fs < 8) fs = 8; // whole multiples of 8 keep the face pixels square
-        int fx = Math.round(m.cx - fs / 2f), fy = Math.round(m.cy - r * 0.66f);
-        String name = Face.name();
-        if (Face.ready()) g.texture(Face.ID, fx, fy, fs, fs, argb(open));
-        else { g.fill(fx, fy, fx + fs, fy + fs, argb(open * 0.9f, 0x2A6FA8)); AuroraFont.drawCentred(g, "semibold", fs * 0.6, name.isEmpty() ? "?" : name.substring(0, 1).toUpperCase(), m.cx, fy + fs * 0.72, argb(open), false); }
+        float r = m.hubR * s; String name = Face.name();
+        if (Head.ready()) {
+            // the head image is ~1.1 hub radii wide (the cube fills about 60% of it, leaving room to turn); drawn 1:1
+            float lift = (float) (1 + 0.05 * hubHover); int hsz = Math.round(r * 1.1f * lift / 2) * 2;
+            Head.draw(Math.min(Head.MAX, hsz), look.yaw, look.pitch);
+            int hx = Math.round(m.cx - hsz / 2f), hy = Math.round(m.cy - r * 0.34f - hsz / 2f);
+            g.texture(Head.ID, hx, hy, hsz, hsz, argb(open));
+        } else {
+            int fs = Math.round(r * 0.62f) / 8 * 8; if (fs < 8) fs = 8; // whole multiples of 8 keep the face pixels square
+            int fx = Math.round(m.cx - fs / 2f), fy = Math.round(m.cy - r * 0.66f);
+            if (Face.ready()) g.texture(Face.ID, fx, fy, fs, fs, argb(open));
+            else { g.fill(fx, fy, fx + fs, fy + fs, argb(open * 0.9f, 0x2A6FA8)); AuroraFont.drawCentred(g, "semibold", fs * 0.6, name.isEmpty() ? "?" : name.substring(0, 1).toUpperCase(), m.cx, fy + fs * 0.72, argb(open), false); }
+        }
         double np = Math.max(7, 9 * gs * s); String shown = AuroraFont.fit("semibold", np, name, r * 1.6);
         AuroraFont.drawCentred(g, "semibold", np, shown, m.cx, m.cy + r * 0.30, argb(open), true);
         int pw = Math.round(art.pillW * s), ph = Math.round(art.pillH * s), bx = Math.round(m.cx - pw / 2f), by = Math.round(m.cy + r * 0.44f);
@@ -118,6 +137,31 @@ public class RadialScreen extends AScreen {
         return false;
     }
     @Override protected boolean drag(double x, double y, int button, double dx, double dy) { keyboard = false; return true; }
+
+    /** Your 3D head: the launcher writes your skin's top 64x16 (head and hat) to config/auroras/head.png. */
+    static final class Head {
+        static final Identifier ID = Identifier.fromNamespaceAndPath("auroras_client", "radial/head3d");
+        static final int MAX = 320; // biggest render (4K); larger windows scale it up a little
+        private static final Platform.Live TEX = new Platform.Live(ID);
+        private static Head3D head; private static long stamp = -1; private static double yaw = 1e9, pitch = 1e9; private static int size;
+        static boolean ready() { return head != null; }
+        static void refresh() {
+            Path f = AurorasClient.DIR.resolve("head.png"); long s;
+            try { s = Files.exists(f) ? Files.getLastModifiedTime(f).toMillis() : 0; } catch (Exception e) { s = 0; }
+            if (s == stamp) return; stamp = s; head = null; size = 0; if (s == 0) return;
+            try (InputStream in = Files.newInputStream(f)) {
+                NativeImage img = NativeImage.read(in);
+                if (img.getWidth() != Head3D.SKIN_W || img.getHeight() != Head3D.SKIN_H) throw new IllegalStateException("head.png must be 64x16");
+                int[] px = new int[Head3D.SKIN_W * Head3D.SKIN_H]; for (int y = 0; y < Head3D.SKIN_H; y++) for (int x = 0; x < Head3D.SKIN_W; x++) px[y * Head3D.SKIN_W + x] = img.getPixel(x, y);
+                img.close(); head = new Head3D(px);
+            } catch (Exception e) { System.out.println("[Auroras] 3D head not shown, using the flat face: " + e.getMessage()); }
+        }
+        /** Re-renders only when the angle or size really changed (a still head costs nothing). */
+        static void draw(int sz, double y, double p) {
+            if (sz == size && Math.abs(y - yaw) < 0.03 && Math.abs(p - pitch) < 0.03) return;
+            size = sz; yaw = y; pitch = p; TEX.set(head.render(sz, y, p), sz, sz);
+        }
+    }
 
     /** Your face (from the launcher's config/auroras/face.png, the skin of the account you play with) and name. */
     static final class Face {

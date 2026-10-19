@@ -4,6 +4,8 @@ package gg.auroras.client;
 // settings panel per module, drawn with the shared design tokens (AUi). Every rule about layout, filtering, editing and
 // limits lives in core ModuleMenu and is unit-tested there; this screen draws what it returns and forwards input.
 // Keyboard: Tab / Shift+Tab move focus, arrows change the focused control, Enter toggles or opens, Esc goes back.
+// Motion: every animation runs on real frame time (smooth at any frame rate) and on sub-pixel offsets, so nothing steps:
+// the panel rises and grows in and out, pages slide in, cards ease their hover, and the wheel scrolls smoothly.
 
 import gg.auroras.client.platform.Mc;
 import gg.auroras.client.platform.AScreen;
@@ -18,7 +20,8 @@ import java.util.Map;
 public class ModuleScreen extends AScreen {
     private final ModuleMenu menu = new ModuleMenu(AurorasClient.REG, AurorasClient.PM);
     private ModuleMenu.Layout L; private boolean searching; private long caretT0 = System.nanoTime();
-    private double openAnim, contentAnim = 1; private long last = System.nanoTime();
+    private double openAnim, contentAnim = 1, frameDt = 1 / 60.0, shownScroll; private boolean closing; private long last = System.nanoTime();
+    private final Map<String, Double> hoverAnim = new HashMap<>();
     private final Map<String, Double> knob = new HashMap<>(); private String dragging, listening; private int focus = -1;
     private static String lastCategory = "All";
     private final net.minecraft.client.gui.screens.Screen parent; private final String section;
@@ -36,12 +39,16 @@ public class ModuleScreen extends AScreen {
     private boolean reduced() { return AurorasModules.reducedMotion(); }
 
     @Override protected void draw(Gfx c, int mx, int my, float delta) {
-        long now = System.nanoTime(); double dt = Math.min(0.1, (now - last) / 1e9); last = now; boolean rm = reduced();
-        openAnim = rm ? 1 : UiKit.approach(openAnim, 1, dt, AurorasModules.tau(0.06)); contentAnim = rm ? 1 : UiKit.approach(contentAnim, 1, dt, AurorasModules.tau(0.05));
-        L = menu.layout(width, height); UiTokens t = AUi.tokens(); double a = openAnim;
+        long now = System.nanoTime(); double dt = Math.min(0.1, (now - last) / 1e9); last = now; frameDt = dt; boolean rm = reduced();
+        if (closing) { openAnim = rm ? 0 : UiKit.approach(openAnim, 0, dt, AurorasModules.tau(0.035)); if (openAnim < 0.03) { closing = false; finishClose(); return; } }
+        else openAnim = rm ? 1 : UiKit.approach(openAnim, 1, dt, AurorasModules.tau(0.06));
+        contentAnim = rm ? 1 : UiKit.approach(contentAnim, 1, dt, AurorasModules.tau(0.05));
+        shownScroll = rm ? menu.scroll : UiKit.approach(shownScroll, menu.scroll, dt, AurorasModules.tau(0.045)); if (Math.abs(shownScroll - menu.scroll) < 0.05) shownScroll = menu.scroll;
+        L = menu.layout(width, height); UiTokens t = AUi.tokens(); double a = openAnim, ease = Motion.out(a);
         c.fill(0, 0, width, height, AUi.fade(t.argb("bg", t.scrimAlpha), a));
-        ModuleMenu.Rect p = L.panel(); int lift = (int) Math.round((1 - a) * 6);
-        c.push(); c.translate(0, lift);
+        ModuleMenu.Rect p = L.panel(); int lift = (int) Math.round((1 - ease) * 8); float zoom = (float) (0.975 + 0.025 * ease);
+        // grow from the panel's centre with a sub-pixel rise; hit testing uses the rounded lift (the difference is under a pixel)
+        c.push(); c.translate((float) (p.x() + p.w() / 2.0), (float) (p.y() + p.h() / 2.0 + (1 - ease) * 8)); c.scale(zoom); c.translate((float) -(p.x() + p.w() / 2.0), (float) -(p.y() + p.h() / 2.0));
         AUi.box(c, p.x(), p.y(), p.w(), p.h(), AUi.fade(t.argb("s1", t.panelAlpha), a), AUi.fade(t.opaque("line"), a), 3);
         AUi.box(c, p.x() + 1, p.y() + 1, ModuleMenu.RAIL - 1, p.h() - 2, AUi.fade(t.argb("side", t.panelAlpha), a), 0, 2);
         c.fill(p.x() + ModuleMenu.RAIL, p.y() + 1, p.x() + ModuleMenu.RAIL + 1, p.bottom() - 1, AUi.fade(t.opaque("line"), a));
@@ -68,9 +75,13 @@ public class ModuleScreen extends AScreen {
             if (searching && ((System.nanoTime() - caretT0) / 500_000_000L) % 2 == 0) { int cx = s.x() + 14 + Gfx.width(q); c.fill(cx + 1, s.y() + 3, cx + 2, s.y() + 12, t.opaque("acc")); } }
         AUi.button(c, L.hudBtn().x(), L.hudBtn().y() - 1, L.hudBtn().w(), "HUD editor", false, L.hudBtn().contains(mx, my - lift), focus == 1, true);
         // body (clipped so scrolled content never draws outside the panel)
-        ModuleMenu.Rect b = L.body(); int fadeIn = (int) Math.round((1 - contentAnim) * 4);
+        ModuleMenu.Rect b = L.body();
         c.scissor(b.x(), b.y(), b.right(), b.bottom()); // inside the lift transform, so in panel coordinates
-        if (menu.open == null) drawGrid(c, mx, my - lift, t, fadeIn); else drawSettings(c, mx, my - lift, t, fadeIn);
+        // a new page slides up into place; the wheel glides (content is laid out at the real scroll and drawn offset to the shown one)
+        float slide = (float) ((1 - Motion.out(contentAnim)) * 6), glide = (float) (menu.scroll - shownScroll);
+        c.push(); c.translate(0, slide + glide); int cull = (int) Math.ceil(Math.abs(glide) + slide);
+        if (menu.open == null) drawGrid(c, mx, my - lift, t, cull); else drawSettings(c, mx, my - lift, t, cull);
+        c.pop();
         c.noScissor();
         AUi.scrollbar(c, b.right() + 3, b.y(), b.h(), menu.scroll, L.content());
         if (!menu.message.isEmpty()) { int w = Gfx.width(menu.message) + 14, x = p.x() + ModuleMenu.RAIL + (p.w() - ModuleMenu.RAIL - w) / 2;
@@ -78,23 +89,24 @@ public class ModuleScreen extends AScreen {
         c.pop();
         tooltip(c, mx, my - lift);
     }
-    private void drawGrid(Gfx c, int mx, int my, UiTokens t, int fadeIn) {
+    private void drawGrid(Gfx c, int mx, int my, UiTokens t, int cull) { int fadeIn = 0;
         if (L.cards().isEmpty()) { String m = "No modules match \"" + menu.query + "\""; c.text(m, L.body().x() + (L.body().w() - Gfx.width(m)) / 2, L.body().y() + 40, t.opaque("mute"), false); return; }
         int i = 0;
         for (ModuleMenu.Card cd : L.cards()) {
-            ModuleMenu.Rect r = cd.r(); if (r.bottom() < L.body().y() || r.y() > L.body().bottom()) { i++; continue; }
-            Config.Module m = cd.m(); boolean av = m.available(), on = AurorasClient.PM.enabled(m.id()), hov = r.contains(mx, my); int y = r.y() + fadeIn;
-            AUi.box(c, r.x(), y, r.w(), r.h(), hov && av ? t.opaque("s3") : t.opaque("s2"), on ? AUi.mix(t.opaque("line"), t.opaque("acc"), 0.55) : hov ? t.opaque("lineStrong") : t.opaque("line"), 2);
+            ModuleMenu.Rect r = cd.r(); if (r.bottom() < L.body().y() - cull || r.y() > L.body().bottom() + cull) { i++; continue; }
+            Config.Module m = cd.m(); boolean av = m.available(), on = AurorasClient.PM.enabled(m.id()), hov = r.contains(mx, my) && L.body().contains(mx, my); int y = r.y() + fadeIn;
+            double h = ease("card:" + m.id(), hov && av ? 1 : 0, 0.05), lit = ease("lit:" + m.id(), on ? 1 : 0, 0.06);
+            AUi.box(c, r.x(), y, r.w(), r.h(), AUi.mix(t.opaque("s2"), t.opaque("s3"), h), AUi.mix(AUi.mix(t.opaque("line"), t.opaque("lineStrong"), h), AUi.mix(t.opaque("line"), t.opaque("acc"), 0.55), lit), 2);
             AUi.icon(c, av ? AUi.categoryIcon(m.cat().label) : "lock", r.x() + 7, y + 7, av ? (on ? t.opaque("acc") : t.opaque("mute")) : t.opaque("faint"));
             AUi.textFit(c, m.name(), r.x() + 20, y + 6, r.w() - 50, av ? t.opaque("text") : t.opaque("faint"));
             AUi.textFit(c, av ? m.cat().label : "Not in the game yet", r.x() + 20, y + 18, r.w() - 50, t.opaque("faint"));
-            double k = knob.merge(m.id(), on ? 1.0 : 0.0, (o, n) -> reduced() ? n : UiKit.approach(o, n, 1 / 60.0, AurorasModules.tau(0.04)));
+            double k = knob(m.id(), on);
             AUi.toggle(c, cd.sw().x(), cd.sw().y() + fadeIn, k, cd.sw().contains(mx, my), av);
             if (focus == 2 + L.cats().size() + i) AUi.focusRing(c, r.x(), y, r.w(), r.h());
             i++;
         }
     }
-    private void drawSettings(Gfx c, int mx, int my, UiTokens t, int fadeIn) {
+    private void drawSettings(Gfx c, int mx, int my, UiTokens t, int cull) { int fadeIn = 0;
         Config.Module m = menu.openModule(); ModuleMenu.Rect b = L.body(); int y0 = b.y() - (int) Math.round(menu.scroll) + fadeIn;
         boolean bh = L.back().contains(mx, my); AUi.box(c, L.back().x(), y0, 15, 15, bh ? t.opaque("s3") : t.opaque("s2"), t.opaque("line"), 2);
         c.text("<", L.back().x() + 5, y0 + 4, t.opaque("text"), false);
@@ -102,21 +114,21 @@ public class ModuleScreen extends AScreen {
         AUi.textFit(c, m.name(), b.x() + 33, y0 + 4, b.w() - 60, t.opaque("text"));
         AUi.textFit(c, m.impact().label, b.x() + 21, y0 + 18, b.w() - 30, t.opaque("faint"));
         AUi.textFit(c, m.available() ? "In game · experimental" : "Not in the game yet: " + m.note(), b.x() + 21, y0 + 28, b.w() - 30, m.available() ? t.opaque("ok") : t.opaque("warn"));
-        double k = knob.merge("head:" + m.id(), AurorasClient.PM.enabled(m.id()) ? 1.0 : 0.0, (o, n) -> reduced() ? n : UiKit.approach(o, n, 1 / 60.0, AurorasModules.tau(0.04)));
+        double k = knob("head:" + m.id(), AurorasClient.PM.enabled(m.id()));
         if (m != ModuleMenu.CLIENT) AUi.toggle(c, L.headSwitch().x(), y0 + 3, k, L.headSwitch().contains(mx, my), m.available());
         if (L.hudLink() != null) { ModuleMenu.Rect r = L.hudLink(); boolean h = r.contains(mx, my); AUi.icon(c, "hud", r.x() + 4, r.y() + 7 + fadeIn, t.opaque("acc"));
             c.text("Position and size: open the HUD editor", r.x() + 16, r.y() + 7 + fadeIn, h ? t.opaque("acc") : t.opaque("mute"), false); }
         int idx = 0;
         for (ModuleMenu.Row row : L.rows()) {
-            ModuleMenu.Rect r = row.r(); if (r.bottom() < b.y() || r.y() > b.bottom()) { idx++; continue; }
-            Config.SettingDef d = row.d(); ModuleMenu.Rect ctl = row.ctl(); boolean hov = r.contains(mx, my), foc = focus == 2 + L.cats().size() + 1 + idx; int y = r.y() + fadeIn;
-            if (hov) AUi.box(c, r.x(), y, r.w(), r.h(), t.argb("s2", 0.6), 0, 2);
+            ModuleMenu.Rect r = row.r(); if (r.bottom() < b.y() - cull || r.y() > b.bottom() + cull) { idx++; continue; }
+            Config.SettingDef d = row.d(); ModuleMenu.Rect ctl = row.ctl(); boolean hov = r.contains(mx, my) && b.contains(mx, my), foc = focus == 2 + L.cats().size() + 1 + idx; int y = r.y() + fadeIn;
+            double rh = ease("row:" + menu.open + "." + d.key(), hov ? 1 : 0, 0.05); if (rh > 0.01) AUi.box(c, r.x(), y, r.w(), r.h(), t.argb("s2", 0.6 * rh), 0, 2);
             c.fill(r.x() + 2, r.bottom() + fadeIn - 1, r.right() - 2, r.bottom() + fadeIn, t.argb("line", 0.7));
             String lab = ModuleMenu.label(d.key()); boolean changed = menu.changed(d);
             AUi.textFit(c, lab, r.x() + 4, y + 7, ctl.x() - r.x() - 10 > 40 && UiKit.controlFor(d) != UiKit.Control.SLIDER ? ctl.x() - r.x() - 10 : r.w() - 60, t.opaque("text"));
             if (changed) c.fill(r.x() + 1, y + 7, r.x() + 2, y + 15, t.opaque("acc"));
             switch (UiKit.controlFor(d)) {
-                case SWITCH -> { double kk = knob.merge(menu.open + "." + d.key(), Boolean.parseBoolean(menu.value(d)) ? 1.0 : 0.0, (o, n) -> reduced() ? n : UiKit.approach(o, n, 1 / 60.0, AurorasModules.tau(0.04))); AUi.toggle(c, ctl.right() - AUi.SWITCH_W, y + 6, kk, hov, true); }
+                case SWITCH -> { double kk = knob(menu.open + "." + d.key(), Boolean.parseBoolean(menu.value(d))); AUi.toggle(c, ctl.right() - AUi.SWITCH_W, y + 6, kk, hov, true); }
                 case SLIDER -> { String v = menu.display(d); c.text(v, r.right() - 4 - Gfx.width(v), y + 5, t.opaque("mute"), false);
                     AUi.slider(c, ctl.x(), ctl.y() + fadeIn - 2, ctl.w(), d.min(), d.max(), Double.parseDouble(menu.value(d)), hov, foc); }
                 case SEGMENTED -> { java.util.List<String> labels = d.options().stream().map(UiKit::optionLabel).toList(); int total = 2; for (String s2 : labels) total += Gfx.width(s2) + 10;
@@ -128,6 +140,12 @@ public class ModuleScreen extends AScreen {
             idx++;
         }
     }
+    /** A switch knob easing to on or off on real frame time (the same speed at 30, 60 or 240 fps). */
+    private double knob(String id, boolean on) { return knob.merge(id, on ? 1.0 : 0.0, (o, n) -> reduced() ? n : UiKit.approach(o, n, frameDt, AurorasModules.tau(0.04))); }
+    /** Any 0..1 state (hover, lit) eased the same way. */
+    private double ease(String id, double target, double tau) { return hoverAnim.merge(id, target, (o, n) -> reduced() ? n : UiKit.approach(o, n, frameDt, AurorasModules.tau(tau))); }
+    /** Smooth ease-out for open and slide-in progress. */
+    static final class Motion { static double out(double x) { x = Math.max(0, Math.min(1, x)); return 1 - Math.pow(1 - x, 3); } }
     private void tooltip(Gfx c, int mx, int my) {
         if (menu.open == null) for (ModuleMenu.Card cd : L.cards()) { if (cd.r().contains(mx, my) && L.body().contains(mx, my)) { Config.Module m = cd.m(); AUi.tooltip(c, m.available() ? m.name() + ": " + m.impact().label : m.name() + " isn't in the game yet. " + m.note(), mx, my, width, height); return; } }
         else for (ModuleMenu.Row r : L.rows()) if (r.r().contains(mx, my) && L.body().contains(mx, my) && menu.changed(r.d())) { AUi.tooltip(c, "Changed from the default. Right-click to reset.", mx, my, width, height); return; }
@@ -137,6 +155,7 @@ public class ModuleScreen extends AScreen {
 
     // ---- input ----
     @Override protected boolean click(double mx, double my, int button) {
+        if (closing) return true;
         searching = L.search().contains(mx, my); if (searching) { focus = 0; caretT0 = System.nanoTime(); return true; }
         if (L.hudBtn().contains(mx, my)) { Mc.setScreen(minecraft, new HudEditorScreen(this)); return true; }
         for (int k = 0; k < L.cats().size(); k++) if (L.catRects().get(k).contains(mx, my)) { menu.back(); menu.setCategory(L.cats().get(k)); lastCategory = menu.category; contentAnim = 0; focus = 2 + k; return true; }
@@ -212,5 +231,8 @@ public class ModuleScreen extends AScreen {
         if (r != null) menu.scroll = UiKit.clampScroll(UiKit.scrollTo(menu.scroll, (int) (r.y() - L.body().y() + menu.scroll), r.h(), L.body().h()), L.content(), L.body().h());
     }
     @Override protected void onClosing() { AurorasClient.save(); }
-    @Override public void onClose() { AurorasClient.save(); if (parent != null) Mc.setScreen(minecraft, parent); else super.onClose(); }
+    /** Esc and the menu key fade the panel out first; finishClose() then really leaves. */
+    @Override protected void closeScreen() { if (reduced()) finishClose(); else closing = true; }
+    private void finishClose() { AurorasClient.save(); if (parent != null) Mc.setScreen(minecraft, parent); else super.onClose(); }
+    @Override public void onClose() { finishClose(); }
 }

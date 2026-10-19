@@ -96,5 +96,6 @@ test("cape for the game: only real PNGs in Minecraft's cape layout are written, 
 test("face for the in-game menu: only an 8x8 PNG is written", () => {
   const d = tmp(), png = (w, h) => { const b = Buffer.alloc(40); Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(b); b.writeUInt32BE(13, 8); b.write("IHDR", 12, "latin1"); b.writeUInt32BE(w, 16); b.writeUInt32BE(h, 20); return b; };
   assert.deepStrictEqual(M.writeFace(d, "data:image/png;base64," + png(8, 8).toString("base64")), { ok: true }); assert.strictEqual(fs.readFileSync(path.join(d, "face.png")).length, 40);
+  assert.deepStrictEqual(M.writeHead(d, png(64, 16)), { ok: true }); assert.ok(fs.existsSync(path.join(d, "head.png"))); assert.throws(() => M.writeHead(d, png(8, 8)), /64x16/);
   assert.throws(() => M.writeFace(d, png(64, 64)), /8x8/); assert.throws(() => M.writeFace(d, Buffer.alloc(9000)), /small PNG/); assert.throws(() => M.writeFace(d, "not base64 png"), /small PNG/);
 });
