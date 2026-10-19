@@ -129,13 +129,15 @@ describe("Visual Studio: skies and particles", () => {
 describe("Totem Studio", () => {
   let s; before(async () => { s = await launch(); await nav(s.page, "Totem Studio"); await wait(s.page, 500); }); after(() => s.close());
   const center = () => px(s.page, "#ts-cv", 0, 0).then(async () => s.page.evaluate(() => { const c = document.getElementById("ts-cv"), x = c.getContext("2d"), d = x.getImageData(c.width / 2 - 30, c.height / 2 - 30, 60, 60).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] > 200) n++; return n; }));
-  test("opens with a built-in design and shows it in 3D", async () => {
-    assert.ok(await s.page.evaluate(() => T.g.filter(Boolean).length > 60)); assert.ok((await center()) > 200, "3D totem drawn"); assert.match(await s.page.locator("#ts-tag").textContent(), /3D item preview/);
+  test("opens with the real Minecraft totem (read from the player's game) and shows it in 3D", async () => {
+    assert.ok(await s.page.evaluate(() => T.g.filter(Boolean).length === 96 && T.g[2 * 16 + 4] === "#e0b030" && T.g[0] === null), "the 16x16 texture's pixels, see-through where it is");
+    assert.deepStrictEqual((await calls(s.page, "vanillaTexture"))[0], { mc: "1.21.4", path: "assets/minecraft/textures/item/totem_of_undying.png" }); assert.ok((await center()) > 200, "3D totem drawn"); assert.match(await s.page.locator("#ts-tag").textContent(), /3D item preview/);
   });
   test("built-in presets load into the editor, with undo", async () => {
     await tap(s.page, s.page.locator("summary", { hasText: "Presets" })); await tap(s.page, s.page.locator('[data-bp="classic"]'));
     assert.ok(await s.page.evaluate(() => JSON.stringify(T.g) === JSON.stringify(builtinPixels("classic"))));
-    await tap(s.page, s.page.locator('[data-t="undo"]')); assert.ok(await s.page.evaluate(() => JSON.stringify(T.g) === JSON.stringify(builtinPixels("aurora"))));
+    await tap(s.page, s.page.locator('[data-t="undo"]')); assert.ok(await s.page.evaluate(() => JSON.stringify(T.g) === JSON.stringify(builtinPixels("real"))));
+    await tap(s.page, s.page.locator('[data-bp="classic"]')); await tap(s.page, s.page.locator('[data-bp="real"]')); assert.ok(await s.page.evaluate(() => T.g[2 * 16 + 4] === "#e0b030"), "Real totem preset loads it back");
   });
   test("save, rename, duplicate and delete presets; they persist", async () => {
     await tap(s.page, s.page.locator("#ts-save")); await s.page.locator("#pd-in").fill("Mine"); await tap(s.page, s.page.locator("[data-ok]"));

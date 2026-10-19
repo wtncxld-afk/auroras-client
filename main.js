@@ -487,6 +487,10 @@ ipcMain.handle("modcfg:assign", (_e, { id, place, profile }) => modconfig.assign
 
 // Vanilla textures for side-by-side previews, read from the player's own downloaded game jar (never bundled).
 ipcMain.handle("vanilla:texture", (_e, { mc, path: entry }) => {
+  // "any": the most recently downloaded release that has a game jar (the totem creator's real texture when this instance isn't downloaded yet)
+  if (mc === "any") { const vd = path.join(user(), "game", "versions"); let best = null;
+    try { for (const v of fs.readdirSync(vd)) { if (!/^\d{1,3}\.\d{1,3}(\.\d{1,3})?$/.test(v)) continue; const j = path.join(vd, v, v + ".jar"); try { const t = fs.statSync(j).mtimeMs; if (!best || t > best.t) best = { v, t }; } catch {} } } catch {}
+    if (!best) throw new Error("No Minecraft version is downloaded yet"); mc = best.v; }
   if (!/^\d{1,3}\.\d{1,3}(\.\d{1,3})?$/.test(String(mc))) throw new Error("Unknown Minecraft version");
   if (!/^assets\/minecraft\/textures\/[a-z0-9_\/]+\.png$/.test(String(entry)) || String(entry).includes("..")) throw new Error("Only Minecraft textures can be read");
   const jar = path.join(user(), "game", "versions", mc, mc + ".jar"); if (!fs.existsSync(jar)) throw new Error(`Minecraft ${mc} is not downloaded yet`);

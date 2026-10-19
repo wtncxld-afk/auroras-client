@@ -52,4 +52,16 @@ describe("Auto-update pop-up", () => {
     await tap(s.page, "[data-updnow]"); await wait(s.page, 50); assert.match(await s.page.locator("#upd-err").textContent(), /Close Minecraft first/);
     await tap(s.page, "[data-updlater]"); await wait(s.page, 50); assert.strictEqual(await s.page.locator("#updmodal").count(), 0);
   });
+  test("cursor trail sliders: the filled track ends under the knob, follows a drag, and no particles cover it while dragging", async () => {
+    await nav(s.page, "Settings"); await wait(s.page, 200);
+    const fill = (k) => s.page.evaluate((k) => getComputedStyle(document.querySelector(`[data-cfg="${k}"]`)).getPropertyValue("--fill"), k);
+    assert.match(await fill("trail.opacity"), /\* 0\.8889\)$/, "opacity 90% of 0.1..1 fills 8/9 of the track");
+    const el = s.page.locator('[data-cfg="trail.size"]'); await el.scrollIntoViewIfNeeded(); const b = await el.boundingBox();
+    await s.page.mouse.move(b.x + 4, b.y + b.height / 2); await s.page.mouse.down(); await s.page.evaluate(() => { TP = []; });
+    await s.page.mouse.move(b.x + b.width - 2, b.y + b.height / 2, { steps: 12 });
+    const during = await s.page.evaluate(() => TP.length); await s.page.mouse.up();
+    assert.strictEqual(during, 0, "no trail particles while a slider is dragged");
+    assert.deepStrictEqual(await s.page.evaluate(() => [CFG.trail.size, document.querySelector('[data-cfg="trail.size"]').nextElementSibling.textContent]), [2, "200%"]);
+    assert.match(await fill("trail.size"), /\* 1\.0000\)$/);
+  });
 });
