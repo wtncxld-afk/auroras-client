@@ -64,9 +64,9 @@ public final class VisualTests {
         long noon = 6000, midnight = 18000;
         check("sky mesh: the Nether keeps the vanilla sky unless it has a theme; the overworld and the End use theirs", !m.build("minecraft:the_nether", midnight, 10) && m.quads == 0
             && m.build("minecraft:overworld", midnight, 10) && m.themeFor("minecraft:overworld").id().equals("aurora") && m.themeFor("minecraft:the_end").id().equals("cosmic"));
-        Sky.Theme au = th.get("aurora"); int domeQuads = Quality.BALANCED.domeRings * 32 + 32;
+        Sky.Theme au = th.get("aurora"); int domeQuads = m.domeQuads();
         m.build("minecraft:overworld", noon, 10); int dayQuads = m.quads;
-        check("sky mesh: at noon there are no stars, aurora or nebula: only the dome, the ground and daytime effects", dayQuads >= domeQuads && dayQuads <= domeQuads + SkyFx.budget(Quality.BALANCED).cloudPuffs() * SkyMesh.BLOB_SIDES + SkyFx.budget(Quality.BALANCED).petals(), dayQuads, domeQuads);
+        check("sky mesh: at noon there are no stars, aurora or nebula: only the dome, the ground and daytime effects", dayQuads >= domeQuads && dayQuads <= domeQuads + SkyFx.budget(Quality.BALANCED).cloudPuffs() * SkyMesh.BLOB_QUADS + SkyFx.budget(Quality.BALANCED).petals(), dayQuads, domeQuads);
         boolean domeColors = true; for (int s = 0; s < 32; s++) domeColors &= (m.col[s * 4] & 0xFFFFFF) == Sky.skyColor(au, 0, noon, Sky.Adjust.NONE) && (m.col[s * 4] >>> 24) == 255;
         check("sky mesh: the dome's horizon ring has the core sky color for that time, fully opaque", domeColors);
         m.build("minecraft:overworld", midnight, 10); int nightQuads = m.quads;
@@ -84,7 +84,7 @@ public final class VisualTests {
         check("sky mesh: every theme at every quality stays within its precomputed capacity at all times", fits);
         SkyMesh low = new SkyMesh(th); low.configure(skySettings("sky.skyQuality", "LOW", "sky.clouds", "false", "sky.petals", "false", "sky.constellations", "false", "sky.shootingStars", "0", "sky.starDensity", "0"));
         low.build("minecraft:overworld", midnight, 10);
-        check("sky mesh: Low quality with effects and stars off is just the dome and ground (no aurora or nebula)", low.quads == Quality.LOW.domeRings * 32 + 32, low.quads);
+        check("sky mesh: Low quality with effects and stars off is just the dome, haze and ground (no aurora or nebula)", low.quads == low.domeQuads(), low.quads, low.domeQuads());
         SkyMesh off = new SkyMesh(th); off.configure(skySettings("sky.aurora", "false", "sky.nebula", "false")); off.build("minecraft:overworld", midnight, 10); m.build("minecraft:overworld", midnight, 10);
         check("sky mesh: switching the aurora and nebula off removes their quads", off.quads < m.quads - 200, off.quads, m.quads);
         SkyMesh bright = new SkyMesh(th); bright.configure(skySettings("sky.brightness", "0.2")); bright.build("minecraft:overworld", noon, 10);
@@ -94,7 +94,41 @@ public final class VisualTests {
         check("sky mesh: building a High quality night sky allocates nothing per frame", bytes < 20_000, bytes);
         check("sky mesh: building a High quality night sky takes under 2 ms on this machine", ms < 2, ms);
         System.out.printf(Locale.ROOT, "      (High night sky: %d quads, %.3f ms per build on this machine)%n", hot.quads, ms);
+        check("sky mesh: a High quality night sky stays under 12000 quads for every theme", Sky.THEME_IDS.stream().allMatch(id -> { SkyMesh x = new SkyMesh(th); x.configure(skySettings("sky.theme", id, "sky.skyQuality", "HIGH")); x.build("minecraft:overworld", midnight, 10); return x.quads < 12_000; }));
+        skyQuality(th);
     }
+    /** The detail SkyMesh adds on top of the shared sky maths: star magnitudes, soft aurora edges, directional sunset, smooth motion. */
+    static void skyQuality(Map<String, Sky.Theme> th) {
+        long midnight = 18000; Sky.Theme au = th.get("aurora");
+        SkyMesh m = new SkyMesh(th); m.configure(skySettings("sky.theme", "aurora", "sky.skyQuality", "HIGH"));
+        SkyMesh.Stars s = m.stars(au); float lo = Float.MAX_VALUE, hi = 0; for (float z : s.size) { lo = Math.min(lo, z); hi = Math.max(hi, z); }
+        check("sky stars: sizes vary (largest at least twice the smallest) and only a few bright stars get a halo", hi > lo * 2 && s.halos > 0 && s.halos < s.f.count * 0.3, lo, hi, s.halos, s.f.count);
+        boolean upper = true; for (int k = 0; k < s.dim; k++) upper &= s.dy[k] >= 0.03f;
+        SkyMesh noStars = new SkyMesh(th); noStars.configure(skySettings("sky.starDensity", "0"));
+        check("sky stars: a dim layer of tiny stars is added above the horizon, and goes away with star density 0", s.dim > s.f.count / 3 && upper
+            && noStars.stars(au).dim == 0, s.dim);
+        // aurora alone: dome, haze, ground, then 3 quads per column (under-edge fade, edge to middle, middle to top)
+        SkyMesh a = new SkyMesh(th); a.configure(skySettings("sky.theme", "aurora", "sky.skyQuality", "HIGH", "sky.starDensity", "0", "sky.shootingStars", "0")); a.build("minecraft:overworld", midnight, 10);
+        int start = a.domeQuads(), cols = (a.quads - start) / 3; boolean soft = cols > 0 && (a.quads - start) % 3 == 0; int bright = 0;
+        for (int c = 0; c < cols && soft; c++) { int q0 = start + c * 3; soft &= minA(a, q0) == 0 && minA(a, q0 + 2) == 0; bright = Math.max(bright, maxA(a, q0 + 1)); }
+        check("sky aurora: every curtain column fades to transparent below its lower edge and at its top", soft && bright > 40, cols, bright);
+        // sunset: the glow is strongest on the sun's side (west, -x, in the evening; east, +x, in the morning)
+        SkyMesh d = new SkyMesh(th); d.configure(skySettings("sky.theme", "sunset", "sky.skyQuality", "HIGH")); Sky.Theme su = th.get("sunset"); int half = d.segs / 2;
+        d.build("minecraft:overworld", 12500, 0); int eveW = d.col[half * 4], eveE = d.col[0];
+        d.build("minecraft:overworld", 23500, 0); int mornW = d.col[half * 4], mornE = d.col[0];
+        check("sky dome: the sunset glow sits on the sun's side of the horizon", dist(eveW, su.day().sunset()) < dist(eveE, su.day().sunset()) && dist(mornE, su.day().sunset()) < dist(mornW, su.day().sunset()));
+        // motion is a function of continuous time: two builds a millisecond apart barely differ
+        SkyMesh f = new SkyMesh(th); f.configure(skySettings("sky.theme", "aurora", "sky.skyQuality", "HIGH", "sky.shootingStars", "0")); f.build("minecraft:overworld", midnight, 100);
+        float[] p0 = Arrays.copyOf(f.pos, f.quads * 12); int[] c0 = Arrays.copyOf(f.col, f.quads * 4); int n0 = f.quads; f.build("minecraft:overworld", midnight, 100.001);
+        float dp = 0; int da = 0; if (n0 == f.quads) for (int i = 0; i < n0 * 4; i++) { for (int k = 0; k < 3; k++) dp = Math.max(dp, Math.abs(p0[i * 3 + k] - f.pos[i * 3 + k])); da = Math.max(da, Math.abs((c0[i] >>> 24) - (f.col[i] >>> 24))); }
+        check("sky motion: builds 1 ms apart move nothing more than 0.05 blocks and change no alpha by more than 2 levels", n0 == f.quads && dp < 0.05f && da <= 2, n0, f.quads, dp, da);
+        SkyMesh still = new SkyMesh(th); still.configure(skySettings("sky.theme", "aurora", "sky.animate", "false")); still.build("minecraft:overworld", midnight, 5); int[] s0 = Arrays.copyOf(still.col, still.quads * 4); float[] sp0 = Arrays.copyOf(still.pos, still.quads * 12);
+        still.build("minecraft:overworld", midnight, 50);
+        check("sky motion: with Animate off the sky holds perfectly still", Arrays.equals(s0, Arrays.copyOf(still.col, still.quads * 4)) && Arrays.equals(sp0, Arrays.copyOf(still.pos, still.quads * 12)));
+    }
+    static int minA(SkyMesh m, int q) { int r = 255; for (int k = 0; k < 4; k++) r = Math.min(r, m.col[q * 4 + k] >>> 24); return r; }
+    static int maxA(SkyMesh m, int q) { int r = 0; for (int k = 0; k < 4; k++) r = Math.max(r, m.col[q * 4 + k] >>> 24); return r; }
+    static int dist(int a, int b) { return Math.abs(ch(a, 16) - ch(b, 16)) + Math.abs(ch(a, 8) - ch(b, 8)) + Math.abs(ch(a, 0) - ch(b, 0)); }
     static void capeWatch() {
         Cosmetics.CapeWatch w = new Cosmetics.CapeWatch();
         check("cape file: looked at on the first tick", w.due(0, true));
