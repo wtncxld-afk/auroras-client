@@ -3,6 +3,10 @@ const path = require("path"), fs = require("fs"), crypto = require("crypto"), { 
 const launcher = require("./launcher"), launchplan = require("./launchplan");
 const modconfig = require("./modconfig");
 const capelib = require("./capelib"), serverlist = require("./serverlist");
+const securestore = require("./securestore");
+// Secrets are only written encrypted by the OS (see securestore.js). If it can't encrypt, they live in memory until quit.
+const vault = securestore.createVault({ available: () => safeStorage.isEncryptionAvailable(), encrypt: (t) => safeStorage.encryptString(t), decrypt: (b) => safeStorage.decryptString(b) });
+const memSecrets = new Map();
 /** The featured server: first in every instance's in-game server list, and the Join button on Home. */
 const FEATURED = { name: "VexVanilla", ip: "vexvanilla.net" };
 const ziputil = require("./ziputil");
@@ -17,10 +21,18 @@ const LDC = { Forge: 1, Fabric: 4, Quilt: 5, NeoForge: 6 };
 
 const user = () => app.getPath("userData");
 const settingsFile = () => path.join(user(), "settings.json");
-const readSettings = () => { try { return JSON.parse(fs.readFileSync(settingsFile(), "utf8")); } catch { return {}; } };
+const readSettings = () => securestore.readJson(settingsFile());
+const writeSettings = (s) => securestore.writePrivate(settingsFile(), JSON.stringify(s));
 function cfKey() {
+  if (memSecrets.has("cf")) return memSecrets.get("cf");
   const s = readSettings(); if (!s.cf) return "";
-  try { return s.enc ? safeStorage.decryptString(Buffer.from(s.cf, "base64")) : Buffer.from(s.cf, "base64").toString(); } catch { return ""; }
+  return vault.open({ enc: s.enc, data: s.cf }) || "";
+}
+/** Keeps the CurseForge key encrypted on disk, or in memory only when this PC can't encrypt. */
+function storeCfKey(key) {
+  const s = readSettings(), rec = key ? vault.seal(key) : null; delete s.cf; delete s.enc; memSecrets.delete("cf");
+  if (rec) { s.enc = true; s.cf = rec.data; } else if (key) memSecrets.set("cf", key);
+  writeSettings(s);
 }
 const instDir = (id) => path.join(user(), "instances", String(id).replace(/[^\w-]/g, "_"));
 const manFile = (id) => path.join(instDir(id), "mods.json");
@@ -83,9 +95,7 @@ ipcMain.handle("http", (_e, { url }) => getJson(url));
 ipcMain.handle("settings", () => ({ cfKey: !!cfKey() }));
 ipcMain.handle("setCfKey", (_e, k) => {
   const key = String(k || "").trim(); if (!key) throw new Error("Empty key");
-  const enc = safeStorage.isEncryptionAvailable();
-  fs.writeFileSync(settingsFile(), JSON.stringify({ ...readSettings(), enc, cf: (enc ? safeStorage.encryptString(key) : Buffer.from(key)).toString("base64") }));
-  return true;
+  storeCfKey(key); return true;
 });
 ipcMain.handle("installed", (_e, id) => {
   const man = readMan(id), dir = path.join(instDir(id), "mods"), out = {};
@@ -215,12 +225,15 @@ async function minecraftLogin(msAccessToken) {
   return { mcToken: mc.json.access_token, expiresIn: +mc.json.expires_in || 3600, uuid: p.id, name: p.name };
 }
 const accFile = () => path.join(user(), "accounts.json");
-const readAcc = () => { try { return JSON.parse(fs.readFileSync(accFile(), "utf8")); } catch { return {}; } };
+const readAcc = () => securestore.readJson(accFile());
+const writeAcc = (a) => securestore.writePrivate(accFile(), JSON.stringify(a));
+/** The Microsoft refresh token, encrypted by the OS. Without OS encryption it stays in memory and you sign in again next time. */
 function saveRefresh(uuid, name, token) {
-  const enc = safeStorage.isEncryptionAvailable(), a = readAcc();
-  a[uuid] = { name, enc, refresh: (enc ? safeStorage.encryptString(token) : Buffer.from(token)).toString("base64") };
-  fs.writeFileSync(accFile(), JSON.stringify(a));
+  const rec = vault.seal(token), a = readAcc(); memSecrets.delete("acc:" + uuid);
+  if (rec) a[uuid] = { name, enc: true, refresh: rec.data }; else { a[uuid] = { name }; memSecrets.set("acc:" + uuid, token); }
+  writeAcc(a);
 }
+const readRefresh = (uuid, a) => memSecrets.get("acc:" + uuid) || (a && a.refresh ? vault.open({ enc: a.enc, data: a.refresh }) : null);
 function pollSignIn(sender, cid, d) {
   let wait = (d.interval || 5) * 1000; const end = Date.now() + d.expires_in * 1000;
   const done = (p) => { if (!sender.isDestroyed()) sender.send("auth:done", p); };
@@ -253,7 +266,7 @@ ipcMain.handle("auth:window", async (e) => {
   const cid = msClient(); if (!cid) return { needsClientId: true };
   if (authWin && !authWin.isDestroyed()) { authWin.focus(); return { busy: true }; }
   const p = msauth.pkce(), parent = BrowserWindow.fromWebContents(e.sender);
-  const part = "msauth-" + Date.now(), ses = require("electron").session.fromPartition(part, { cache: false });
+  const part = "msauth-" + Date.now(), ses = require("electron").session.fromPartition(part, { cache: false }); denyPermissions(ses);
   const w = authWin = new BrowserWindow({ width: 500, height: 680, parent, modal: false, title: "Sign in with Microsoft", autoHideMenuBar: true, backgroundColor: "#ffffff",
     webPreferences: { session: ses, sandbox: true, contextIsolation: true, nodeIntegration: false, javascript: true, spellcheck: false } });
   w.webContents.setWindowOpenHandler(({ url }) => { try { if (new URL(url).protocol === "https:") shell.openExternal(url); } catch {} return { action: "deny" }; });
@@ -284,14 +297,14 @@ ipcMain.handle("auth:start", async (e) => {
   return { userCode: d.json.user_code, url: d.json.verification_uri, expiresIn: d.json.expires_in };
 });
 // Which saved accounts still have a sign-in on this computer (a stored refresh token). Nothing is sent anywhere.
-ipcMain.handle("accounts:status", () => { const a = readAcc(); return Object.fromEntries(Object.keys(a).map((k) => [k, { signedIn: !!a[k].refresh, encrypted: !!a[k].enc }])); });
+ipcMain.handle("accounts:status", () => { const a = readAcc(); return Object.fromEntries(Object.keys(a).map((k) => [k, { signedIn: !!a[k].refresh || memSecrets.has("acc:" + k), encrypted: !!a[k].enc }])); });
 // Live server status (Minecraft's Server List Ping), cached for 20 seconds per address.
 const serverping = require("./serverping.js"); const pingCache = new Map();
 ipcMain.handle("server:status", async (_e, addr) => {
   const key = String(addr).trim().toLowerCase(), c = pingCache.get(key); if (c && Date.now() - c.at < 20000) return c.v;
   const v = await serverping.ping(key, { timeout: 5000 }); pingCache.set(key, { at: Date.now(), v }); return v;
 });
-ipcMain.handle("accounts:remove", (_e, uuid) => { const a = readAcc(); delete a[uuid]; fs.writeFileSync(accFile(), JSON.stringify(a)); return true; });
+ipcMain.handle("accounts:remove", (_e, uuid) => { const k = String(uuid), a = readAcc(); delete a[k]; writeAcc(a); memSecrets.delete("acc:" + k); tokens.delete(k); friendTokens.delete(k); return true; });
 ipcMain.handle("settings:set", (_e, o) => {
   const s = readSettings();
   if (typeof o.msClientId === "string") s.msClientId = /^[0-9a-f-]{36}$/i.test(o.msClientId.trim()) ? o.msClientId.trim() : (o.msClientId.trim() === "" ? "" : (() => { throw new Error("That doesn’t look like an Azure application (client) ID"); })());
@@ -299,9 +312,9 @@ ipcMain.handle("settings:set", (_e, o) => {
   if (typeof o.spotifyClientId === "string") { const v = o.spotifyClientId.trim(); if (v && !/^[0-9a-f]{32}$/i.test(v)) throw new Error("That doesn’t look like a Spotify client ID (32 letters and numbers)."); s.spotifyClientId = v; }
   if (typeof o.friendsUrl === "string") { const v = o.friendsUrl.trim(); if (v && !friends.checkUrl(v)) throw new Error("The friends server address must start with https://"); s.friendsUrl = v ? friends.checkUrl(v) : ""; }
   if (typeof o.updateUrl === "string") { if (o.updateUrl) { if (new URL(o.updateUrl).protocol !== "https:") throw new Error("Update URL must be https"); } s.updateUrl = o.updateUrl.trim(); }
-  fs.writeFileSync(settingsFile(), JSON.stringify(s)); return true;
+  writeSettings(s); return true;
 });
-ipcMain.handle("settings:all", () => { const s = readSettings(); return { autoMod: s.autoMod !== false, releaseRepo: RELEASES ? RELEASE.githubRepo : "", cfKey: !!cfKey(), msClientId: s.msClientId || "", msShipped: !!msauth.clientId({}, SHIPPED_AUTH), updateUrl: s.updateUrl || "", friendsUrl: s.friendsUrl || "", friendsShipped: !!friends.friendsUrl({}, SHIPPED_AUTH), spotifyClientId: s.spotifyClientId || "", spotifyConnected: !!readSpotifyToken(), version: app.getVersion() }; });
+ipcMain.handle("settings:all", () => { const s = readSettings(); return { autoMod: s.autoMod !== false, releaseRepo: RELEASES ? RELEASE.githubRepo : "", cfKey: !!cfKey(), msClientId: s.msClientId || "", msShipped: !!msauth.clientId({}, SHIPPED_AUTH), updateUrl: s.updateUrl || "", friendsUrl: s.friendsUrl || "", friendsShipped: !!friends.friendsUrl({}, SHIPPED_AUTH), spotifyClientId: s.spotifyClientId || "", spotifyConnected: !!readSpotifyToken(), secureStorage: vault.available(), version: app.getVersion() }; });
 
 // ---------- Updates (signed manifest; nothing is applied unless it verifies) ----------
 async function fetchBytes(url) { const r = await net.fetch(updater.httpsUrl ? updater.httpsUrl(url) : url, { headers: { "User-Agent": UA } }); if (!r.ok) throw new Error(`Update server returned ${r.status}`); return Buffer.from(await r.arrayBuffer()); }
@@ -379,7 +392,7 @@ async function mcAuthFor(uuid) {
   const c = tokens.get(uuid); if (c && c.exp > Date.now() + 60000) return c;
   const a = readAcc()[uuid]; if (!a) throw new Error("This account isn’t signed in on this PC. Remove it and sign in with Microsoft again.");
   const cid = msClient(); if (!cid) throw new Error("Add your Azure app ID in Settings so the sign-in can be refreshed.");
-  let refresh; try { refresh = a.enc ? safeStorage.decryptString(Buffer.from(a.refresh, "base64")) : Buffer.from(a.refresh, "base64").toString(); } catch { throw new Error("Couldn’t read the saved sign-in. Sign in again."); }
+  const refresh = readRefresh(uuid, a); if (!refresh) throw new Error("Couldn’t read the saved sign-in. Remove the account and sign in again.");
   const t = await post(MSA + "/token", { grant_type: "refresh_token", client_id: cid, refresh_token: refresh, scope: "XboxLive.signin offline_access" });
   if (t.status !== 200) throw new Error("Your Microsoft sign-in has expired. Remove the account and sign in again.");
   const acct = await minecraftLogin(t.json.access_token);
@@ -460,9 +473,10 @@ ipcMain.handle("vanilla:texture", (_e, { mc, path: entry }) => {
 // ---------- Spotify now playing (for the Spotify HUD). Polls only while a game is running. ----------
 const spotify = require("./spotify"), http = require("http");
 const spTokFile = () => path.join(user(), "spotify.json");
-function readSpotifyToken() { try { const j = JSON.parse(fs.readFileSync(spTokFile(), "utf8")); const t = j.enc ? safeStorage.decryptString(Buffer.from(j.data, "base64")) : Buffer.from(j.data, "base64").toString(); return JSON.parse(t); } catch { return null; } }
-function writeSpotifyToken(t) { if (!t) { try { fs.unlinkSync(spTokFile()); } catch {} return; } const enc = safeStorage.isEncryptionAvailable(), txt = JSON.stringify({ refresh: t.refresh, access: t.access, expiresAt: t.expiresAt });
-  fs.writeFileSync(spTokFile(), JSON.stringify({ enc, data: (enc ? safeStorage.encryptString(txt) : Buffer.from(txt)).toString("base64") })); }
+function readSpotifyToken() { try { return JSON.parse(memSecrets.get("spotify") || vault.open(securestore.readJson(spTokFile()))); } catch { return null; } }
+function writeSpotifyToken(t) { memSecrets.delete("spotify"); if (!t) { try { fs.unlinkSync(spTokFile()); } catch {} return; }
+  const txt = JSON.stringify({ refresh: t.refresh, access: t.access, expiresAt: t.expiresAt }), rec = vault.seal(txt);
+  if (rec) securestore.writePrivate(spTokFile(), JSON.stringify(rec)); else { try { fs.unlinkSync(spTokFile()); } catch {} memSecrets.set("spotify", txt); } }
 const spFetch = (url, o) => { const u = new URL(url); if (u.protocol !== "https:" || !["accounts.spotify.com", "api.spotify.com"].includes(u.hostname)) throw new Error("Blocked host"); return net.fetch(url, o); };
 let spServer = null;
 ipcMain.handle("spotify:connect", async () => {
@@ -508,14 +522,43 @@ ipcMain.handle("capelib:rename", (_e, d) => capelib.rename(capeLibDir(), d || {}
 ipcMain.handle("capelib:delete", (_e, id) => capelib.remove(capeLibDir(), id));
 ipcMain.handle("emotes:wheel", (_e, { id, slots }) => modconfig.saveWheel(cfgDir(id), slots));
 
+/**
+ * Earlier versions saved secrets as plain base64 when the OS couldn't encrypt. Re-save them encrypted, or move them
+ * to memory and delete them from disk, and make the private files owner-only. Runs once at start.
+ */
+function migrateSecrets() {
+  securestore.lockDir(user());
+  try { const s = readSettings(); if (s.cf && !s.enc) { const k = vault.open({ enc: false, data: s.cf }); storeCfKey(k || ""); } else if (fs.existsSync(settingsFile())) writeSettings(s); } catch (x) { console.log("[auroras] settings migration: " + x.message); }
+  try { const a = readAcc(); let changed = false;
+    for (const [k, v] of Object.entries(a)) if (v && v.refresh && !v.enc) { const t = vault.open({ enc: false, data: v.refresh }); delete v.refresh; delete v.enc; changed = true; if (t) saveRefresh(k, v.name, t); }
+    if (changed) { const b = readAcc(); for (const [k, v] of Object.entries(b)) if (v && v.refresh && !v.enc) { delete v.refresh; delete v.enc; } writeAcc(b); } else if (fs.existsSync(accFile())) writeAcc(a);
+  } catch (x) { console.log("[auroras] accounts migration: " + x.message); }
+  try { const j = securestore.readJson(spTokFile()); if (j.data && !j.enc) { const t = vault.open(j); try { fs.unlinkSync(spTokFile()); } catch {} if (t) writeSpotifyToken(JSON.parse(t)); } } catch (x) { console.log("[auroras] spotify migration: " + x.message); }
+}
+
+// Lock down every window: no webviews, no surprise navigation away from the launcher, no camera/mic/location/etc.
+app.on("web-contents-created", (_e, c) => {
+  c.on("will-attach-webview", (ev) => ev.preventDefault());
+});
+function lockWindow(w) {
+  const home = w.webContents;
+  home.on("will-navigate", (ev, url) => { ev.preventDefault(); try { if (new URL(url).protocol === "https:") shell.openExternal(url); } catch {} });
+  home.on("will-redirect", (ev) => ev.preventDefault());
+}
+function denyPermissions(ses) {
+  ses.setPermissionRequestHandler((_wc, _perm, cb) => cb(false));
+  ses.setPermissionCheckHandler(() => false);
+}
+
 function createWindow() {
   const w = new BrowserWindow({
     width: 1280, height: 800, minWidth: 900, minHeight: 600, frame: false, backgroundColor: "#0b0d12",
     icon: path.join(__dirname, "build", "icon.png"),
     webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
+  lockWindow(w);
   w.loadFile(path.join(__dirname, "renderer", "index.html"));
   w.webContents.setWindowOpenHandler(({ url }) => { try { if (new URL(url).protocol === "https:") shell.openExternal(url); } catch {} return { action: "deny" }; });
 }
-app.whenReady().then(() => { createWindow(); app.on("activate", () => { if (!BrowserWindow.getAllWindows().length) createWindow(); }); });
+app.whenReady().then(() => { migrateSecrets(); denyPermissions(require("electron").session.defaultSession); createWindow(); app.on("activate", () => { if (!BrowserWindow.getAllWindows().length) createWindow(); }); });
 app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });

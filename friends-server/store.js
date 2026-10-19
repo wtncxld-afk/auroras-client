@@ -15,7 +15,7 @@ function createStore({ file = null, now = () => Date.now(), random = (n) => cryp
   if (file) try { D = { ...D, ...JSON.parse(fs.readFileSync(file, "utf8")) }; } catch {}
   const presence = new Map(), challenges = new Map(); let invites = [];
   let saveTimer = null; const save = () => { if (!file || saveTimer) return; saveTimer = setTimeout(flush, 200); };
-  function flush() { saveTimer = null; if (!file) return; fs.mkdirSync(path.dirname(file), { recursive: true }); const tmp = file + ".tmp"; fs.writeFileSync(tmp, JSON.stringify(D)); fs.renameSync(tmp, file); }
+  function flush() { saveTimer = null; if (!file) return; fs.mkdirSync(path.dirname(file), { recursive: true }); const tmp = file + ".tmp"; fs.writeFileSync(tmp, JSON.stringify(D), { mode: 0o600 }); fs.renameSync(tmp, file); }
   const fl = (u) => D.friends[u] || (D.friends[u] = []);
   const areFriends = (a, b) => fl(a).includes(b);
   const user = (u) => { const x = D.users[u]; if (!x) throw err(404, "Unknown player."); return x; };

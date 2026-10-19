@@ -38,7 +38,7 @@ function createClient({ base, http, join, tokens = new Map() }) {
   }
   return {
     signIn, call,
-    overview: (acct) => call(acct, "GET", "/friends"),
+    overview: async (acct) => cleanOverview(await call(acct, "GET", "/friends")),
     presence: (acct, p) => call(acct, "POST", "/presence", p),
     async act(acct, action, arg) {
       const key = ACTIONS[action]; if (!key) throw new Error("Unknown friends action.");
@@ -47,4 +47,25 @@ function createClient({ base, http, join, tokens = new Map() }) {
     },
   };
 }
-module.exports = { createClient, friendsUrl, checkUrl, ACTIONS };
+/**
+ * The friends server is someone else's computer, so everything it sends is checked before the launcher shows it:
+ * only real Minecraft names and ids, known states and plain server addresses get through; anything else is dropped.
+ */
+const NAME = /^[A-Za-z0-9_]{1,16}$/, UUID = /^[0-9a-f]{32}$/, ADDR = /^[A-Za-z0-9.\-]{1,253}(:\d{1,5})?$/, STATES = ["online", "playing", "away", "offline"];
+const person = (p) => p && UUID.test(String(p.uuid)) && NAME.test(String(p.name)) ? { uuid: String(p.uuid), name: String(p.name) } : null;
+const addr = (v) => (typeof v === "string" && ADDR.test(v) ? v : null);
+const list = (v, f, max = 500) => (Array.isArray(v) ? v.slice(0, max).map(f).filter(Boolean) : []);
+function cleanOverview(o) {
+  if (!o || typeof o !== "object") throw new Error("The friends server sent something Auroras couldn’t read.");
+  const me = person(o.me); if (!me) throw new Error("The friends server sent something Auroras couldn’t read.");
+  return {
+    me,
+    friends: list(o.friends, (f) => { const p = person(f); if (!p) return null; const state = STATES.includes(f.state) ? f.state : "offline", out = { ...p, state };
+      if (state === "offline") out.lastSeen = typeof f.lastSeen === "string" && !isNaN(Date.parse(f.lastSeen)) ? new Date(Date.parse(f.lastSeen)).toISOString() : null;
+      else { out.server = state === "playing" ? addr(f.server) : null; if (typeof f.instance === "string") out.instance = f.instance.slice(0, 32); }
+      return out; }),
+    incoming: list(o.incoming, person), outgoing: list(o.outgoing, person),
+    invites: list(o.invites, (v) => { const p = person(v), s = addr(v && v.server); return p && s ? { ...p, server: s } : null; }, 50),
+  };
+}
+module.exports = { createClient, friendsUrl, checkUrl, cleanOverview, ACTIONS };

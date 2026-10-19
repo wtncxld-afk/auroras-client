@@ -112,5 +112,8 @@ See `client-mod/README.md` for the core/adapter layout, how to add a Minecraft r
 - `npm run test:ui`: the launcher interface in headless Chromium against a mocked desktop bridge (one-time setup: `npm install --no-save playwright` then `npx playwright install chromium`).
 - Java core: see `client-mod/README.md`.
 
+## Privacy and security
+Sign-ins, the CurseForge key and the Spotify connection are stored only encrypted by the OS (`securestore.js`); if it can't encrypt, they stay in memory and are never written. Private files are owner-only. The launcher talks to a fixed list of services, starts no program but Java, and has no analytics. `test/security.test.js` fails if any of that changes. Details in TEST_REPORT.md.
+
 ## Before publishing on GitHub
 Set `UA` in `main.js` to your repo URL or email (Modrinth asks for it). Never commit `update-private-key.pem` or a CurseForge key. Libraries: Electron (MIT), three.js (MIT), JSZip (MIT or GPLv3). Inter font loads from Google Fonts (SIL OFL). The logo is yours.

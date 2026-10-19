@@ -7,8 +7,8 @@
     "postinstall": "node scripts/vendor.js",
     "start": "electron .",
     "dist": "electron-builder --win",
-    "test": "node --test test/updater.test.js test/versions.test.js test/launchplan.test.js test/installer.test.js test/launcher.test.js test/visuals.test.js test/modconfig.test.js test/ziputil.test.js test/compat.test.js test/hud.test.js test/spotify.test.js test/skyfx.test.js test/emotes.test.js test/serverping.test.js test/clientmod.test.js test/msauth.test.js test/serverlist.test.js test/capelib.test.js test/friends.test.js",
-    "test:ui": "node --test --test-concurrency=1 test/ui/ui.test.js test/ui/studios.test.js test/ui/stage4.test.js test/ui/quality.test.js test/ui/versions.test.js test/ui/friends.test.js"
+    "test": "node --test test/updater.test.js test/versions.test.js test/launchplan.test.js test/installer.test.js test/launcher.test.js test/visuals.test.js test/modconfig.test.js test/ziputil.test.js test/compat.test.js test/hud.test.js test/spotify.test.js test/skyfx.test.js test/emotes.test.js test/serverping.test.js test/clientmod.test.js test/msauth.test.js test/serverlist.test.js test/capelib.test.js test/friends.test.js test/security.test.js",
+    "test:ui": "node --test --test-concurrency=1 test/ui/ui.test.js test/ui/studios.test.js test/ui/stage4.test.js test/ui/quality.test.js test/ui/versions.test.js test/ui/friends.test.js test/ui/privacy.test.js"
   },
   "devDependencies": {
     "electron": "^39.0.0",
@@ -35,6 +35,7 @@
       "modconfig.js",
       "preload.js",
       "renderer/**",
+      "securestore.js",
       "serverlist.js",
       "serverping.js",
       "spotify.js",

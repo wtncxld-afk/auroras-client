@@ -19,6 +19,25 @@ Network: Mojang, Fabric, NeoForge, Forge, Modrinth, Spotify, Gradle and Maven we
 | Fabric adapter for 1.21.11 and 26.x | `java ParseCheck.java adapters/mojmap`, plus a compile against stand-in Minecraft classes (both GUI variants) | syntax: 32 files, 0 problems (2026-10-18 widget pass: syntax only; the stand-in classes aren't in the repository, so the stand-in compile wasn't re-run) |
 | Fabric adapter for 1.21.4 (older) | `java ParseCheck.java adapters/fabric-1.21.4/src` | syntax only: 26 files, 0 problems |
 
+## Security review: user data and malware check (2026-10-19, later)
+**No RAT, malware, telemetry or hidden behaviour was found.** Checked by hand and now enforced by `test/security.test.js` on every `npm test`:
+- Network: every address the launcher, its UI and the friends server use is on a fixed list (Microsoft, Xbox, Mojang, Modrinth, CurseForge, Fabric/Forge/NeoForge/Quilt, GitHub, Spotify, cdnjs, Google Fonts, localhost). A new host fails the test. Planting a test file with an unknown host, `eval` and `child_process.exec` made it fail as expected.
+- Processes: the only program the launcher starts is Java (to run Minecraft, and `java -version` to check an install). No shell, no `eval`, no keylogging, clipboard reading, screen capture or webhooks.
+- Java mod: no networking, no process launching, no loading code from outside; the only reflection is on Minecraft's own render classes.
+- No binaries in the project (`Run Auroras.bat` only runs npm). GitHub Actions are pinned to commits, there are no runtime npm dependencies (dev: Electron, electron-builder, three.js, JSZip), the friends server has none, and `update-private-key.pem` is git-ignored.
+- Downloads were already checked by hash (Mojang files by SHA-1, mods by SHA-512/SHA-1, the Auroras mod by SHA-256, launcher updates by signature).
+
+**Fixed:**
+1. Sign-ins (Microsoft refresh tokens), the CurseForge key and the Spotify token used to fall back to plain base64 on disk when the OS couldn't encrypt. Now they're only written encrypted (new `securestore.js`); otherwise they're kept in memory until quit. Plain ones from older versions are re-encrypted or deleted at start.
+2. `accounts.json`, `settings.json` and `spotify.json` are written atomically and owner-only (0600); the data folder is 0700 on macOS/Linux. The friends server's data file is 0600.
+3. Windows can no longer navigate away from the launcher, open webviews, or get camera, microphone, location or notification permission (also for the Microsoft sign-in window).
+4. Everything a friends server sends is validated before the launcher shows it (real names and ids, known states, plain server addresses), so a hostile server can't inject anything.
+5. Removing an account now also forgets its in-memory tokens.
+6. Settings has a Privacy and security panel, which says plainly when a PC can't encrypt.
+7. A test now checks that every module `main.js` loads is in the installer's file list.
+
+Tests: npm 146/146 (12 new security tests), UI 138/138 (2 new), Java 395/395, ParseCheck 38 files. **Not run:** the start-up migration and the window locks inside real Electron (no display here); OS encryption itself was stood in for by a fake.
+
 ## Widget and module polish (2026-10-18, later)
 - **Keystrokes rebuilt:** layout, labels and press fade are core `Keystrokes` (tested, mirrored in the launcher and golden-checked). New settings: key size, key gap, labels from your own key binds (or W A S D, or arrows), slim or full space bar, sneak and sprint keys, CPS under the mouse buttons, release fade time, pressed opacity and pressed text colour. Long labels shrink to fit their key.
 - **Every HUD element** gained a background colour, a corner radius (rounded boxes drawn as the same rectangles in game and in the launcher, tested pixel by pixel) and a text colour mode: solid, chroma (flowing rainbow) or gradient (text colour to accent). Reduced motion holds chroma still. These settings are saved in HUD layouts.
