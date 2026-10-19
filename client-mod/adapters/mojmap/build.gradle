@@ -50,3 +50,19 @@ processResources {
     from('../../../visuals/icons') { include '*.a8'; into 'assets/auroras_client/icons' }
     from('../../fonts') { include 'Inter-OFL.txt'; into 'assets/auroras_client/textures/font' }
 }
+// Show every compiler error at once (javac stops at 100 by default).
+tasks.withType(JavaCompile).configureEach { it.options.compilerArgs += ['-Xmaxerrs', '1000', '-Xmaxwarns', '1000'] }
+// CI aid (.github/workflows/mod-check.yml): prints `javap -p` for the classes in -PjavapClasses=a.B,c.D from this
+// target's compile classpath, so the real Minecraft and Fabric API names can be read in the log.
+tasks.register('mcJavap') {
+    doLast {
+        def jars = sourceSets.main.compileClasspath.files.findAll { it.name.endsWith('.jar') }
+        jars.findAll { it.name.contains('minecraft') || it.name.contains('fabric') }.each { println "classpath: ${it}" }
+        def classes = (project.findProperty('javapClasses') ?: '').toString().split(',').collect { it.trim() }.findAll { it }
+        def javap = "${System.getProperty('java.home')}/bin/javap"
+        classes.each { c ->
+            def p = new ProcessBuilder([javap, '-p', '-cp', jars.join(File.pathSeparator), c]).redirectErrorStream(true).start()
+            println "==== javap ${c}"; println p.inputStream.text; p.waitFor()
+        }
+    }
+}
