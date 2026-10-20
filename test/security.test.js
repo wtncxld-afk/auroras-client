@@ -70,7 +70,20 @@ const HOSTS = new Set(["api.modrinth.com", "modrinth.com", "cdn.modrinth.com", "
   "piston-meta.mojang.com", "launchermeta.mojang.com", "libraries.minecraft.net", "resources.download.minecraft.net", "meta.fabricmc.net", "maven.fabricmc.net",
   "maven.neoforged.net", "files.minecraftforge.net", "maven.minecraftforge.net", "meta.quiltmc.org", "login.microsoftonline.com", "login.live.com", "user.auth.xboxlive.com",
   "xsts.auth.xboxlive.com", "auth.xboxlive.com", "accounts.spotify.com", "api.spotify.com", "api.github.com", "github.com", "cdnjs.cloudflare.com",
-  "fonts.googleapis.com", "fonts.gstatic.com", "portal.azure.com", "127.0.0.1", "localhost", "www.w3.org", "example.com", "friends.example.net", "x", "textures.minecraft.net", "crafatar.com", "www.skinmc.net", "skinmc.net", "mc-heads.net", "minotar.net"]);
+  "fonts.googleapis.com", "fonts.gstatic.com", "portal.azure.com", "127.0.0.1", "localhost", "www.w3.org", "example.com", "friends.example.net", "x", "textures.minecraft.net", "crafatar.com", "www.skinmc.net", "skinmc.net", "mc-heads.net", "minotar.net",
+  // Modrinth modpacks (.mrpack) may only download from the hosts the format allows (checked in modpack.js, see the test below).
+  "raw.githubusercontent.com", "gitlab.com"]);
+// The .mrpack format allows exactly these download hosts. A modpack file can't add any other.
+const MODPACK_HOSTS = ["cdn.modrinth.com", "github.com", "raw.githubusercontent.com", "gitlab.com"];
+test("modpacks download only from the hosts the .mrpack format allows", () => {
+  const M = require("../modpack.js");
+  assert.deepEqual([...M.HOSTS].sort(), [...MODPACK_HOSTS].sort());
+  for (const h of MODPACK_HOSTS) assert.ok(HOSTS.has(h), h + " is a known host");
+  for (const u of ["http://cdn.modrinth.com/x.jar", "https://cdn.modrinth.com.evil.net/x.jar", "https://evil.net/cdn.modrinth.com/x.jar", "https://user@cdn.modrinth.com/x.jar", "https://cdn.modrinth.com:8443/x.jar", "https://edge.forgecdn.net/x.jar", "file:///etc/passwd", "javascript:alert(1)"])
+    assert.equal(M.allowedUrl(u), false, u);
+  // main.js streams modpack files only through packStream, which checks the host before connecting.
+  assert.match(fs.readFileSync(path.join(ROOT, "main.js"), "utf8"), /async function\* packStream\(url, \{ maxBytes \}\) \{\n  if \(!modpack\.allowedUrl\(url\)\) throw/);
+});
 
 test("the launcher only talks to known, legitimate hosts", () => {
   const bad = [];

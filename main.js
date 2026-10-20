@@ -391,10 +391,95 @@ ipcMain.handle("versions:meta", async (_e, id) => {
   const { data } = await loadVersionData(), entry = data.manifest.versions.find((v) => v.id === id); if (!entry) throw new Error("Unknown Minecraft version");
   return { java: versions.javaFor(await getJson(entry.url)) };
 });
-ipcMain.handle("instance:prepare", (_e, i) => {
+function prepareInstance(i, extra = {}) {
   const d = instDir(i.id); for (const s of ["mods", "config", "resourcepacks", "saves", "logs", "hud"]) fs.mkdirSync(path.join(d, s), { recursive: true });
   const f = path.join(d, "instance.json"); let old = {}; try { old = JSON.parse(fs.readFileSync(f, "utf8")); } catch {}
-  fs.writeFileSync(f, JSON.stringify({ schema: 1, ...old, name: String(i.name || "").slice(0, 32), mc: String(i.mc), loader: String(i.loader), loaderVersion: i.loaderVersion || null, java: i.java || { mode: "auto" }, memMb: Math.max(512, Math.min(65536, (+i.mem || 4) * 1024)), args: String(i.args || ""), client: old.client || null }, null, 2)); return true;
+  fs.writeFileSync(f, JSON.stringify({ schema: 1, ...old, ...extra, name: String(i.name || "").slice(0, 32), mc: String(i.mc), loader: String(i.loader), loaderVersion: i.loaderVersion || null, java: i.java || { mode: "auto" }, memMb: Math.max(512, Math.min(65536, (+i.mem || 4) * 1024)), args: String(i.args || ""), client: old.client || null }, null, 2)); return true;
+}
+ipcMain.handle("instance:prepare", (_e, i) => prepareInstance(i));
+
+// ---------- Modrinth modpacks (.mrpack): pick a file or fetch one from Modrinth, check it, then install it as a new instance ----------
+const modpack = require("./modpack");
+const packs = new Map(); // token -> { file, temp, summary, extra, cancel }
+const packDir = () => path.join(user(), "modpacks");
+const packToken = () => crypto.randomBytes(12).toString("hex");
+function packFor(token) { const p = packs.get(String(token)); if (!p) throw new Error("That modpack is no longer open. Choose it again."); return p; }
+function dropPack(token) { const p = packs.get(String(token)); if (!p) return; packs.delete(String(token)); if (p.temp) fs.rm(p.file, { force: true }, () => {}); }
+/** Streams a modpack download from an allowed host (modpack.HOSTS), never more than maxBytes. */
+async function* packStream(url, { maxBytes }) {
+  if (!modpack.allowedUrl(url)) throw new Error("Download host not allowed: " + url);
+  const r = await net.fetch(url, { headers: { "User-Agent": UA } });
+  if (!r.ok) throw new Error(`${new URL(url).hostname} returned ${r.status}`);
+  const len = +r.headers.get("content-length"); if (len && len > maxBytes) throw new Error("The download is larger than expected");
+  const reader = r.body.getReader(); let got = 0;
+  try { for (;;) { const { done, value } = await reader.read(); if (done) break; got += value.length; if (got > maxBytes) throw new Error("The download is larger than expected"); yield value; } }
+  finally { try { await reader.cancel(); } catch {} }
+}
+function openPack(file, temp, extra = {}) {
+  const { summary } = modpack.readPack(file), token = packToken();
+  packs.set(token, { file, temp, summary, extra }); return { token, ...summary, ...extra };
+}
+ipcMain.handle("modpack:pick", async (e) => {
+  const w = BrowserWindow.fromWebContents(e.sender);
+  const r = await dialog.showOpenDialog(w, { title: "Import a Modrinth modpack", properties: ["openFile"], filters: [{ name: "Modrinth modpack", extensions: ["mrpack"] }] });
+  if (r.canceled || !r.filePaths || !r.filePaths[0]) return null;
+  const file = r.filePaths[0]; if (!/\.mrpack$/i.test(file)) throw new Error("Choose a .mrpack file (a Modrinth modpack).");
+  return openPack(file, false, { source: "file", fileName: path.basename(file) });
+});
+/** Newest release (or newest build) of a Modrinth modpack project, downloaded from cdn.modrinth.com and checked against Modrinth's SHA-512. */
+ipcMain.handle("modpack:fetch", async (e, { project, version } = {}) => {
+  const id = String(project || ""); if (!/^[\w-]{1,64}$/.test(id)) throw new Error("Unknown Modrinth project");
+  const vs = await getJson(`https://api.modrinth.com/v2/project/${id}/version`);
+  const list = (Array.isArray(vs) ? vs : []).filter((v) => (v.files || []).some((f) => /\.mrpack$/i.test(f.filename || "")));
+  const v = (version && list.find((x) => x.id === version)) || list.find((x) => x.version_type === "release") || list[0];
+  if (!v) throw new Error("This project has no modpack file to download.");
+  const f = v.files.find((x) => x.primary && /\.mrpack$/i.test(x.filename)) || v.files.find((x) => /\.mrpack$/i.test(x.filename));
+  const u = new URL(f.url); if (u.protocol !== "https:" || u.hostname !== "cdn.modrinth.com") throw new Error("Unexpected download host");
+  const sha512 = String((f.hashes || {}).sha512 || "").toLowerCase(); if (!/^[0-9a-f]{128}$/.test(sha512)) throw new Error("Modrinth didn’t give a checksum for this modpack.");
+  if (!Number.isSafeInteger(f.size) || f.size <= 0 || f.size > modpack.LIMITS.packBytes) throw new Error("This modpack file is too large.");
+  fs.mkdirSync(packDir(), { recursive: true });
+  const name = packToken() + ".mrpack", dest = path.join(packDir(), name);
+  let last = -1; const send = (pct) => { if (pct !== last && !e.sender.isDestroyed()) { last = pct; e.sender.send("modpack:progress", { phase: "fetch", project: id, pct }); } };
+  const counted = (url, o) => (async function* () { let got = 0; for await (const c of packStream(url, o)) { got += c.length; send(Math.round((got / f.size) * 100)); yield c; } })();
+  try {
+    await modpack.downloadFiles([{ path: name, urls: [f.url], sha512, sha1: null, size: f.size }], { root: packDir(), fetch: counted, concurrency: 1 });
+    return openPack(dest, true, { source: "modrinth", project: id, versionName: String(v.version_number || "").slice(0, 64) });
+  } catch (x) { fs.rm(dest, { force: true }, () => {}); throw x; }
+});
+ipcMain.handle("modpack:discard", (_e, token) => { dropPack(token); return true; });
+ipcMain.handle("modpack:cancel", (_e, token) => { const p = packs.get(String(token)); if (p) p.cancel = true; return true; });
+/** SHA-512 -> Modrinth version, so imported mods show as installed on the Mods page. Best effort: offline it returns {}. */
+async function mrLookup(hashes) {
+  if (!hashes.length) return {};
+  try { const r = await post("https://api.modrinth.com/v2/version_files", { hashes: hashes.slice(0, 5000), algorithm: "sha512" }, true); return r.status === 200 && r.json && typeof r.json === "object" ? r.json : {}; } catch { return {}; }
+}
+ipcMain.handle("modpack:install", async (e, { token, inst } = {}) => {
+  const P = packFor(token), I = inst || {}, key = String(I.id);
+  if (!/^\d{1,16}$/.test(key)) throw new Error("Unknown instance");
+  const name = String(I.name || "").replace(/[\x00-\x1f]/g, "").trim().slice(0, 32); if (!name) throw new Error("Give the instance a name.");
+  const dir = instDir(key); if (fs.existsSync(dir) && fs.readdirSync(dir).length) throw new Error("An instance folder with this ID already exists.");
+  if (running.has(key)) throw new Error("This instance is busy.");
+  const { pack, overrides } = modpack.readPack(P.file); // read again: what's on disk now is what gets installed
+  const send = (phase, pct, msg) => { if (!e.sender.isDestroyed()) e.sender.send("modpack:progress", { token: String(token), phase, pct: Math.round(pct * 100), msg: msg || "" }); };
+  P.cancel = false; running.add(key);
+  const out = { id: +key, name, mc: pack.mc, loader: pack.loader, loaderVersion: pack.loaderVersion, mem: Math.max(1, Math.min(64, Math.round(+I.mem || 4))), java: { mode: "auto" }, args: "" };
+  try {
+    prepareInstance(out, { modpack: { name: pack.name, version: pack.versionId, source: P.extra.source || null, project: P.extra.project || null } });
+    send("download", 0, `Downloading ${pack.files.length} files`);
+    await modpack.downloadFiles(pack.files, { root: dir, fetch: packStream, onProgress: (p, file) => send("download", p * 0.92, file ? path.basename(file) : ""), cancelled: () => P.cancel });
+    send("overrides", 0.93, "Copying configs and resource packs");
+    modpack.extractOverrides(P.file, overrides, dir);
+    send("mods", 0.97, "Matching mods with Modrinth");
+    const man = { ...readMan(key), ...modpack.modManifest(pack, overrides, await mrLookup(pack.files.filter((f) => f.sha512 && /^mods\//.test(f.path)).map((f) => f.sha512))) };
+    writeMan(key, man);
+    fs.writeFileSync(path.join(dir, "modpack.json"), JSON.stringify({ schema: 1, name: pack.name, version: pack.versionId, mc: pack.mc, loader: pack.loader, loaderVersion: pack.loaderVersion, installedAt: new Date().toISOString(), files: pack.files.map((f) => f.path), overrides: overrides.map((o) => o.path) }, null, 2));
+    send("done", 1, "");
+    dropPack(token);
+    return { inst: out, mods: Object.keys(man).length, files: pack.files.length, overrides: overrides.length, skipped: pack.skipped.length };
+  } catch (x) {
+    fs.rm(dir, { recursive: true, force: true }, () => {}); // only ever a folder this import created (checked empty above)
+    throw x;
+  } finally { running.delete(key); }
 });
 
 // ---------- Launching ----------
@@ -624,5 +709,5 @@ function createWindow() {
   w.loadFile(path.join(__dirname, "renderer", "index.html"));
   w.webContents.setWindowOpenHandler(({ url }) => { try { if (new URL(url).protocol === "https:") shell.openExternal(url); } catch {} return { action: "deny" }; });
 }
-app.whenReady().then(() => { migrateSecrets(); denyPermissions(require("electron").session.defaultSession); createWindow(); app.on("activate", () => { if (!BrowserWindow.getAllWindows().length) createWindow(); }); });
+app.whenReady().then(() => { migrateSecrets(); fs.rm(packDir(), { recursive: true, force: true }, () => {}); denyPermissions(require("electron").session.defaultSession); createWindow(); app.on("activate", () => { if (!BrowserWindow.getAllWindows().length) createWindow(); }); });
 app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });

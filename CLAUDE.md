@@ -3,7 +3,7 @@
 Premium Minecraft launcher (Electron) plus a Fabric client mod. Read README.md, client-mod/README.md and TEST_REPORT.md first.
 
 ## Layout
-- Launcher: `main.js` (Electron main, IPC, downloads), `preload.js`, `renderer-src/` (UI sources) built into `renderer/index.html` by `python scripts/build-renderer.py`. Pure logic modules: `versions.js`, `launcher.js`, `installer.js`, `clientmod.js`, `modconfig.js`, `msauth.js`, `spotify.js`, `serverping.js`, `securestore.js` (encrypted-only secrets, owner-only files).
+- Launcher: `main.js` (Electron main, IPC, downloads), `preload.js`, `renderer-src/` (UI sources) built into `renderer/index.html` by `python scripts/build-renderer.py`. Pure logic modules: `versions.js`, `launcher.js`, `installer.js`, `modpack.js` (.mrpack import), `clientmod.js`, `modconfig.js`, `msauth.js`, `spotify.js`, `serverping.js`, `securestore.js` (encrypted-only secrets, owner-only files).
 - Mod: `client-mod/core` (plain Java, no Minecraft classes, fully unit-tested) and adapters:
   - `client-mod/adapters/mojmap` — Minecraft 1.21.11 and 26.1/26.2/26.3, Mojang names. `common/` shared, `gui-v1/` (1.21.11: GuiGraphics, GLFW keys), `gui-v2/` (26.x: GuiGraphicsExtractor, SDL keys). Build one target: `cd client-mod/adapters/mojmap && gradle build -Ptarget=26.3` (JDK 25, Gradle 9.7+).
   - `client-mod/adapters/fabric-1.21.4` — older Yarn adapter, not built in CI.

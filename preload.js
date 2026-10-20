@@ -59,4 +59,10 @@ contextBridge.exposeInMainWorld("auroras", {
   capeLibRename: (d) => ir.invoke("capelib:rename", d),
   capeLibDelete: (id) => ir.invoke("capelib:delete", id),
   onProgress: (f) => ir.on("progress", (_e, d) => f(d)),
+  modpackPick: () => ir.invoke("modpack:pick"),
+  modpackFetch: (o) => ir.invoke("modpack:fetch", o),
+  modpackInstall: (o) => ir.invoke("modpack:install", o),
+  modpackCancel: (t) => ir.invoke("modpack:cancel", t),
+  modpackDiscard: (t) => ir.invoke("modpack:discard", t),
+  onModpackProgress: (f) => { ir.removeAllListeners("modpack:progress"); ir.on("modpack:progress", (_e, d) => f(d)); },
 });

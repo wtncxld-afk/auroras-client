@@ -26,6 +26,7 @@ Download **AurorasClientSetup-<version>.exe** from the **Releases** page of [aur
 - VexVanilla (vexvanilla.net) is featured on Home with live status and one-click Join, and is pinned first in every instance's in-game server list.
 - Seven animated backgrounds (Sakura, Sakura Night, Aurora Borealis, Cosmic Nebula, Midnight Rain, Floating Islands, Minimal), drawn sharp at your screen's pixel density at up to 60 fps, with cross-fades between them; ambient audio (generated, off by default), cursor trails, all configurable and persistent.
 - Mods: live Modrinth + CurseForge search and one-click installs with dependencies and checksum verification.
+- Modpacks: **Instances > Import modpack** (also in the instance switcher) makes a new instance from a Modrinth modpack, either a `.mrpack` file you pick or one found by searching Modrinth. The pack's Minecraft version and loader are used, every file is downloaded only from the hosts the `.mrpack` format allows (cdn.modrinth.com, github.com, raw.githubusercontent.com, gitlab.com) and checked against its SHA-512 / SHA-1, server-only files are skipped, `overrides/` and `client-overrides/` are copied in (client wins), and no path may leave the instance folder. Mods show as installed on the Mods page. Forge, NeoForge and Quilt packs can be imported but, like those instances, not launched yet. Logic and limits: `modpack.js`, tests: `test/modpack.test.js`.
 - Totem Creator (PNG and resource pack export), Skins preview, Modules list, themes.
 - Signed-update checking (needs your update server and key pair, below).
 
