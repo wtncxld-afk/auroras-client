@@ -278,7 +278,8 @@
       if (typeof v !== "string" || v.length > 64 || /[\r\n]/.test(v)) return "bad value";
       if (key === "settings.quality") return ["LOW", "BALANCED", "HIGH"].includes(v) ? null : "quality must be LOW, BALANCED or HIGH";
       if (key === "settings.menuTheme") return ["aurora", "sakura", "midnight", "ember", "frost", "void"].includes(v) ? null : "unknown menu theme";
-      if (key === "settings.menuFx") return v === "true" || v === "false" ? null : key + " must be true or false";
+      if (key === "settings.titleLayout") return ["left", "centre"].includes(v) ? null : "unknown main menu layout";
+      if (key === "settings.menuFx" || key === "settings.customTitle" || key === "settings.customPause") return v === "true" || v === "false" ? null : key + " must be true or false";
       if (key === "settings.guiKey") return /^-?\d{1,3}$/.test(v) && +v >= 0 && +v <= 348 ? null : "bad key code";
       const dot = key.indexOf("."); if (dot < 1) return "unknown key " + key;
       const m = mods.get(key.slice(0, dot)); if (!m) return "unknown module in " + key;
@@ -291,7 +292,7 @@
         default: return (d.options || []).includes(v) ? null : key + " has an unknown option";
       }
     };
-    const defaults = () => { const o = { "settings.guiKey": "344", "settings.quality": "BALANCED", "settings.menuTheme": "aurora", "settings.menuFx": "true" }; for (const m of registry.modules) for (const s of m.settings) o[m.id + "." + s.key] = s.def; return o; };
+    const defaults = () => { const o = { "settings.guiKey": "344", "settings.quality": "BALANCED", "settings.menuTheme": "aurora", "settings.menuFx": "true", "settings.customTitle": "true", "settings.customPause": "true", "settings.titleLayout": "left" }; for (const m of registry.modules) for (const s of m.settings) o[m.id + "." + s.key] = s.def; return o; };
     return { validate, defaults, modules: registry.modules, module: (id) => mods.get(id) };
   }
   const NAME = /^[A-Za-z0-9][A-Za-z0-9 ._-]{0,31}$/;

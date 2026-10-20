@@ -95,13 +95,13 @@ public final class Golden {
         double[] ts = {0, 0.1, 0.25, 0.5, 0.75, 1}; for (int k = 0; k < ts.length; k++) { Cosmetics.totemPose(ts[k], 0.3, -0.2, o); b.append(k > 0 ? ", " : "").append("[").append(n(o[0])).append(", ").append(n(o[1])).append(", ").append(n(o[2])).append(", ").append(n(o[3])).append(", ").append(n(o[4])).append("]"); }
         b.append("],\n");
         Config.Registry reg = new Config.Registry(); List<String[]> probes = new ArrayList<>();
-        String[] extra = {"", "abc", "1e3", "1.5f", " 1", "0x10", "-0", "+1", "1.", ".5", "999999999999", "true", "FALSE", "#FFFFFF", "ffffff", "GGGGGG", "off", "TL", "XX", "-1", "349", "BALANCED", "HIGH", "ultra"};
+        String[] extra = {"", "abc", "left", "centre", "center", "false", "1e3", "1.5f", " 1", "0x10", "-0", "+1", "1.", ".5", "999999999999", "true", "FALSE", "#FFFFFF", "ffffff", "GGGGGG", "off", "TL", "XX", "-1", "349", "BALANCED", "HIGH", "ultra"};
         for (Config.Module m : reg.modules()) for (Config.SettingDef d : m.settings()) {
             String k = m.id() + "." + d.key(); probes.add(new String[]{k, d.def()}); probes.add(new String[]{k, Double.toString(d.min())}); probes.add(new String[]{k, Double.toString(d.max())});
             probes.add(new String[]{k, String.valueOf((long) d.max() + 1)}); probes.add(new String[]{k, String.valueOf((long) d.min() - 1)}); if (!d.options().isEmpty()) probes.add(new String[]{k, d.options().get(d.options().size() - 1)});
             if (m.id().equals("fps") || m.id().equals("sky") || m.id().equals("zoom")) for (String x : extra) probes.add(new String[]{k, x});
         }
-        for (String k : new String[]{"settings.guiKey", "settings.quality", "settings.other", "nomodule.enabled", "fps.nosetting", "fps", ".enabled"}) for (String x : extra) probes.add(new String[]{k, x});
+        for (String k : new String[]{"settings.guiKey", "settings.quality", "settings.menuFx", "settings.customTitle", "settings.customPause", "settings.titleLayout", "settings.other", "nomodule.enabled", "fps.nosetting", "fps", ".enabled"}) for (String x : extra) probes.add(new String[]{k, x});
         probes.add(new String[]{"fps.enabled", "x".repeat(65)}); probes.add(new String[]{"fps.color", "FFFFFF\n"});
         b.append("  \"validation\": [");
         for (int k = 0; k < probes.size(); k++) b.append(k > 0 ? ", " : "").append("[").append(q(probes.get(k)[0])).append(", ").append(q(probes.get(k)[1])).append(", ").append(reg.validate(probes.get(k)[0], probes.get(k)[1]) == null).append("]");

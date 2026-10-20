@@ -10,19 +10,21 @@ from PIL import Image, ImageDraw, ImageFont
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TTF = os.path.join(ROOT, "client-mod", "fonts", "InterVariable.ttf")
 OUT = os.path.join(ROOT, "visuals", "font")
-WEIGHTS = {"medium": b"Medium", "semibold": b"SemiBold"}
+WEIGHTS = {"medium": b"Medium", "semibold": b"SemiBold", "display": b"SemiBold"}
 # Pixel sizes the menus ask for (GUI sizes 7, 8, 9 and 11 at GUI scales 1 to 4, plus a few in between).
 SIZES = [7, 8, 9, 10, 11, 12, 14, 16, 18, 20, 21, 22, 24, 27, 28, 32, 33, 36, 44]
 CHARS = [chr(c) for c in range(32, 127)] + list("…·°“”‘’×—–")
+# "display": large SemiBold for the main menu's wordmark and titles, letters, digits and a little punctuation only
+DISPLAY_SIZES, DISPLAY_CHARS = [48, 64, 80, 96], list(" ?.,:'-!&") + [chr(c) for c in range(48, 58)] + [chr(c) for c in range(65, 91)] + [chr(c) for c in range(97, 123)]
 ATLAS_W = 2048
 glyphs, x, y, row_h, images = {}, 1, 1, 0, []
 for wname, var in WEIGHTS.items():
     glyphs[wname] = {}
-    for size in SIZES:
+    for size in (DISPLAY_SIZES if wname == "display" else SIZES):
         f = ImageFont.truetype(TTF, size); f.set_variation_by_name(var)
         asc, desc = f.getmetrics()
         g = {"ascent": asc, "descent": desc, "lineHeight": round(size * 1.2), "glyphs": {}}
-        for ch in CHARS:
+        for ch in (DISPLAY_CHARS if wname == "display" else CHARS):
             adv = f.getlength(ch); x0, y0, x1, y1 = f.getbbox(ch, anchor="ls")
             gw, gh = max(0, x1 - x0) + 2, max(0, y1 - y0) + 2
             if ch == " " or x1 <= x0: g["glyphs"][str(ord(ch))] = [0, 0, 0, 0, 0, 0, round(adv, 3)]; continue
@@ -31,8 +33,7 @@ for wname, var in WEIGHTS.items():
             images.append((x, y, im)); g["glyphs"][str(ord(ch))] = [x, y, gw, gh, x0 - 1, y0 - 1, round(adv, 3)]
             x += gw + 1; row_h = max(row_h, gh)
         glyphs[wname][str(size)] = g
-H = 1
-while H < y + row_h + 2: H *= 2
+H = (y + row_h + 2 + 63) // 64 * 64  # a multiple of 64 (Minecraft takes any texture size), not the next power of two
 atlas = Image.new("LA", (ATLAS_W, H), (255, 0))
 for gx, gy, im in images: atlas.paste(Image.merge("LA", (Image.new("L", im.size, 255), im)), (gx, gy))
 os.makedirs(OUT, exist_ok=True)

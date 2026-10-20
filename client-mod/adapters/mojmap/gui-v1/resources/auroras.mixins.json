@@ -20,7 +20,8 @@
     "AbstractClientPlayerMixin",
     "LevelRendererSkyMixin",
     "SkyRendererMixin",
-    "ScreenEffectRendererMixin"
+    "ScreenEffectRendererMixin",
+    "ScreenSwapMixin"
   ],
   "injectors": {
     "defaultRequire": 0

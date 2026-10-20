@@ -19,7 +19,8 @@
     "PlayerModelMixin",
     "AbstractClientPlayerMixin",
     "LevelRendererSkyMixin",
-    "SkyRendererMixin"
+    "SkyRendererMixin",
+    "ScreenSwapMixin"
   ],
   "injectors": {
     "defaultRequire": 0

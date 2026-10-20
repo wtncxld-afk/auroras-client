@@ -49,15 +49,17 @@ public final class GameMenus {
         return l;
     }
     /**
-     * The pause menu. local: a singleplayer world (this game runs the server); published: already open to LAN.
-     * Open to LAN only appears in singleplayer, and is greyed out once the world is open, as in vanilla.
+     * The pause menu. local: a singleplayer world (this game runs the server). world: the label of the release's own
+     * world button, or null when it has none here ("Open to LAN" up to 26.1, "Multiplayer options" in 26.2, "World
+     * options" from 26.3; the adapter's versions/<target>/platform/Mc decides), greyed out when worldEnabled is false
+     * (a world already open to LAN, as in vanilla).
      */
-    public static List<Item> pauseItems(boolean local, boolean published) {
+    public static List<Item> pauseItems(boolean local, String world, boolean worldEnabled) {
         List<Item> l = new ArrayList<>();
         l.add(new Item("back", "Back to game", "play", Size.LARGE));
         l.add(new Item("advancements", "Advancements", "trophy", Size.HALF)); l.add(new Item("stats", "Statistics", "chart", Size.HALF));
         l.add(new Item("options", "Options", "gear", Size.HALF)); l.add(new Item("auroras", "Auroras menu", "sparkles", Size.HALF));
-        if (local) { Item lan = new Item("lan", "Open to LAN", "signal", Size.NORMAL); l.add(published ? lan.disabled().hint("Open") : lan); }
+        if (world != null && !world.isBlank()) { Item w = new Item("world", world, "signal", Size.NORMAL); l.add(worldEnabled ? w : w.disabled().hint("Open")); }
         l.add(new Item("disconnect", local ? "Save and quit to title" : "Disconnect", "power", Size.NORMAL));
         return l;
     }

@@ -35,7 +35,7 @@ public class AurorasClient implements ClientModInitializer {
     public static final Config.Registry REG = new Config.Registry();
     public static Config.ProfileManager PM;
     static final Path DIR = FabricLoader.getInstance().getConfigDir().resolve("auroras");
-    static String mcVersion = "?";
+    static String mcVersion = "?", modVersion = "";
     static KeyMapping guiKey, benchKey, hudEditKey, emoteKey;
 
     static final Calc.FpsSmoother FPS_SMOOTH = new Calc.FpsSmoother(500);
@@ -47,6 +47,8 @@ public class AurorasClient implements ClientModInitializer {
 
     @Override public void onInitializeClient() {
         mcVersion = FabricLoader.getInstance().getModContainer("minecraft").map(c -> c.getMetadata().getVersion().getFriendlyString()).orElse("?");
+        // "1.2.3+mc26.3" -> "1.2.3" for the main menu's version line
+        modVersion = FabricLoader.getInstance().getModContainer("auroras_client").map(c -> c.getMetadata().getVersion().getFriendlyString()).orElse("").replaceAll("\\+.*$", "");
         // fabric.mod.json already limits this jar to its Minecraft line, so Fabric won't load it on another version.
         REG.restrict(Platform.NOT_PORTED, "Not in the Minecraft " + mcVersion + " build yet");
         // Custom Skies is drawn through our own mixins (Fabric has no sky hook for these versions); it stays locked only if
