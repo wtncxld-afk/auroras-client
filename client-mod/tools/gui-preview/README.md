@@ -17,5 +17,8 @@ cp ../../../visuals/font/auroras-font.* $O/res/assets/auroras_client/textures/fo
 java -cp $O/core:$O/gui:$O/res gg.auroras.client.GuiPreview background.png outDir [width height guiScale]
 ```
 
+The world overlays (glass nameplates, health cards, damage numbers, emblems: `ui/WorldArt.java`) have their own previewer:
+compile `WorldPreview.java` with the same command and run `java -cp $O/core:$O/gui:$O/res gg.auroras.client.WorldPreview background.png out.png`.
+
 The Right Shift radial menu has its own previewer in core: `AURORAS_BG=background.png AURORAS_LOGO=<logo.png>
 AURORAS_SKIN=<64x64 skin> java -cp out gg.auroras.core.RadialPreview ../../visuals out.png 1920 1080 5 1`.

@@ -337,7 +337,7 @@ public final class AurorasWorld {
     static double camRX, camRZ;
 
     static void emblem(Gfx g, Minecraft mc, float pt, Camera cam) {
-        Player me = mc.player; if (!cam.isDetached() || me.isInvisible() || me.isSpectator() || me.isSleeping()) return;
+        Player me = mc.player; if (!cam.isDetached() || me.isInvisible() || me.isSpectator() || me.isSleeping() || me.isFallFlying() || me.isSwimming()) return; // lying poses would misplace the decal
         Vec3 pos = me.getPosition(pt); double yaw = WorldFx.rotLerp(pt, me.yBodyRotO, me.yBodyRot);
         WorldFx.emblemAnchor(emblemPos, yaw, me.isCrouching(), me.getScale(), O);
         double x = pos.x + O[0], y = pos.y + O[1], z = pos.z + O[2];
