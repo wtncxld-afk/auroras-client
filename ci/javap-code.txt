@@ -1,2 +1,4 @@
 # javap -p -c (bytecode) for these, to check what mixin @At targets call
-net.minecraft.client.KeyMapping
+net.minecraft.client.renderer.ItemInHandRenderer
+net.minecraft.client.renderer.item.ItemStackRenderState$LayerRenderState
+net.minecraft.client.renderer.entity.ItemRenderer
