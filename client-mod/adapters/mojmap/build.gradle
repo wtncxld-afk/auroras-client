@@ -66,7 +66,10 @@ tasks.register('mcJavap') {
         (classes.collect { [it, false] } + code.collect { [it, true] }).each { pair -> String c = pair[0]; boolean withCode = pair[1]
             List<String> args = [javap, '-p'] + (withCode ? ['-c'] : []) + ['-cp', cp, c.toString()]
             def p = new ProcessBuilder(args).redirectErrorStream(true).start()
-            println "==== javap${withCode ? ' -c' : ''} ${c}"; println p.inputStream.text; p.waitFor()
+            String out = p.inputStream.text; p.waitFor()
+            // bytecode is long: keep method headers and calls/field accesses only (the parts mixin targets name)
+            if (withCode) out = out.readLines().findAll { l -> !(l ==~ /^\s+\d+: .*/) || l.contains('invoke') || l.contains('Field ') }.join('\n')
+            println "==== javap${withCode ? ' -c' : ''} ${c}"; println out
         }
         // -PjarGrep=a/,b/ lists Minecraft jar entries containing any of these; -PjarCat=p,q prints those entries (vanilla shader and post effect formats)
         def grep = (project.findProperty('jarGrep') ?: '').toString().split(',').collect { it.trim() }.findAll { it }
