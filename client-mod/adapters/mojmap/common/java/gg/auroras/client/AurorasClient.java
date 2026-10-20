@@ -61,6 +61,9 @@ public class AurorasClient implements ClientModInitializer {
         AurorasModules.register();
         AurorasCape.init(DIR); // Custom Capes: only you see it (see AurorasCape)
         ClientTickEvents.END_CLIENT_TICK.register(c -> {
+            // the menu key is the only way into Auroras' settings, so it never stays unbound (an old options.txt can carry
+            // "key.auroras.gui:key.keyboard.unknown"); it goes back to the Menu key setting, Right Shift unless changed
+            if (Mc.screen(c) == null && guiKey.isUnbound()) { Platform.rebind(guiKey, Integer.parseInt(PM.get(Config.Registry.GUI_KEY))); c.options.save(); System.out.println("[Auroras] the menu key was unbound; set it back to the Menu key setting"); }
             while (guiKey.consumeClick()) if (Mc.screen(c) == null) Mc.setScreen(c, new RadialScreen());
             while (hudEditKey.consumeClick()) Mc.setScreen(c, new HudEditorScreen(null));
             // the wheel key opens the wheel; pressed again while an emote plays, it stops the emote
