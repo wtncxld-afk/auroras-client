@@ -33,6 +33,8 @@ public final class Platform {
     }
     /** HUD: our layer (before chat), and the crosshair and boss bar wrapped so modules can replace or move them. */
     public static void hud() {
+        // world overlays (nameplates, damage numbers, health bars, emblem) go under every vanilla HUD element
+        HudElementRegistry.attachElementBefore(VanillaHudElements.MISC_OVERLAYS, Identifier.fromNamespaceAndPath("auroras_client", "world"), (g, tick) -> gg.auroras.client.AurorasWorld.draw(new Gfx(g)));
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, Identifier.fromNamespaceAndPath("auroras_client", "hud"), (g, tick) -> AurorasClient.renderHud(new Gfx(g)));
         HudElementRegistry.replaceElement(VanillaHudElements.CROSSHAIR, vanilla -> (g, tick) -> { if (!AurorasClient.crosshair(new Gfx(g))) vanilla.render(g, tick); });
         HudElementRegistry.replaceElement(VanillaHudElements.BOSS_BAR, vanilla -> (g, tick) -> {

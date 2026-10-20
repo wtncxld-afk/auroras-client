@@ -96,6 +96,8 @@ public final class Glass {
         if (H > 2 * k) { c.region(id, X, Y + k, k, H - 2 * k, 0, K, k, 1, S, S, argb); c.region(id, X + W - k, Y + k, k, H - 2 * k, u2, K, k, 1, S, S, argb); }
         if (centre && W > 2 * k && H > 2 * k) c.fill(X + k, Y + k, X + W - k, Y + H - k, argb);
     }
+    /** A baked texture of the caller's own art (kind + two ints identify it; b >= 0), made on first use like the shapes above. */
+    public static Identifier art(String kind, int a, int b, java.util.function.Supplier<int[]> art, int w, int h) { return tex(kind, a, b & 0xFFFFFF, art, w, h); }
     /** The texture for one shape and size, baked and uploaded the first time it's needed (render thread). */
     private static Identifier tex(String kind, int a, int b, java.util.function.Supplier<int[]> art, int w, int h) {
         Integer k = KINDS.get(kind); if (k == null) KINDS.put(kind, k = KINDS.size()); // a handful of kinds, interned once

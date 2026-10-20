@@ -59,6 +59,7 @@ public class AurorasClient implements ClientModInitializer {
         emoteKey = Platform.key("key.auroras.emotes", Integer.parseInt(PM.get("emotes.wheelKey")));
         benchKey = Platform.key("key.auroras.benchmark", -1);
         AurorasModules.register();
+        AurorasWorld.register(); // in-world cosmetics (aura, trails, particles, nameplates, damage, emblem); local only
         AurorasCape.init(DIR); // Custom Capes: only you see it (see AurorasCape)
         ClientTickEvents.END_CLIENT_TICK.register(c -> {
             // the menu key is the only way into Auroras' settings, so it never stays unbound (an old options.txt can carry
@@ -74,6 +75,7 @@ public class AurorasClient implements ClientModInitializer {
             boolean active = c.isWindowActive(); if (windowActive && !active) HudRendererAccess.focusLost(); windowActive = active;
             AurorasEmotes.tick(c);
             AurorasModules.tick(c);
+            AurorasWorld.tick(c);
             AurorasCape.tick(c);
             // bake the radial menu's art in the background for this window size, so Right Shift opens instantly
             if (c.player != null && Mc.screen(c) == null) RadialArt.prepare(Gfx.screenW(), Gfx.screenH(), Gfx.guiScale());

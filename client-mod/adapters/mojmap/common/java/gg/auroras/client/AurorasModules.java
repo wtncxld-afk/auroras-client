@@ -141,8 +141,11 @@ public final class AurorasModules {
     public static float fov(float fov) {
         long now = System.nanoTime(); double dt = (now - zoomLast) / 1e9; zoomLast = now; Minecraft mc = Minecraft.getInstance();
         zoom.frame(zoomOn && zoomKey != null && zoomKey.isDown() && Mc.screen(mc) == null && mc.player != null, dt);
-        return zoom.active() ? (float) (fov * zoom.fovMultiplier()) : fov;
+        float out = zoom.active() ? (float) (fov * zoom.fovMultiplier()) : fov; lastFov = out; return out;
     }
+    /** The world's field of view of the last frame (with zoom and sprint), for world overlays; 0 until the first frame. */
+    static volatile float lastFov;
+    public static float lastFov() { return lastFov; }
     /** Mouse look (MouseMixin): freelook turns the camera instead of the player; zoom slows the mouse. Returns true when handled. */
     public static boolean look(double dx, double dy, double[] out) {
         if (FREELOOK.active) { FREELOOK.look(dx, dy, freelookSens); return true; }

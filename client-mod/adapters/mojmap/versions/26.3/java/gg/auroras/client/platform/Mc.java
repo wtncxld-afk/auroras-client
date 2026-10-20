@@ -19,4 +19,6 @@ public final class Mc {
     public static boolean hudHidden(Minecraft mc) { return mc.gui.hud.isHidden(); }
     /** Adds a line to your own chat (local only, nothing is sent to the server). */
     public static void chat(Minecraft mc, Component text) { mc.gui.hud.getChat().addClientSystemMessage(text); }
+    /** The camera the world was drawn from (GameRenderer#mainCamera in this release). */
+    public static net.minecraft.client.Camera camera(Minecraft mc) { return mc.gameRenderer.mainCamera(); }
 }
