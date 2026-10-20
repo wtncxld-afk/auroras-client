@@ -289,6 +289,7 @@
         case "INT": case "KEY": if (!INTEGER.test(v)) return key + " is not a number"; return +v >= d.min && +v <= d.max ? null : key + " out of range";
         case "DOUBLE": if (!DECIMAL.test(v)) return key + " is not a number"; return +v >= d.min && +v <= d.max ? null : key + " out of range";
         case "COLOR": return HEXC.test(v) ? null : key + " must be a 6-digit hex colour";
+        case "TEXT": return /^[A-Za-z0-9 ._-]{0,16}$/.test(v) ? null : key + " may only use up to 16 letters, numbers, spaces, dots, dashes or underscores";
         default: return (d.options || []).includes(v) ? null : key + " has an unknown option";
       }
     };

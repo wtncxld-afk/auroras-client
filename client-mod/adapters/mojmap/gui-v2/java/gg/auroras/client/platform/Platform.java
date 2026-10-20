@@ -36,6 +36,8 @@ public final class Platform {
     public static void hud() {
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, Identifier.fromNamespaceAndPath("auroras_client", "hud"), (g, tick) -> AurorasClient.renderHud(new Gfx(g)));
         HudElementRegistry.replaceElement(VanillaHudElements.CROSSHAIR, vanilla -> (g, tick) -> { if (!AurorasClient.crosshair(new Gfx(g))) vanilla.extractRenderState(g, tick); });
+        // Stream Hide Inventory covers the hotbar items after the vanilla hotbar is drawn
+        HudElementRegistry.replaceElement(VanillaHudElements.HOTBAR, vanilla -> (g, tick) -> { vanilla.extractRenderState(g, tick); gg.auroras.client.AurorasStream.coverHotbar(new Gfx(g)); });
         HudElementRegistry.replaceElement(VanillaHudElements.BOSS_BAR, vanilla -> (g, tick) -> {
             Gfx x = new Gfx(g); if (AurorasClient.bossBarBefore(x)) { vanilla.extractRenderState(g, tick); AurorasClient.bossBarAfter(x); } });
     }

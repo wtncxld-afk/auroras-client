@@ -99,3 +99,20 @@ test("face for the in-game menu: only an 8x8 PNG is written", () => {
   assert.deepStrictEqual(M.writeHead(d, png(64, 16)), { ok: true }); assert.ok(fs.existsSync(path.join(d, "head.png"))); assert.throws(() => M.writeHead(d, png(8, 8)), /64x16/);
   assert.throws(() => M.writeFace(d, png(64, 64)), /8x8/); assert.throws(() => M.writeFace(d, Buffer.alloc(9000)), /small PNG/); assert.throws(() => M.writeFace(d, "not base64 png"), /small PNG/);
 });
+
+test("skin for the game (Skin Changer): only 64x64 or 64x32 PNGs are written, atomically, and can be removed", () => {
+  const d = tmp(), png = (w, h) => { const b = Buffer.alloc(33); Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(b); b.writeUInt32BE(13, 8); b.write("IHDR", 12, "latin1"); b.writeUInt32BE(w, 16); b.writeUInt32BE(h, 20); return b; };
+  assert.deepStrictEqual(M.writeSkin(d, "data:image/png;base64," + png(64, 64).toString("base64")), { ok: true, bytes: 33 });
+  M.writeSkin(d, png(64, 32)); assert.strictEqual(fs.readFileSync(path.join(d, "skin.png")).readUInt32BE(20), 32);
+  assert.throws(() => M.writeSkin(d, png(128, 128)), /64×64/);
+  assert.throws(() => M.writeSkin(d, Buffer.from("GIF89a not a png at all, padded out to length")), /isn’t a PNG/);
+  assert.strictEqual(fs.readFileSync(path.join(d, "skin.png")).readUInt32BE(20), 32, "a refused file leaves the previous skin in place");
+  assert.ok(!fs.readdirSync(d).some((f) => f.includes(".tmp")));
+  M.clearSkin(d); assert.ok(!fs.existsSync(path.join(d, "skin.png"))); M.clearSkin(d);
+});
+
+test("text settings (Name Protect alias) follow the same rule in the launcher and the game", () => {
+  for (const [v, ok] of [["You", true], ["", true], ["Aurora_Fan 7", true], ["a=b", false], ["seventeen chars!!", false], ["naïve", false], ["x\ny", false]])
+    assert.strictEqual(M.rules.validate("nameprotect.alias", v) === null, ok, JSON.stringify(v));
+  assert.strictEqual(M.registry.modules.find((m) => m.id === "nameprotect").settings.find((s) => s.key === "alias").type, "TEXT");
+});

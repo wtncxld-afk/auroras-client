@@ -50,6 +50,8 @@ contextBridge.exposeInMainWorld("auroras", {
   emotesWheel: (o) => ir.invoke("emotes:wheel", o),
   capeWrite: (o) => ir.invoke("cape:write", o),
   capeClear: (id) => ir.invoke("cape:clear", id),
+  gameSkinWrite: (o) => ir.invoke("gameskin:write", o),
+  gameSkinClear: (id) => ir.invoke("gameskin:clear", id),
   capeLibList: () => ir.invoke("capelib:list"),
   friendsState: () => ir.invoke("friends:state"),
   friendsOverview: (uuid) => ir.invoke("friends:overview", uuid),
