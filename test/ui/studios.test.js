@@ -33,13 +33,13 @@ describe("3D preview renderer", () => {
 
 describe("Modules page", () => {
   let s; before(async () => { s = await launch(); await nav(s.page, "Modules"); await wait(s.page, 300); }); after(() => s.close());
-  test("lists every module from the game's registry; modules without in-game code can't be switched on", async () => {
+  test("lists every module from the game's registry; only modules with in-game code can be switched on", async () => {
     const reg = await s.page.evaluate(() => window.AURORAS_REGISTRY.modules.length);
     assert.strictEqual(await s.page.locator(".modcard").count(), reg);
     const avail = await s.page.evaluate(() => window.AURORAS_REGISTRY.modules.filter((m) => m.available).length);
     assert.strictEqual(await s.page.locator(".modcard [data-enable]:not([disabled])").count(), avail);
-    assert.strictEqual(await s.page.locator('[data-mid="aura"] [data-enable]').isDisabled(), true);
-    assert.match(await s.page.locator('[data-mid="sky"]').textContent(), /In game · experimental/); assert.match(await s.page.locator('[data-mid="glow"]').textContent(), /In game · experimental/); assert.match(await s.page.locator('[data-mid="aura"]').textContent(), /Not in the game yet/);
+    assert.strictEqual(await s.page.locator('[data-mid="aura"] [data-enable]').isDisabled(), false);
+    assert.match(await s.page.locator('[data-mid="sky"]').textContent(), /In game · experimental/); assert.match(await s.page.locator('[data-mid="glow"]').textContent(), /In game · experimental/); assert.match(await s.page.locator('[data-mid="aura"]').textContent(), /In game · experimental/);
     assert.match(await s.page.locator('[data-mid="zoom"]').textContent(), /Changes controls/); assert.match(await s.page.locator('[data-mid="sky"]').textContent(), /Cosmetic only/);
   });
   test("switching a module on saves it into the instance's settings", async () => {
@@ -116,7 +116,7 @@ describe("Visual Studio: skies and particles", () => {
     assert.ok(after_ > before_, `burst ${before_} -> ${after_}`);
     await tap(s.page, s.page.locator('[data-style="sakura"]')); await tap(s.page, s.page.locator("#px-apply")); await wait(s.page, 100);
     const set = (await lastSet(s.page)).set; assert.strictEqual(set["particlefx.style"], "sakura"); assert.strictEqual(set["particlefx.maxCount"], "256");
-    assert.match(await s.page.locator(".page").textContent(), /isn’t written yet/);
+    assert.match(await s.page.locator(".page").textContent(), /Only you see them/);
   });
   test("the Play bar stays pinned to the bottom of the window while the page scrolls", async () => {
     await s.page.evaluate(() => { const m = document.getElementById("main"); m.scrollTop = m.scrollHeight; }); await wait(s.page, 100);

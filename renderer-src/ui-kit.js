@@ -35,7 +35,7 @@ function kitWire(root,onChange){
     hx.addEventListener("blur",()=>{hx.value=sw.value.slice(1).toUpperCase();hx.removeAttribute("aria-invalid")})})}
 
 /* ----- Settings, generated from the game's own registry, with a control chosen for each setting's type ----- */
-const OPT_LABEL={off:"Off (vanilla)",auto:"Auto",LOW:"Low",BALANCED:"Balanced",HIGH:"High",TL:"Top left",TC:"Top centre",TR:"Top right",CL:"Centre left",C:"Centre",CR:"Centre right",BL:"Bottom left",BC:"Bottom centre",BR:"Bottom right",
+const OPT_LABEL={off:"Off (vanilla)",numbers:"Numbers",both:"Both",hp:"Health points",hearts:"Hearts",style:"Style",custom:"Custom",rainbow:"Rainbow",ring:"Ring",helix:"Helix",halo:"Halo",orbit:"Orbit",sparkle:"Sparkle",pillars:"Pillars",inter:"Inter",minecraft:"Minecraft",number:"Number",player:"Me",projectiles:"Projectiles",star:"Star",heart:"Heart",crescent:"Crescent",diamond:"Diamond",hexagon:"Hexagon",auto:"Auto",LOW:"Low",BALANCED:"Balanced",HIGH:"High",TL:"Top left",TC:"Top centre",TR:"Top right",CL:"Centre left",C:"Centre",CR:"Centre right",BL:"Bottom left",BC:"Bottom centre",BR:"Bottom right",
   minimal:"Minimal",compact:"Compact",expanded:"Expanded",percent:"Percent",numeric:"Numbers",bar:"Bar",vertical:"Vertical",horizontal:"Horizontal",back:"Back",chest:"Chest",shoulder:"Shoulder",length:"Length",name:"Name",category:"Category",solid:"Solid",chroma:"Chroma",gradient:"Gradient",bound:"My key binds",wasd:"W A S D",arrows:"Arrows",text:"Word"};
 const optLabel=o=>OPT_LABEL[o]||(typeof SKY_THEMES!=="undefined"&&SKY_THEMES[o]?SKY_THEMES[o].name:label(o));
 const HUD_APPEAR=["style","color","textMode","chromaSpeed","accent","opacity","background","bgColor","bgOpacity","radius","border","shadow"],HUD_POS=["anchor","offX","offY","scale"];
@@ -43,14 +43,19 @@ const HUD_APPEAR=["style","color","textMode","chromaSpeed","accent","opacity","b
 function sectionsFor(m,exclude=[]){const keys=m.settings.map(s=>s.key).filter(k=>k!=="enabled"&&!exclude.includes(k)),has=k=>keys.includes(k);
   const G={sky:[[exclude.includes("theme")?"Other dimensions":"Theme",["theme","netherTheme","endTheme"],!exclude.includes("theme")],["Color and light",["brightness","saturation","contrast","tint","tintStrength"],true],["Animation",["animate","animSpeed","effectsOpacity","shootingStars","aurora","auroraWaves","nebula","nebulaSpeed","clouds","petals"],true],
       ["Stars",["starDensity","starSize","starBrightness","twinkleSpeed","constellations"],false],["Sun and moon",["sunSize","moonSize"],false],["Quality",["skyQuality"],false]],
-    particlefx:[["Look",["style","color","size","opacity"],true],["Amount",["density","lifetime","spawnRate","speed","maxDistance","maxCount"],true],["Behaviour",["ambient","events","autoReduce","reducedMotion"],false]],
+    particlefx:[["Look",["style","color","size","opacity"],true],["Amount",["density","lifetime","spawnRate","speed","maxDistance","maxCount"],true],["Events",["events","totems","replaceTotem","projectiles","footsteps","hits","ambient"],true],["Behaviour",["colorMode","autoReduce","reducedMotion"],false]],
+    damage:[["What to show",["show","onlyMine","showHeal","maxDistance"],true],["Numbers",["color","healColor","units","decimals","scale","duration","rise","shadow"],true],["Health bar",["barWidth","barGradient","barColor","bgOpacity","barSeconds"],false]],
+    aura:[["Look",["style","shape","colorMode","color","intensity","size"],true],["Shape",["radius","height","speed","lifetime","maxParticles"],true],["When",["firstPerson","whileMoving"],false]],
+    nameplate:[["Content",["showHealth","healthStyle","showPing","showItem","showSelf","maxDistance"],true],["Look",["font","color","teamColors","scale","bgColor","bgOpacity","accent","border","radius","shadow"],true]],
+    emblem:[["Emblem",["design","position","size","opacity"],true],["Colour and motion",["color","accent","glow","rim","spin","pulse"],true]],
+    trails:[["Look",["style","colorMode","color","size","spread"],true],["Amount",["source","density","lifetime","maxParticles"],true],["When",["firstPerson","elytraOnly"],false]],
     totemfx:[["Particles",["particles","particleColor","density","duration","scale","spin"],true],["Screen overlay",["overlay","overlayIntensity","overlayDuration"],false]],
     emotes:[["Playback",["speed","blend","cancelOnMove","thirdPerson"],true],["Controls",["wheelKey"],true]]};
   let g=G[m.id];if(!g&&has("anchor"))g=[["Content",keys.filter(k=>!HUD_APPEAR.includes(k)&&!HUD_POS.includes(k)),true],["Appearance",HUD_APPEAR,true],["Position and size",HUD_POS,false]];
   if(!g)g=[["Settings",keys,true]];
   const used=new Set(),out=g.map(([t,ks,open])=>{const l=ks.filter(k=>has(k)&&!used.has(k));l.forEach(k=>used.add(k));return{title:t,keys:l,open}}).filter(x=>x.keys.length);
   const rest=keys.filter(k=>!used.has(k));if(rest.length){if(out.length)out[0].keys.push(...rest);else out.push({title:"Settings",keys:rest,open:true})}return out}
-function ctrlHtml(m,d,v){const id=`set-${m.id}-${d.key}`,lab=label(d.key),tip=UI.tip(HINTS[d.key]||""),changed=String(v)!==String(d.def);
+function ctrlHtml(m,d,v){const id=`set-${m.id}-${d.key}`,lab=label(d.key),tip=UI.tip(HINTS[m.id+"."+d.key]||HINTS[d.key]||""),changed=String(v)!==String(d.def);
   const row=(ctl,forId)=>`<div class="srow${changed?" changed":""}" data-row="${d.key}"><div class="lab">${forId?`<label for="${forId}">${lab}</label>`:`<span>${lab}</span>`}${tip}</div><div class="ctl">${ctl}<button type="button" class="ibtn sm rst" data-rst="${d.key}" aria-label="Reset ${esc(lab)} to default" title="Reset to default">${ic("reset",14)}</button></div></div>`;
   if(d.type==="BOOL")return row(`<button class="tg" role="switch" aria-checked="${v==="true"}" data-sk="${d.key}" aria-label="${lab}"></button>`);
   if(d.type==="COLOR")return row(UI.color(`data-sk="${d.key}"`,v,id,lab),id);

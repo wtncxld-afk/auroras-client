@@ -168,7 +168,7 @@ public class ModuleTests {
         // nameplate
         double[] lay = WorldFx.plateLayout(40, 14, true, true, 7, new double[8]), bare = WorldFx.plateLayout(40, 0, false, false, 7, new double[8]);
         check("nameplate: item, ping and health bar make the plate wider and taller; pieces don't overlap", lay[0] > bare[0] && lay[1] > bare[1] && lay[2] >= lay[4] + 8 && lay[3] >= lay[2] + 40 && lay[3] + 14 <= lay[0] && lay[5] < lay[1]);
-        check("nameplate: size follows distance but stays readable", WorldFx.plateScale(1000, 1) == 1.15 && WorldFx.plateScale(1, 1) == 0.42 && WorldFx.plateScale(1, 2) == 0.84 && WorldFx.distanceFade(10, 48) == 1 && WorldFx.distanceFade(48, 48) == 0 && WorldFx.distanceFade(44, 48) < 1);
+        check("nameplate: size follows distance but stays readable", WorldFx.plateScale(1000, 1) == 1.15 && WorldFx.plateScale(1, 1) == 0.6 && WorldFx.plateScale(1, 2) == 1.2 && WorldFx.distanceFade(10, 48) == 1 && WorldFx.distanceFade(48, 48) == 0 && WorldFx.distanceFade(44, 48) < 1);
         // emblem
         double[] e = new double[7]; WorldFx.emblemAnchor("back", 0, false, 1, e);
         check("emblem: on the back at yaw 0 (facing +Z) it sits behind (-Z) and faces backwards", e[2] < 0 && e[4] < 0 && Math.abs(e[0]) < 1e-9 && e[1] > 1);

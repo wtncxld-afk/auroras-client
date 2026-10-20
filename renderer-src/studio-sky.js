@@ -92,7 +92,7 @@ const tag=$("#sky-tag");if(tag)tag.textContent=(VS.compare?"Vanilla (approximate
 function particleTab(b){const m=PFXM(),vals=mcVals(),q=qOf(vals);
 b.innerHTML=`<div class="studio"><div><div class="stagebox"><canvas id="px-cv" aria-label="Particle preview"></canvas><div class="vtag" id="px-tag"></div></div>
 <div class="row2"><span class="chips">${VX.STYLE_IDS.map(s=>`<button class="chip" data-style="${s}" aria-pressed="${VS.pdraft.style===s}">${esc(label(s))}</button>`).join("")}</span><button class="btn" id="px-burst">Event burst</button></div>
-<small>Live preview of the particle budget, lifetime and spawn rules the game uses. ${availTag(m)} The in-game particle system isn’t written yet, so these settings are saved for it but don’t change the game today.</small></div>
+<small>Live preview of the particle budget, lifetime and spawn rules the game uses. ${availTag(m)} In game the Particle System uses these settings for themed totem pops, projectile trails, footsteps, hit bursts and ambient motes. Only you see them.</small></div>
 <div><div id="px-set">${panelHtml(m,prefixed(m,VS.pdraft))}</div><div class="row2" style="justify-content:flex-end"><button class="btn" id="px-reset">Reset to default</button><button class="btn" id="px-cancel">Cancel</button><button class="btn pri" id="px-apply">Apply</button></div><small style="display:block;margin-top:6px">${whereNote()}</small></div></div>`;
 const setRoot=$("#px-set"),sync=()=>{VS.pdraft={...VS.pdraft,...readCtrls(setRoot,m)};b.querySelectorAll("[data-style]").forEach(c=>c.setAttribute("aria-pressed",c.dataset.style===VS.pdraft.style))};wireCtrls(setRoot,sync);
 VS.pp=VX.Particles(4096,11);VS.gov=VX.Governor(60);let burst=0;

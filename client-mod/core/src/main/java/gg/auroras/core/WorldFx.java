@@ -233,7 +233,7 @@ public final class WorldFx {
      * Size of world-anchored art: GUI units per plate unit, shrinking with distance like Minecraft's own nametags but
      * kept readable (min) and never huge up close (max), times the user's scale.
      */
-    public static double plateScale(double perBlock, double userScale) { return Sky.clamp(perBlock * 0.025, 0.42, 1.15) * Sky.clamp(userScale, 0.25, 4); }
+    public static double plateScale(double perBlock, double userScale) { return Sky.clamp(perBlock * 0.025, 0.6, 1.15) * Sky.clamp(userScale, 0.25, 4); }
     /** Opacity by distance: full until 80% of the maximum, then fading out; 0 beyond it. */
     public static double distanceFade(double dist, double max) { if (dist >= max) return 0; double s = max * 0.8; return dist <= s ? 1 : 1 - (dist - s) / (max - s); }
     /**
@@ -302,7 +302,7 @@ public final class WorldFx {
             case "crescent": return r <= 0.92 && Math.hypot(u - 0.36, v + 0.18) > 0.72;
             case "diamond": return Math.abs(u) / 0.68 + Math.abs(v) / 0.95 <= 1;
             case "hexagon": { double au = Math.abs(u), av = Math.abs(v); return av <= 0.82 && au * 0.866 + av * 0.5 <= 0.82; }
-            case "sakura": { double petal = 0.5 + 0.44 * Math.pow(Math.abs(Math.cos(2.5 * (th + Math.PI / 2))), 0.7); double notch = Math.abs(Math.sin(2.5 * (th + Math.PI / 2) + Math.PI / 2)); return r <= petal * (1 - 0.12 * Math.pow(1 - notch, 8)) && !(r < 0.13 && r > 0.07); }
+            case "sakura": { double petal = 0.5 + 0.44 * Math.pow(Math.abs(Math.cos(2.5 * (th + Math.PI / 2))), 0.7); double notch = Math.abs(Math.sin(2.5 * (th + Math.PI / 2) + Math.PI / 2)); return r <= petal * (1 - 0.12 * Math.pow(1 - notch, 8)); }
             default: { // aurora: a ring with a four-point sparkle inside
                 if (r <= 0.95 && r >= 0.8) return true;
                 double au = Math.abs(u), av = Math.abs(v); return Math.sqrt(au) + Math.sqrt(av) <= Math.sqrt(0.62);
