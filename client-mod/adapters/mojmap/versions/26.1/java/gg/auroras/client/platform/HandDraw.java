@@ -17,4 +17,8 @@ public final class HandDraw {
     public static void armShell(SubmitNodeCollector c, PoseStack pose, ModelPart arm, Identifier skin, int argb) {
         c.submitModelPart(arm, pose, RenderTypes.entityTranslucentEmissive(skin), 0xF000F0, OverlayTexture.NO_OVERLAY, (TextureAtlasSprite) null, argb, null);
     }
+    /** Rotates the pose about axis 0 (x), 1 (y) or 2 (z) by deg degrees. */
+    public static void rotate(PoseStack pose, int axis, float deg) {
+        pose.mulPose((axis == 0 ? com.mojang.math.Axis.XP : axis == 1 ? com.mojang.math.Axis.YP : com.mojang.math.Axis.ZP).rotationDegrees(deg));
+    }
 }

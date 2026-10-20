@@ -1,4 +1,11 @@
 # javap -p for these (names only). Edit freely: it only feeds the "Minecraft names (javap)" step of mod-check.yml.
-net.minecraft.client.renderer.FirstPersonHandsAndItemsRenderer
-net.minecraft.client.renderer.texture.TextureAtlas
-net.minecraft.client.renderer.Sheets
+net.minecraft.client.renderer.MultiBufferSource
+net.minecraft.client.renderer.MultiBufferSource$BufferSource
+com.mojang.blaze3d.vertex.ByteBufferBuilder
+com.mojang.blaze3d.systems.RenderSystem
+com.mojang.blaze3d.systems.GpuDevice
+com.mojang.blaze3d.systems.CommandEncoder
+com.mojang.blaze3d.pipeline.RenderTarget
+net.minecraft.client.renderer.rendertype.RenderTypes
+net.minecraft.client.renderer.texture.DynamicTexture
+net.minecraft.client.player.LocalPlayer

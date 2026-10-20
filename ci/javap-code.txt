@@ -1,3 +1,3 @@
 # javap -p -c (bytecode) for these, to check what mixin @At targets call
-net.minecraft.client.renderer.FirstPersonHandsAndItemsRenderer
-net.minecraft.client.renderer.OrderedSubmitNodeCollector
+net.minecraft.client.MouseHandler
+net.minecraft.client.renderer.texture.OverlayTexture

@@ -17,4 +17,9 @@ public final class HandDraw {
     public static void armShell(SubmitNodeCollector c, PoseStack pose, ModelPart arm, Identifier skin, int argb) {
         c.submitModelPart(arm, pose, RenderTypes.entityTranslucentEmissive(skin), 0xF000F0, OverlayTexture.NO_OVERLAY, (UvMapping) null, argb);
     }
+    /** Rotates the pose about axis 0 (x), 1 (y) or 2 (z) by deg degrees (26.3's PoseStack#mulPose takes a matrix). */
+    public static void rotate(PoseStack pose, int axis, float deg) {
+        float r = (float) Math.toRadians(deg); org.joml.Matrix4f m = new org.joml.Matrix4f();
+        pose.mulPose(axis == 0 ? m.rotationX(r) : axis == 1 ? m.rotationY(r) : m.rotationZ(r));
+    }
 }

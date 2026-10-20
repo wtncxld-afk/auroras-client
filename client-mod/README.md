@@ -47,6 +47,19 @@ Animated effects come from core `SkyFx`: shooting stars, nebula drift, clouds, p
 | Totem Effects | `GameRendererMixin#showFloatingItem` notices your totem popping; particles and the flash follow `GameLogic.TotemFx` |
 | Information modules | Drawn by `HudRenderer` like HUD elements (direction, freelook status, session statistics, server information, frame time graph, memory, biome, logo) |
 
+### Animation, player and stream modules (mojmap only, 1.21.11 and 26.x)
+Rules and curves are core `PlayerFx` (tested in `ModuleTests.playerFx`); the adapter classes are `AurorasHands`, `AurorasStream`, `AurorasSpirit` and `AurorasSkin`. All of it is drawn on your screen only; none of it changes what the server or other players see. Compiled in CI for every target, never run in game yet.
+
+| Module | Hook |
+|---|---|
+| Swing Animation | `versions/<t>/mixin/HandRendererMixin` changes the swing progress argument and wraps the held-item submit (push pose, offsets, pop); `LivingEntityMixin` changes `getCurrentSwingDuration` for your own player; the "no cooldown dip" option redirects `getItemSwapScale` in `ItemInHandRenderer#tick` (not on 26.3, whose hand renderer was rewritten) |
+| Weapon Inspect | Key `key.auroras.inspect` (default I). The inspect pose is added in the same item-submit wrap. Blade skins mark the item with an identity-unique tint array (`ItemLayerMixin`) and `ItemTintMixin` colours its quads at `getLayerColorSafe` |
+| Hand Aura | The item-submit wrap submits extra scaled shells marked with the aura tint; `ItemTintMixin` makes them translucent (1.21.11: the submit's RenderType; 26.x: the buffer chosen in `ItemFeatureRenderer`). `HandAuraMixin` adds translucent emissive arm shells after `AvatarRenderer#renderHand` (`platform/HandDraw`) |
+| Totem Spirit | `ClientPacketListenerMixin` sees entity event 35; `AurorasSpirit` spawns ordinary depth-tested world particles, so walls hide them |
+| Name Protect | `FontMixin` swaps names for aliases in `prepareText` and `width` (String and FormattedCharSequence), so chat, tab list, name tags and scoreboard read the alias. Commands you type are sent as typed |
+| Stream Hide Inventory | Key `key.auroras.streamhide`. Platform's hotbar element wrapper covers filled slots; `ContainerScreenMixin` skips drawing your own inventory's items and their tooltips; the hand renderer can skip the held item. The item on the cursor is not hidden |
+| Skin Changer | The launcher's Skins page writes `config/auroras/skin.png` (a picked PNG, or a username's skin looked up through the launcher's existing Mojang lookup). `AbstractClientPlayerMixin` returns a copy of your own `PlayerSkin` with that texture and the arm model you chose. 64x32 skins are converted like vanilla does. The mod never goes online |
+
 ## Minecraft 1.21.11 and later (adapters/mojmap)
 - **One source, four builds.** `common/` is written once against Mojang's official names, which Fabric uses for 1.21.11 (remapped) and 26.x (the game ships unobfuscated). The part that really differs between them is small and lives in `gui-v1/` (1.21.11: `GuiGraphics`, GLFW key codes) and `gui-v2/` (26.x: `GuiGraphicsExtractor`, SDL key codes): drawing (`Gfx`), the screen base class (`AScreen`), key mappings and the HUD layer (`Platform`). Settings files keep GLFW key codes; `Keys` converts through Minecraft's own key constants.
 - **Build one target:** `cd adapters/mojmap && gradle build -Ptarget=26.3` (needs JDK 25 and Gradle 9.7+). Targets: `1.21.11`, `26.1`, `26.2`, `26.3`. Fabric loader, Loom and Fabric API versions come from Fabric's example mod for each version. A 26.x jar loads on every hotfix of its line (`~26.3`).

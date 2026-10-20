@@ -9,7 +9,7 @@ package gg.auroras.client;
 // cooldown and hit timing are untouched, and nothing is shown that you couldn't see anyway.
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Axis;
+import gg.auroras.client.platform.HandDraw;
 import gg.auroras.client.platform.Mc;
 import gg.auroras.client.platform.Platform;
 import gg.auroras.core.Config;
@@ -72,7 +72,7 @@ public final class AurorasHands {
         if (mc.player == null) { INSPECT.stop(); lastSlot = -1; return; }
         int slot = mc.player.getInventory().getSelectedSlot();
         while (inspectKey.consumeClick()) if (inspectOn && Mc.screen(mc) == null && inspectable(mc.player.getMainHandItem())) INSPECT.start(inspectStyle, inspectDur);
-        if (INSPECT.active() && (slot != lastSlot || mc.player.isUsingItem() || (cancelOnSwing && mc.player.swinging) || !inspectable(mc.player.getMainHandItem()))) INSPECT.cancel();
+        if (INSPECT.active() && (slot != lastSlot || mc.player.isUsingItem() || (cancelOnSwing && mc.player.getAttackAnim(1f) > 0) || !inspectable(mc.player.getMainHandItem()))) INSPECT.cancel();
         lastSlot = slot;
     }
     static boolean weapon(ItemStack s) {
@@ -107,14 +107,14 @@ public final class AurorasHands {
         if (inspect) {
             long ns = System.nanoTime(); INSPECT.frame(Math.min(0.1, (ns - lastNs) / 1e9)); lastNs = ns; INSPECT.pose(POSE);
             pose.translate((float) POSE[0], (float) POSE[1], (float) POSE[2]);
-            pose.mulPose(Axis.XP.rotationDegrees((float) POSE[3])); pose.mulPose(Axis.YP.rotationDegrees((float) POSE[4])); pose.mulPose(Axis.ZP.rotationDegrees((float) POSE[5]));
+            HandDraw.rotate(pose, 0, (float) POSE[3]); HandDraw.rotate(pose, 1, (float) POSE[4]); HandDraw.rotate(pose, 2, (float) POSE[5]);
         }
         if (offset) {
             double m = main ? 1 : -1;
             pose.translate((float) (OFF[0] * m), (float) OFF[1], (float) OFF[2]);
-            if (OFF[4] != 0) pose.mulPose(Axis.XP.rotationDegrees((float) OFF[4]));
-            if (OFF[5] != 0) pose.mulPose(Axis.YP.rotationDegrees((float) (OFF[5] * m)));
-            if (OFF[6] != 0) pose.mulPose(Axis.ZP.rotationDegrees((float) (OFF[6] * m)));
+            if (OFF[4] != 0) HandDraw.rotate(pose, 0, (float) OFF[4]);
+            if (OFF[5] != 0) HandDraw.rotate(pose, 1, (float) (OFF[5] * m));
+            if (OFF[6] != 0) HandDraw.rotate(pose, 2, (float) (OFF[6] * m));
             if (OFF[3] != 1) pose.scale((float) OFF[3], (float) OFF[3], (float) OFF[3]);
         }
         if (tint != -1) { bladeArgb = tint; marking = 1; }
