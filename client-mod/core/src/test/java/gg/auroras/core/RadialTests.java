@@ -71,7 +71,7 @@ public class RadialTests {
         boolean covered = reg.modules().stream().allMatch(x -> RadialMenu.PETALS.stream().anyMatch(p -> p.categories().contains(x.cat().label)));
         check("sections: every module belongs to exactly one section", covered);
         mm.openSettings("settings"); ModuleMenu.Layout ml = mm.layout(480, 270);
-        check("settings page: menu key, visual quality, menu theme and effects, saved as the client's own settings", mm.openModule() == ModuleMenu.CLIENT && ml.rows().size() == 4 && mm.value(ml.rows().get(1).d()).equals("BALANCED") && !mm.toggle("settings"));
+        check("settings page: menu key, visual quality, menu theme and effects, main and pause menus, saved as the client's own settings", mm.openModule() == ModuleMenu.CLIENT && ml.rows().size() == 7 && mm.value(ml.rows().get(1).d()).equals("BALANCED") && !mm.toggle("settings"));
         mm.set(ml.rows().get(1).d(), "HIGH"); check("settings page: changing quality writes settings.quality", pm.get(Config.Registry.QUALITY).equals("HIGH"));
         // font
         TextKit tk = new TextKit(Files.readString(dir.resolve("font/auroras-font.json")));

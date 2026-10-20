@@ -1,4 +1,3 @@
 # javap -p for these (names only). Edit freely: it only feeds the "Minecraft names (javap)" step of mod-check.yml.
-net.minecraft.client.KeyMapping
-com.mojang.blaze3d.platform.InputConstants
-com.mojang.blaze3d.platform.Window
+net.minecraft.client.multiplayer.chat.report.ReportingContext
+net.minecraft.client.resources.sounds.SimpleSoundInstance

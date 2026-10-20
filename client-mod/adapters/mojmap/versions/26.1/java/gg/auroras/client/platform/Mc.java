@@ -19,4 +19,14 @@ public final class Mc {
     public static boolean hudHidden(Minecraft mc) { return mc.options.hideGui; }
     /** Adds a line to your own chat (local only, nothing is sent to the server). */
     public static void chat(Minecraft mc, Component text) { mc.gui.getChat().addClientSystemMessage(text); }
+
+    // ---- Auroras main and pause menus (names from javap of this release's TitleScreen and PauseScreen) ----
+    // Options takes (parent, options, in a world: PauseScreen passes true); the world button is Open to LAN (ShareToLanScreen).
+    /** Vanilla's Options screen, opened from the main or pause menu. */
+    public static Screen options(Minecraft mc, Screen parent) { return new net.minecraft.client.gui.screens.options.OptionsScreen(parent, mc.options, mc.level != null); }
+    /** The label of the pause menu's world button in this release, or null when there is none here. */
+    public static String worldButton(Minecraft mc) { return mc.hasSingleplayerServer() ? "Open to LAN" : null; }
+    /** Whether that button can be pressed now (vanilla greys it out the same way). */
+    public static boolean worldButtonActive(Minecraft mc) { return mc.getSingleplayerServer() != null && !mc.getSingleplayerServer().isPublished(); }
+    public static Screen worldScreen(Minecraft mc, Screen parent) { return new net.minecraft.client.gui.screens.ShareToLanScreen(parent); }
 }
