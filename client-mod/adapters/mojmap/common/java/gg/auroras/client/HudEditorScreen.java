@@ -29,9 +29,9 @@ public class HudEditorScreen extends AScreen {
         ctx.fill(0, 0, width, height, 0x40000000);
         HudRenderer.render(ctx, Minecraft.getInstance(), dt, true, selected);
         gg.auroras.core.UiTokens tk = gg.auroras.client.ui.AUi.tokens(); int acc = tk.opaque("acc");
-        HudRenderer.El hov = dragging == null ? at(mx, my) : null;
+        HudRenderer.El hovEl = dragging == null ? at(mx, my) : null;
         for (HudRenderer.El e : HudRenderer.ELS.values()) {
-            if (!e.on || e.w == 0) continue; boolean sel = e.id.equals(selected), h = e == hov; double x = e.pos[0] - 1.5, y = e.pos[1] - 1.5, w = e.w + 3, hh = e.h + 3, r = Math.min(5, hh / 2);
+            if (!e.on || e.w == 0) continue; boolean sel = e.id.equals(selected), h = e == hovEl; double x = e.pos[0] - 1.5, y = e.pos[1] - 1.5, w = e.w + 3, hh = e.h + 3, r = Math.min(5, hh / 2);
             if (sel) gg.auroras.client.ui.Glass.shadow(ctx, x, y, w, hh, r, 5, gg.auroras.client.ui.AUi.fade(acc, 0.35));
             gg.auroras.client.ui.Glass.outline(ctx, x, y, w, hh, r, sel ? acc : tk.argb("text", h ? 0.7 : 0.32));
             if (sel || h) { String name = e.mod.name(); double tw = gg.auroras.client.ui.Glass.width("medium", 6, name) + 8, ty = y - 11 < 2 ? y + hh + 2 : y - 11;
