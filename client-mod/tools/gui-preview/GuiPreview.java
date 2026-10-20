@@ -33,6 +33,9 @@ public class GuiPreview {
         shot(bg, W, H, ModuleScreen.section("All modules", null, null), null, "all-modules", out);
         shot(bg, W, H, ModuleScreen.section("Visuals", RadialMenu.PETALS.get(1).categories(), null), "sky", "sky-settings", out);
         shot(bg, W, H, ModuleScreen.section("HUD", RadialMenu.PETALS.get(0).categories(), null), "keystrokes", "keystrokes-settings", out);
+        shot(bg, W, H, ModuleScreen.section("Player Visuals", java.util.List.of("Player Visuals"), null), null, "player-visuals", out);
+        shot(bg, W, H, ModuleScreen.section("Player Visuals", java.util.List.of("Player Visuals"), null), "nameplate", "nameplate-settings", out);
+        shot(bg, W, H, ModuleScreen.section("Visuals", RadialMenu.PETALS.get(1).categories(), null), "particlefx", "particlefx-settings", out);
         shot(bg, W, H, ModuleScreen.settings(null), null, "client-settings", out);
     }
     static void shot(BufferedImage bg, int W, int H, ModuleScreen s, String open, String name, File dir) throws Exception {

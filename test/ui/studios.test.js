@@ -49,7 +49,7 @@ describe("Modules page", () => {
   });
   test("categories, search, favorites and recently used", async () => {
     await tap(s.page, s.page.locator('[data-c="World & Sky"]')); assert.deepStrictEqual(await s.page.locator(".modcard b").allTextContents(), ["Custom Skies"]);
-    await tap(s.page, s.page.locator('[data-c="All"]')); await s.page.locator("#mq-search").fill("totem"); assert.deepStrictEqual(await s.page.locator(".modcard b").allTextContents(), ["Totem Effects", "Particle System"]); // Particle System themes totem pops
+    await tap(s.page, s.page.locator('[data-c="All"]')); await s.page.locator("#mq-search").fill("totem"); assert.deepStrictEqual(await s.page.locator(".modcard b").allTextContents(), ["Totem Effects", "Particle System", "Totem Spirit"]); // Particle System themes totem pops
     await s.page.locator("#mq-search").fill(""); await tap(s.page, s.page.locator('[data-fav="sky"]')); await tap(s.page, s.page.locator('[data-c="Favorites"]'));
     assert.deepStrictEqual(await s.page.locator(".modcard b").allTextContents(), ["Custom Skies"]);
     await tap(s.page, s.page.locator('[data-c="Recent"]')); assert.match(await s.page.locator("#mq-list").textContent(), /Nothing opened yet/);
