@@ -1,11 +1,11 @@
 # Compiles the Auroras mod for every Minecraft target without releasing anything (release.yml publishes on main).
-# Runs on pushes to the mod-fix branch and from the Actions tab. Same steps and pinned actions as release.yml's mod job,
+# Runs on pushes to the mod-fix branch, any mod-check/<name> branch, and from the Actions tab. Same steps and pinned actions as release.yml's mod job,
 # plus a javap dump of the classes in ci/javap-classes.txt so the real Minecraft names can be read in the log.
 name: Mod compile check
 
 on:
   push:
-    branches: [mod-fix]
+    branches: [mod-fix, "mod-check/**"]
   workflow_dispatch:
 
 permissions:
