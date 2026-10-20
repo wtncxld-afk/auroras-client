@@ -65,6 +65,19 @@ Rules and curves are core `PlayerFx` (tested in `ModuleTests.playerFx`); the ada
 | Stream Hide Inventory | Key `key.auroras.streamhide`. Platform's hotbar element wrapper covers filled slots; `ContainerScreenMixin` skips drawing your own inventory's items and their tooltips; the hand renderer can skip the held item. The item on the cursor is not hidden |
 | Skin Changer | The launcher's Skins page writes `config/auroras/skin.png` (a picked PNG, or a username's skin looked up through the launcher's existing Mojang lookup). `AbstractClientPlayerMixin` returns a copy of your own `PlayerSkin` with that texture and the arm model you chose. 64x32 skins are converted like vanilla does. The mod never goes online |
 
+### Rendering modules (mojmap only, 1.21.11 and 26.x)
+Maths (glide and fade, grading, blur weight, warning pulse, glint pattern, local clock) is core `RenderFx` (tested in `ModuleTests.renderFx`); the adapter class is `AurorasRender`. Everything is local and only changes what you see. Compiled in CI for every target, never run in game yet.
+
+| Module | Hook |
+|---|---|
+| Block Overlay | `BlockOutlineMixin` changes the colour, width and pose (glide) passed to `renderHitOutline` / `submitHitOutline`; `versions/<t>/mixin/BlockOverlayMixin` keeps the last outline while it fades out and draws the fill (`RenderTypes.debugFilledBox`) in `renderBlockOutline` (1.21.11, 26.1) or `submitBlockOutline` (26.2, 26.3) |
+| Color Grading, Motion Blur | Our post effects `assets/auroras_client/post_effect/{color_grade,motion_blur}.json` with shaders in `versions/<t>/resources` (26.3 needs its own GLSL header), run by `RenderFxGameRendererMixin` before `FogRenderer#endFrame` (after vanilla's post effect, before the HUD). Values come from 2x1 parameter textures, so changes apply at once. A chain that fails to load turns only that module off |
+| Custom FOV | `RenderFxGameRendererMixin` (`getFov`, 1.21.11), `RenderFxCameraMixin` (`calculateFov`, 26.x); dynamic FOV via `FovEffectMixin` (`AbstractClientPlayer#getFieldOfViewModifier`'s effect scale) |
+| Custom Enchant Glint | Our own 64x64 glint texture registered at Minecraft's two glint ids (released when off); speed and scale in `GlintMixin` (`TextureTransform#setupGlintTexturing`) |
+| Low Health Warning | Drawn by `AurorasRender.hud` under the Auroras HUD (edge mask texture, tinted) |
+| Time Changer | gui-v1 `TimeMixin`/`TimeTickMixin` (`ClientLevelData#getDayTime`, but not inside `tickTime`); gui-v2 `TimeMixin` (`ClientClockManager#getTotalTicks`, 26.1/26.2) and `TimeClockMixin` (`ClientClockInstance#totalTicks`, 26.3) |
+| No Render | `NoRenderMixin` (fire, water, totem in `ScreenEffectRenderer`), `NoRenderWeatherMixin`, `NoRenderParticleMixin` (explosions), hurt shake (`bobHurt`), `NoRenderGuiMixin` (pumpkin and frost overlays, vignette, portal; on `Gui` or 26.2+ `Hud`). Low Fire still lowers the fire when No Render's fire toggle is off |
+
 ## Minecraft 1.21.11 and later (adapters/mojmap)
 - **One source, four builds.** `common/` is written once against Mojang's official names, which Fabric uses for 1.21.11 (remapped) and 26.x (the game ships unobfuscated). The part that really differs between them is small and lives in `gui-v1/` (1.21.11: `GuiGraphics`, GLFW key codes) and `gui-v2/` (26.x: `GuiGraphicsExtractor`, SDL key codes): drawing (`Gfx`), the screen base class (`AScreen`), key mappings and the HUD layer (`Platform`). Settings files keep GLFW key codes; `Keys` converts through Minecraft's own key constants.
 - **Build one target:** `cd adapters/mojmap && gradle build -Ptarget=26.3` (needs JDK 25 and Gradle 9.7+). Targets: `1.21.11`, `26.1`, `26.2`, `26.3`. Fabric loader, Loom and Fabric API versions come from Fabric's example mod for each version. A 26.x jar loads on every hotfix of its line (`~26.3`).

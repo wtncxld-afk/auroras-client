@@ -157,9 +157,11 @@ public final class RenderFx {
     public static int[] edgeMask(int size, double depth, int[] out) {
         double d = clamp(depth, 0.05, 0.6);
         for (int y = 0; y < size; y++) for (int x = 0; x < size; x++) {
-            double u = (x + 0.5) / size, v = (y + 0.5) / size, e = Math.min(Math.min(u, 1 - u), Math.min(v, 1 - v));
-            double dx = (u - 0.5) * 2, dy = (v - 0.5) * 2, round = clamp(Math.sqrt(dx * dx + dy * dy) - 0.7, 0, 1) * 0.6; // corners a little stronger
-            double a = Math.pow(1 - smoothstep(0, d, e), 1.6) + round * (1 - smoothstep(0, d * 2, e));
+            double u = (x + 0.5) / size, v = (y + 0.5) / size, eu = Math.min(u, 1 - u), ev = Math.min(v, 1 - v);
+            // a soft minimum of the distances to the nearest side and to the nearest top/bottom edge: the glow rounds the
+            // corners (a plain minimum leaves hard diagonal seams) and the corners come out a little stronger
+            double e = Math.pow(Math.pow(eu, -4) + Math.pow(ev, -4), -0.25);
+            double a = Math.pow(1 - smoothstep(0, d, e), 1.6);
             out[y * size + x] = (int) Math.round(clamp(a, 0, 1) * 255) << 24 | 0xFFFFFF;
         }
         return out;
