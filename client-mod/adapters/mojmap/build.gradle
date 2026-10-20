@@ -63,10 +63,15 @@ tasks.register('mcJavap') {
         String javap = System.getProperty('java.home') + '/bin/javap'
         String cp = jars.collect { it.absolutePath }.join(File.pathSeparator)
         def code = (project.findProperty('javapCode') ?: '').toString().split(',').collect { it.trim() }.findAll { it }
+        // a code entry "a.B:m1|m2" prints only the bytecode of methods whose declaration contains m1 or m2 (lambdas too) (the job log keeps its last 5000 lines readable)
         (classes.collect { [it, false] } + code.collect { [it, true] }).each { pair -> String c = pair[0]; boolean withCode = pair[1]
-            List<String> args = [javap, '-p'] + (withCode ? ['-c'] : []) + ['-cp', cp, c.toString()]
+            String cls = c.contains(':') ? c.substring(0, c.indexOf(':')) : c
+            List<String> only = c.contains(':') ? c.substring(c.indexOf(':') + 1).split('\\|').toList() : []
+            List<String> args = [javap, '-p'] + (withCode ? ['-c'] : []) + ['-cp', cp, cls]
             def p = new ProcessBuilder(args).redirectErrorStream(true).start()
-            println "==== javap${withCode ? ' -c' : ''} ${c}"; println p.inputStream.text; p.waitFor()
+            String out = p.inputStream.text; p.waitFor()
+            if (!only.isEmpty()) out = out.split('\n\n').findAll { b -> String head = b.readLines().find { it.trim() } ?: ''; only.any { head.contains(it) } || !head.startsWith('  ') }.join('\n\n')
+            println "==== javap${withCode ? ' -c' : ''} ${c}"; println out
         }
     }
 }

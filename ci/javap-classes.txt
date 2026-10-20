@@ -1,6 +1,5 @@
 # javap -p for these (names only). Edit freely: it only feeds the "Minecraft names (javap)" step of mod-check.yml.
 net.minecraft.client.gui.screens.Screen
-net.minecraft.client.gui.Gui
 net.minecraft.client.multiplayer.resolver.ServerAddress
 net.minecraft.client.multiplayer.ServerData
 net.minecraft.client.gui.screens.ConnectScreen
@@ -12,6 +11,5 @@ net.minecraft.client.gui.screens.ShareToLanScreen
 net.minecraft.client.gui.screens.advancements.AdvancementsScreen
 net.minecraft.client.gui.screens.achievement.StatsScreen
 net.minecraft.client.gui.screens.CreditsAndAttributionScreen
-net.minecraft.client.gui.screens.GenericMessageScreen
-net.minecraft.SharedConstants
-net.minecraft.WorldVersion
+net.minecraft.client.gui.screens.TitleScreen
+net.minecraft.client.gui.screens.PauseScreen

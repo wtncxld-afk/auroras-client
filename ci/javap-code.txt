@@ -1,4 +1,5 @@
-# javap -p -c (bytecode) for these, to check what mixin @At targets call
-net.minecraft.client.gui.screens.TitleScreen
-net.minecraft.client.gui.screens.PauseScreen
-net.minecraft.client.Minecraft
+# javap -p -c (bytecode) for these, to check what mixin @At targets call. "a.B:m1|m2" limits it to methods whose declaration contains m1 or m2.
+net.minecraft.client.gui.screens.TitleScreen:createNormalMenuOptions|lambda$createNormalMenuOptions|getMultiplayerDisabledReason|init()
+net.minecraft.client.gui.screens.PauseScreen:createPauseMenu|lambda$createPauseMenu|onDisconnect|disconnectFromWorld|showsPauseMenu
+net.minecraft.client.Minecraft:setScreen|disconnect|getMultiplayerDisabledReason|isLocalServer|hasSingleplayerServer|allowsMultiplayer|isMultiplayerServer|getSingleplayerServer|getCurrentServer
+net.minecraft.client.gui.Gui:setScreen

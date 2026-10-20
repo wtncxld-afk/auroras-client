@@ -172,4 +172,23 @@ im, d = canvas()
 for x, y in ((46, 10), (6, 52), (46, 52), (86, 52)): d.rounded_rectangle(P(x, y, x + 36, y + 36), radius=8 * K, outline=255, width=7 * K)
 d.rounded_rectangle(P(6, 96, 122, 118), radius=8 * K, outline=255, width=7 * K); save(im, "keys")
 
+# ---- main menu and pause menu ----
+# Play / Back to game: a rounded triangle
+im, d = canvas(); d.polygon(P(38, 20, 38, 108, 108, 64), fill=255); d.line(P(38, 20, 38, 108, 108, 64, 38, 20), fill=255, width=10 * K, joint="curve")
+for cx, cy in ((38, 20), (38, 108), (108, 64)): dot(d, cx, cy, 5)
+save(im, "play")
+# Quit / Disconnect: a power symbol
+im, d = canvas(); d.arc(P(18, 22, 110, 114), -60, 240, fill=255, width=W + K); d.line(P(64, 8, 64, 62), fill=255, width=W + K); dot(d, 64, 8, 5); dot(d, 64, 62, 5); save(im, "power")
+# Multiplayer: a globe
+im, d = canvas(); ring(d, 64, 64, 50); d.ellipse(P(42, 14, 86, 114), outline=255, width=7 * K)
+d.line(P(16, 64, 112, 64), fill=255, width=7 * K); d.arc(P(22, -10, 106, 46), 25, 155, fill=255, width=6 * K); d.arc(P(22, 82, 106, 138), 205, 335, fill=255, width=6 * K); save(im, "globe")
+# Statistics: three rising bars on a base line
+im, d = canvas()
+for x, top in ((22, 70), (52, 44), (82, 20)): d.rounded_rectangle(P(x, top, x + 24, 104), radius=6 * K, fill=255)
+d.line(P(10, 116, 118, 116), fill=255, width=7 * K); save(im, "chart")
+# Advancements: a trophy cup
+im, d = canvas(); d.chord(P(30, -40, 98, 76), 0, 180, fill=255); d.rectangle(P(30, 14, 98, 18), fill=255)
+d.arc(P(10, 22, 42, 58), 90, 270, fill=255, width=7 * K); d.arc(P(86, 22, 118, 58), -90, 90, fill=255, width=7 * K)
+d.rectangle(P(58, 74, 70, 98), fill=255); d.rounded_rectangle(P(36, 98, 92, 114), radius=5 * K, fill=255); save(im, "trophy")
+
 print("icons:", sorted(os.listdir(OUT)))
