@@ -177,6 +177,8 @@ public class ModuleTests {
         check("no render: nothing is hidden while the module is off", !nr.fire() && !nr.hidesParticle("minecraft:explosion"));
         nr.on = true;
         check("no render: toggles hide only what they name; explosions drop explosion particles only", nr.fire() && !nr.pumpkin() && nr.hidesParticle("minecraft:explosion_emitter") && !nr.hidesParticle("minecraft:flame"));
+        nr.freeze = true;
+        check("no render: powder snow frost goes with Freeze, helmet overlays (pumpkin blur) with Pumpkin", nr.hidesOverlay("textures/misc/powder_snow_outline.png") && !nr.hidesOverlay("textures/misc/pumpkinblur.png") && !nr.hidesOverlay(null) && run(() -> nr.pumpkin = true) && nr.hidesOverlay("textures/misc/pumpkinblur.png"));
         long before = alloc(); RenderFx.BlockOverlay bx = new RenderFx.BlockOverlay(); int[] px = new int[2]; double acc = 0;
         for (int k = 0; k < 100_000; k++) { bx.update(k % 50 != 0, a, 0.016, 0.07, 0.14); acc += RenderFx.blurWeight(k % 720, 0.5, true, acc * 0, 0.016) + RenderFx.lowHealth(3, 0, 6, true, true, 1, k * 0.016); RenderFx.gradeTexture(n, 0.1, px); }
         long used = alloc() - before;

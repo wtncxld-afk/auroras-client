@@ -34,7 +34,7 @@ dependencies {
 sourceSets {
     main {
         java { srcDirs = ['../../core/src/main/java', 'common/java', "${T('platform')}/java", "versions/${project.target}/java"] }
-        resources { srcDirs = ['common/resources', "${T('platform')}/resources"] }
+        resources { srcDirs = ['common/resources', "${T('platform')}/resources", "versions/${project.target}/resources"] }
     }
 }
 def javaVersion = T('java_version') as int

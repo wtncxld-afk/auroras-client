@@ -29,4 +29,6 @@ public final class Mc {
     /** Whether that button can be pressed now (vanilla greys it out the same way). */
     public static boolean worldButtonActive(Minecraft mc) { return mc.getSingleplayerServer() != null && !mc.getSingleplayerServer().isPublished(); }
     public static Screen worldScreen(Minecraft mc, Screen parent) { return new net.minecraft.client.gui.screens.ShareToLanScreen(parent); }
+    /** The world's main render target (Color Grading and Motion Blur draw their post passes into it). */
+    public static com.mojang.blaze3d.pipeline.RenderTarget mainTarget(Minecraft mc) { return mc.getMainRenderTarget(); }
 }

@@ -104,6 +104,7 @@ public class AurorasClient implements ClientModInitializer {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || Mc.hudHidden(mc) || Mc.screen(mc) instanceof HudEditorScreen) return;
         AurorasModules.drawTotemOverlay(g);
+        AurorasRender.hud(g, mc);
         HudRenderer.render(g, mc, dt, false, null);
         AurorasStream.drawBadge(g);
     }

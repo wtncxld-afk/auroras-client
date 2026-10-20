@@ -20,7 +20,8 @@ public final class RenderFx {
      */
     public static final class BlockOverlay {
         public final double[] box = new double[6]; // minX minY minZ maxX maxY maxZ (world coordinates) as drawn this frame
-        private final double[] target = new double[6]; public double alpha; private boolean has;
+        /** Where the box is heading (the targeted block's outline bounds). */
+        public final double[] target = new double[6]; public double alpha; private boolean has;
         /** Advances by dt. hit: whether a block is targeted; b: its outline bounds (6 values) when it is. glide/fade in seconds (0 = instant). */
         public void update(boolean hit, double[] b, double dt, double glide, double fade) {
             if (hit) {
@@ -201,5 +202,13 @@ public final class RenderFx {
         public boolean portal() { return on && portal; }
         /** Particle types No Render drops (explosions), shared with Particle Settings' filter. */
         public boolean hidesParticle(String typeId) { return explosions() && ("minecraft:explosion".equals(typeId) || "minecraft:explosion_emitter".equals(typeId) || "minecraft:gust".equals(typeId) || "minecraft:gust_emitter_large".equals(typeId) || "minecraft:gust_emitter_small".equals(typeId)); }
+        /**
+         * Full-screen texture overlays (the HUD's camera overlays) No Render hides, by texture path: the powder snow frost
+         * ("freeze") or any helmet's camera overlay such as the carved pumpkin blur ("pumpkin").
+         */
+        public boolean hidesOverlay(String texturePath) {
+            if (texturePath == null) return false;
+            return texturePath.contains("powder_snow") ? freeze() : pumpkin();
+        }
     }
 }
