@@ -409,6 +409,22 @@ h1{font-size:24px;font-weight:650;letter-spacing:-.025em;line-height:1.15}
 .privacy{display:grid;gap:12px}.privrow{display:flex;gap:12px;align-items:flex-start}.privrow .nic{flex:none;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;background:color-mix(in srgb,var(--ok,#3ecf8e) 16%,transparent);color:var(--ok,#3ecf8e)}.privrow .min{flex:1;min-width:0}.privrow .min b,.privrow .min small{white-space:normal;overflow:visible;text-overflow:clip}.privrow b{font-weight:550;display:block}.privrow small{display:block;margin-top:2px}.privrow.warn .nic{background:color-mix(in srgb,#f5a524 16%,transparent);color:#f5a524}
 @media(max-width:1100px){.side{width:56px}.side .nav span,.side .acct .min,.side .nav .badge,.sbrand span{display:none}.sbrand{justify-content:center;padding:6px 0 12px}.side .nav{justify-content:center;padding:0}.side .acct{justify-content:center;padding:6px}.side .grp{height:10px;padding:0;margin:6px 8px 0;border-top:1px solid var(--line);font-size:0}.side .grp:first-of-type{border:0}
  .side .nav:hover::after{content:attr(data-tip);position:fixed;left:62px;background:var(--s2);border:1px solid var(--line);color:var(--text);padding:3px 8px;border-radius:var(--r-s);font-size:12px;z-index:30}.bar{left:calc(50% + 28px)}#collapse{display:none}}
+/* Import modpack */
+.head-act{display:flex;gap:8px;flex-wrap:wrap}.pop-act{display:grid;grid-template-columns:1fr 1fr;gap:6px}.pop-act .btn{justify-content:center;padding:0 8px}
+.pk-dlg{width:620px}.pk-dlg .body{max-height:min(62vh,560px);overflow-y:auto}
+.pk-top{display:flex;align-items:center;gap:12px;padding-bottom:4px}.pk-top .min{flex:1;display:grid;gap:2px}.pk-top small{color:var(--mute);font-size:12.5px}.pk-top .ph-ico{width:38px;height:38px;border-radius:11px}.pk-top .ph-ico svg{width:18px;height:18px}
+.pk-drop{min-height:84px;font:inherit;color:inherit}.pk-drop b{font-weight:600}
+.pk-notes{list-style:none;display:grid;gap:8px;margin:16px 2px 2px;color:var(--mute);font-size:12.5px}.pk-notes li{display:flex;gap:8px;align-items:flex-start}.pk-notes svg{color:var(--ok);flex:none;margin-top:2px}
+.pk-list{max-height:330px;overflow-y:auto;padding:4px}.pk-row{cursor:default;align-items:center}.pk-row .min small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal}
+.pk-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}.pk-tags .tag{font-size:10.5px;padding:1px 8px}
+.pk-head{display:flex;gap:14px;align-items:flex-start;padding:14px;border-radius:14px;border:1px solid color-mix(in srgb,var(--acc) 22%,var(--line));background:linear-gradient(140deg,color-mix(in srgb,var(--acc) 10%,var(--s1)),color-mix(in srgb,var(--vio,var(--acc)) 6%,var(--s1)))}
+.pk-head .mi{border-radius:12px}.pk-head .min{display:grid;gap:3px;min-width:0}.pk-head b{font-size:16px;font-weight:600}.pk-head small{color:var(--mute)}.pk-sum{font-size:12.5px;color:var(--text);opacity:.85;margin-top:3px}
+.pk-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.pk-stat{display:grid;gap:2px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:color-mix(in srgb,var(--s2) 60%,transparent)}.pk-stat b{font-size:17px;font-weight:600;font-variant-numeric:tabular-nums}.pk-stat small{color:var(--mute);font-size:11.5px}
+.pk-warn{display:flex;gap:8px;align-items:flex-start;margin-top:12px;padding:10px 12px;border-radius:12px;color:var(--warn);font-size:12.5px;border:1px solid color-mix(in srgb,var(--warn) 35%,var(--line));background:color-mix(in srgb,var(--warn) 8%,transparent)}.pk-warn svg{flex:none;margin-top:1px}
+.pk-busy{display:grid;gap:8px;margin-top:18px}.pk-busy small{color:var(--mute)}.pk-track{height:8px;border-radius:99px;background:var(--line);overflow:hidden}.pk-track i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--acc),var(--acc2,var(--acc)));box-shadow:0 0 12px color-mix(in srgb,var(--acc) 60%,transparent);transition:width 200ms var(--ease)}
+.pk-line{display:flex;justify-content:space-between;gap:12px;font-size:13px}.pk-line span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pk-line b{font-weight:600;font-variant-numeric:tabular-nums}
+.pk-foot{align-self:center;color:var(--mute);font-size:12px}
+@media(max-width:640px){.pk-stats{grid-template-columns:repeat(2,1fr)}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -454,9 +470,9 @@ home(){const c=cur();return `<div class="page">
 <div style="display:flex;gap:8px"><input class="f" id="addr" placeholder="Add server address" value="${esc(S.server)}" aria-label="Server address"><button class="btn pri" data-join>Join</button></div></div>
 <h2 style="margin-top:28px">Recent instances</h2><div class="panel list">${INST.slice(0,3).map(i=>`<button class="row" data-pick="${i.id}">${instRow(i).replace(/^<div class="row">|<\/div>$/g,"")}</button>`).join("")}</div></div>
 <div><h2>News and updates</h2><div class="panel news">${[["Launcher","Themes now update the whole app instantly"],["Minecraft","Pick any release when creating an instance"],["Mods","Modrinth and CurseForge in one library"]].map(([t,d])=>`<div class="row"><span class="min"><small>${t}</small><b style="font-weight:500;white-space:normal;display:block">${d}</b></span></div>`).join("")}</div></div></div></div>`},
-instances(){return `<div class="page"><div class="head"><h1>Instances</h1><button class="btn pri" data-new>${ic("plus")}Create instance</button></div><div class="instgrid">${INST.map(i=>{const sel=i.id===S.inst;return `<div class="icard${sel?" on":""}">
+instances(){return `<div class="page"><div class="head"><h1>Instances</h1><div class="head-act"><button class="btn" data-import>${ic("download")}Import modpack</button><button class="btn pri" data-new>${ic("plus")}Create instance</button></div></div><div class="instgrid">${INST.map(i=>{const sel=i.id===S.inst;return `<div class="icard${sel?" on":""}">
 <button class="icard-main" data-pick="${i.id}" aria-pressed="${sel}"><span class="ibig" style="${icoSt(i)}">${esc(i.name[0])}</span><span class="min"><b>${esc(i.name)}</b><small>Minecraft ${esc(i.mc)} · ${esc(i.loader)}</small></span>${sel?`<span class="tag ok">Selected</span>`:""}</button>
-<div class="icard-meta"><span>${ic("played",13)}${esc(i.played)}</span><span>${ic("box",13)}${i.mem||4} GB memory</span></div>
+<div class="icard-meta"><span>${ic("played",13)}${esc(i.played)}</span><span>${ic("box",13)}${i.mem||4} GB memory</span>${i.pack&&i.pack.name?`<span title="Imported from a Modrinth modpack">${ic("download",13)}${esc(i.pack.name)}${i.pack.version?" "+esc(i.pack.version):""}</span>`:""}</div>
 <div class="icard-act"><button class="btn sm" data-editinst="${i.id}" aria-label="Change version of ${esc(i.name)}">Change version</button><button class="btn pri sm" data-instplay="${i.id}" aria-label="Play ${esc(i.name)}">${ic("play",13)}Play</button></div></div>`}).join("")}</div></div>`},
 settings(){return `<div class="page"><div class="head"><h1>Settings</h1></div><h2>Appearance</h2><div class="themes" style="margin-bottom:28px">${THEMES.map(([id,n,a,b,s])=>`<button class="th" data-theme-set="${id}" aria-pressed="${S.theme===id}"><div class="pv" style="background:${b}"><i style="background:${s}"></i><b style="background:${a}"></b></div><span><b style="font-weight:500">${n}</b><i style="width:10px;height:10px;border-radius:50%;background:${a}"></i></span></button>`).join("")}</div>
 <h2>Background</h2><div class="chips" style="margin-bottom:28px">${BGS.map(([v,l])=>`<button class="chip" data-bg="${v}" aria-pressed="${S.bg===v}">${l}</button>`).join("")}</div><h2>Effects</h2><div class="panel"><div class="set"><div><b style="font-weight:500">Animated background</b><br><small>Animates the background. Static when off.</small></div><button class="tg" role="switch" aria-checked="${S.motion}" data-motion aria-label="Animated background"></button></div></div></div>`},
@@ -488,7 +504,7 @@ function openSwitcher(btn){
   const el=document.createElement("div");el.className="pop";
   el.style.left=Math.max(12,Math.min(r.left,innerWidth-332))+"px";
   el.style[up?"bottom":"top"]=(up?innerHeight-r.top+8:r.bottom+8)+"px";
-  el.innerHTML=`<div class="search">${ic("search")}<input class="f" placeholder="Search instances" aria-label="Search instances"></div><div class="scroll" role="listbox"></div><button class="btn" style="width:100%;justify-content:center" data-new>${ic("plus")}Create instance</button>`;
+  el.innerHTML=`<div class="search">${ic("search")}<input class="f" placeholder="Search instances" aria-label="Search instances"></div><div class="scroll" role="listbox"></div><div class="pop-act"><button class="btn" data-new>${ic("plus")}Create instance</button><button class="btn" data-import>${ic("download")}Import modpack</button></div>`;
   $("#layer").appendChild(el);
   const list=el.querySelector(".scroll"),inp=el.querySelector("input");
   const draw=q=>{const m=INST.filter(i=>(i.name+i.mc+i.loader).toLowerCase().includes(q.toLowerCase()));list.innerHTML=m.length?m.map(i=>`<button class="row" role="option" data-pick="${i.id}" aria-selected="${i.id===S.inst}">${instRow(i).replace(/^<div class="row">|<\/div>$/g,"")}${i.id===S.inst?`<span class="check">${ic("check")}</span>`:""}</button>`).join(""):`<div class="empty" style="padding:24px">No instances match “${esc(q)}”</div>`};
@@ -507,6 +523,7 @@ document.addEventListener("click",e=>{
   else if(t.hasAttribute("data-motion")){S.motion=!S.motion;render()}
   else if(t.hasAttribute("data-play"))doPlay();
   else if(t.hasAttribute("data-new")){closePop();openCreator()}
+  else if(t.hasAttribute("data-import")){closePop();openImport()}
   else if(t.dataset.editinst){const i=INST.find(x=>String(x.id)===t.dataset.editinst);if(i)openCreator(i)}
   else if(t.hasAttribute("data-join"))doPlay({server:SV.addr});
   else if(t.hasAttribute("data-srvedit")){SV.edit=true;drawSrv();const i=$("#addr");if(i){i.focus();i.select()}}
@@ -1399,6 +1416,7 @@ const POST={home:initHome,settings:initSettings,skins:initSkins,mods:initMods},_
 /*@include visuals/visuals.js*/
 /*@include visuals/preview3d.js*/
 /*@include renderer-src/studios.js*/
+/*@include renderer-src/modpack-ui.js*/
 /** Page headers: the page's icon in a lit tile and a one-line description under the title. */
 const PAGE_SUB={home:"",instances:"Your Minecraft setups, each with its own version, mods and settings.",mods:"Find and install mods from Modrinth and CurseForge.",friends:"See who’s online, send requests and join friends.",cosmetics:"Custom skies and particles for your game.",skins:"Preview and upload your Minecraft skin.",capes:"Your cape library, editor and in-game cape.",emotes:"Play, make and arrange emotes for the in-game wheel.",totem:"Paint a custom Totem of Undying and export it as a pack.",modules:"Turn client features on and off and tune each one.",settings:"Appearance, accounts, updates and the launcher itself."};
 function pageHead(){const h=document.querySelector("#main .page>.head");if(!h||h.querySelector(".ph"))return;const h1=h.querySelector("h1");if(!h1)return;const n=NAV.flatMap(g=>g[1]).find(x=>x[0]===S.page);
