@@ -31,7 +31,20 @@
     "FontMixin",
     "ContainerScreenMixin",
     "ScreenEffectRendererMixin",
-    "ScreenSwapMixin"
+    "ScreenSwapMixin",
+    "GameRendererAccess",
+    "RenderFxGameRendererMixin",
+    "RenderFxCameraMixin",
+    "FovEffectMixin",
+    "BlockOutlineMixin",
+    "BlockOverlayMixin",
+    "GlintMixin",
+    "NoRenderMixin",
+    "NoRenderWeatherMixin",
+    "NoRenderParticleMixin",
+    "NoRenderGuiMixin",
+    "TimeMixin",
+    "TimeTickMixin"
   ],
   "injectors": {
     "defaultRequire": 0

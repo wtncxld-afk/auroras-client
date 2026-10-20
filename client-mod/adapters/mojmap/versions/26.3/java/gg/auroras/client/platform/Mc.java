@@ -31,4 +31,6 @@ public final class Mc {
     public static Screen worldScreen(Minecraft mc, Screen parent) { return new net.minecraft.client.gui.screens.WorldOptionsScreen(parent, mc.level); }
     /** The camera the world was drawn from (GameRenderer#mainCamera in this release). */
     public static net.minecraft.client.Camera camera(Minecraft mc) { return mc.gameRenderer.mainCamera(); }
+    /** The world's main render target (Color Grading and Motion Blur draw their post passes into it). */
+    public static com.mojang.blaze3d.pipeline.RenderTarget mainTarget(Minecraft mc) { return mc.gameRenderer.mainRenderTarget(); }
 }

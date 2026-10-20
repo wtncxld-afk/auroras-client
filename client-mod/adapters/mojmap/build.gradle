@@ -34,7 +34,7 @@ dependencies {
 sourceSets {
     main {
         java { srcDirs = ['../../core/src/main/java', 'common/java', "${T('platform')}/java", "versions/${project.target}/java"] }
-        resources { srcDirs = ['common/resources', "${T('platform')}/resources"] }
+        resources { srcDirs = ['common/resources', "${T('platform')}/resources", "versions/${project.target}/resources"] }
     }
 }
 def javaVersion = T('java_version') as int
@@ -72,6 +72,15 @@ tasks.register('mcJavap') {
             String out = p.inputStream.text; p.waitFor()
             if (!only.isEmpty()) out = out.split('\n\n').findAll { b -> String head = b.readLines().find { it.trim() } ?: ''; only.any { head.contains(it) } || !head.startsWith('  ') }.join('\n\n')
             println "==== javap${withCode ? ' -c' : ''} ${c}"; println out
+        }
+        // -PjarGrep=a/,b/ lists Minecraft jar entries containing any of these; -PjarCat=p,q prints those entries (vanilla shader and post effect formats)
+        def grep = (project.findProperty('jarGrep') ?: '').toString().split(',').collect { it.trim() }.findAll { it }
+        def cat = (project.findProperty('jarCat') ?: '').toString().split(',').collect { it.trim() }.findAll { it }
+        if (grep || cat) jars.findAll { it.name.contains('minecraft') }.each { jf ->
+            def z = new java.util.zip.ZipFile(jf)
+            z.entries().each { e -> if (grep.any { g -> e.name.contains(g) }) println "jar ${jf.name}: ${e.name}" }
+            cat.each { n -> def e = z.getEntry(n); if (e != null) { println "==== cat ${n}"; println z.getInputStream(e).text } }
+            z.close()
         }
     }
 }

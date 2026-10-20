@@ -30,7 +30,20 @@
     "ClientPacketListenerMixin",
     "FontMixin",
     "ContainerScreenMixin",
-    "ScreenSwapMixin"
+    "ScreenSwapMixin",
+    "GameRendererAccess",
+    "RenderFxGameRendererMixin",
+    "RenderFxCameraMixin",
+    "FovEffectMixin",
+    "BlockOutlineMixin",
+    "BlockOverlayMixin",
+    "GlintMixin",
+    "NoRenderMixin",
+    "NoRenderWeatherMixin",
+    "NoRenderParticleMixin",
+    "NoRenderGuiMixin",
+    "TimeMixin",
+    "TimeClockMixin"
   ],
   "injectors": {
     "defaultRequire": 0
