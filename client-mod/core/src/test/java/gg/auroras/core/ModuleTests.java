@@ -100,7 +100,86 @@ public class ModuleTests {
             && "Sprint toggled".equals(GameLogic.toggleStatus(true, true, false, true, false)) && GameLogic.toggleStatus(false, true, true, false, true) == null && GameLogic.toggleStatus(true, false, false, true, false) == null);
         { Calc.SprintToggle st = new Calc.SprintToggle(); st.update(true, true, false, true); st.update(false, true, false, true); boolean wasOn = st.on(); st.reset();
           check("toggle sprint: reset (module turned off) forgets the toggle, so re-enabling doesn't sprint by itself", wasOn && !st.on() && !st.update(false, true, false, true)); }
+        renderFx(reg);
         System.out.println("\n" + pass + " passed, " + fail + " failed"); if (fail > 0) System.exit(1);
+    }
+    static void renderFx(Config.Registry reg) {
+        // registry
+        check("render modules: registered in their categories, available, experimental, local-only notes", reg.get("blockoverlay").cat() == Config.Category.VISUALS && reg.get("colorgrade").cat() == Config.Category.VISUALS && reg.get("motionblur").cat() == Config.Category.VISUALS
+            && reg.get("customfov").cat() == Config.Category.PLAYER && reg.get("glint").cat() == Config.Category.VISUALS && reg.get("lowhealth").cat() == Config.Category.HUD && reg.get("timechanger").cat() == Config.Category.SKY && reg.get("norender").cat() == Config.Category.VISUALS
+            && List.of("blockoverlay", "colorgrade", "motionblur", "customfov", "glint", "lowhealth", "timechanger", "norender").stream().allMatch(id -> reg.get(id).available() && reg.get(id).note().startsWith("Experimental") && !HudKit.positionable(reg.get(id))));
+        check("render modules: all off by default (motion blur included), Time Changer says it is local", reg.defaults().get("motionblur.enabled").equals("false") && reg.defaults().get("norender.enabled").equals("false") && reg.get("timechanger").note().contains("only for you"));
+        check("render modules: No Render and Low Fire stay separate jobs (hide vs lower), Fullbright/Zoom are not duplicated", reg.get("norender").setting("fire") != null && reg.get("lowfire") != null && reg.get("norender").setting("brightness") == null && reg.get("customfov").setting("zoom") == null);
+        // block overlay
+        RenderFx.BlockOverlay bo = new RenderFx.BlockOverlay(); double[] a = {0, 64, 0, 1, 65, 1}, b = {1, 64, 0, 2, 64.5, 1};
+        bo.update(true, a, 0.016, 0.07, 0.14);
+        check("block overlay: the first block appears in place (no sweep from the origin) and fades in", bo.box[0] == 0 && bo.box[4] == 65 && bo.alpha > 0.1 && bo.alpha < 0.2, bo.alpha);
+        for (int k = 0; k < 20; k++) bo.update(true, a, 0.016, 0.07, 0.14);
+        bo.update(true, b, 0.016, 0.07, 0.14);
+        check("block overlay: moving to the next block glides (part way after one frame) towards its real shape", bo.box[0] > 0 && bo.box[0] < 1 && bo.box[4] < 65 && bo.box[4] > 64.5 && bo.alpha == 1, bo.box[0], bo.box[4]);
+        for (int k = 0; k < 60; k++) bo.update(true, b, 0.016, 0.07, 0.14);
+        check("block overlay: the glide settles exactly on the block", Arrays.equals(bo.box, b));
+        bo.update(true, new double[]{40, 64, 0, 41, 65, 1}, 0.016, 0.07, 0.14);
+        check("block overlay: a far jump snaps instead of sweeping across the screen", bo.box[0] == 40);
+        for (int k = 0; k < 4; k++) bo.update(false, null, 0.016, 0.07, 0.14);
+        check("block overlay: looking away fades out in place", bo.alpha > 0 && bo.alpha < 1 && bo.box[0] == 40 && bo.visible());
+        for (int k = 0; k < 20; k++) bo.update(false, null, 0.016, 0.07, 0.14);
+        check("block overlay: fully faded, it's hidden; instant settings (0 ms) jump at once", !bo.visible() && run(() -> bo.update(true, a, 0.016, 0, 0)) && bo.alpha == 1 && bo.box[3] == 1);
+        check("block overlay: chroma cycles, solid colour is the setting", RenderFx.overlayColor(0x123456, false, 1, 3) == 0x123456 && RenderFx.overlayColor(0x123456, true, 1, 0) != RenderFx.overlayColor(0x123456, true, 1, 3) && RenderFx.overlayColor(0, true, 1, 0) == RenderFx.overlayColor(0, true, 1, 6));
+        // colour grading
+        RenderFx.Grade n = RenderFx.Grade.NEUTRAL;
+        check("color grading: neutral settings leave pixels unchanged", RenderFx.grade(0x7FA04C, 0.5, 0.5, n) == 0x7FA04C && RenderFx.grade(0x101010, 0.0, 0.0, n) == 0x101010 && n.neutral());
+        int grey = RenderFx.grade(0xFF0000, 0.5, 0.5, new RenderFx.Grade(0, 1, 1, 0, 0, 0, 0.5));
+        check("color grading: saturation 0 gives grey (Rec. 709 luma)", (grey >> 16 & 255) == (grey & 255) && (grey >> 8 & 255) == (grey & 255) && Math.abs((grey & 255) - 54) <= 1, Integer.toHexString(grey));
+        int hi = RenderFx.grade(0xC0C0C0, 0.5, 0.5, new RenderFx.Grade(1, 1.5, 1, 0, 0, 0, 0.5)), lo = RenderFx.grade(0x404040, 0.5, 0.5, new RenderFx.Grade(1, 1.5, 1, 0, 0, 0, 0.5));
+        check("color grading: contrast pushes light and dark apart around mid grey", (hi & 255) > 0xC0 && (lo & 255) < 0x40);
+        int warm = RenderFx.grade(0x808080, 0.5, 0.5, new RenderFx.Grade(1, 1, 1, 1, 0, 0, 0.5));
+        check("color grading: warmth adds orange (more red, less blue)", (warm >> 16 & 255) > 0x80 && (warm & 255) < 0x80);
+        RenderFx.Grade v = new RenderFx.Grade(1, 1, 1, 0, 0, 1, 0.5);
+        check("color grading: the vignette darkens corners, not the centre", RenderFx.grade(0xFFFFFF, 0.5, 0.5, v) == 0xFFFFFF && (RenderFx.grade(0xFFFFFF, 0.0, 0.0, v) & 255) < 0x40);
+        int[] tex = RenderFx.gradeTexture(new RenderFx.Grade(1.3, 0.8, 1.2, -0.5, 0.25, 0.4, 0.6), 0.45, new int[2]); double[] dec = RenderFx.decodeTexture(tex);
+        double[] want = {1.3, 0.8, 1.2, -0.5, 0.25, 0.4, 0.6, 0.45}; boolean close = true; for (int k = 0; k < 8; k++) close &= Math.abs(dec[k] - want[k]) < 0.0045;
+        check("color grading: the shader's parameter texture round-trips every value within 8-bit precision", close, Arrays.toString(dec));
+        int[] neutralTex = RenderFx.gradeTexture(n, 0, new int[2]); double[] nd = RenderFx.decodeTexture(neutralTex);
+        check("color grading: neutral values decode close enough that the shader changes nothing visible", Math.abs(nd[0] - 1) < 0.005 && Math.abs(nd[1] - 1) < 0.003 && Math.abs(nd[2] - 1) < 0.003 && Math.abs(nd[3]) < 0.005 && nd[7] == 0);
+        // motion blur
+        double w = 0; for (int k = 0; k < 30; k++) w = RenderFx.blurWeight(0, 1, true, w, 0.016);
+        double wt = 0; for (int k = 0; k < 30; k++) wt = RenderFx.blurWeight(720, 0.5, true, wt, 0.016);
+        check("motion blur: standing still or walking straight stays sharp; turning fast blurs by the strength", w == 0 && Math.abs(wt - 0.45) < 0.01, w, wt);
+        double wa = 0; for (int k = 0; k < 30; k++) wa = RenderFx.blurWeight(0, 1, false, wa, 0.016);
+        check("motion blur: never a frozen image (capped at 0.9); 'only when turning' off blurs all the time", wa <= 0.9 && wa > 0.85);
+        check("motion blur: turn angle wraps around north", Math.abs(RenderFx.turnDegrees(359, 0, 1, 0) - 2) < 1e-9 && Math.abs(RenderFx.turnDegrees(10, 0, 10, 30) - 30) < 1e-9);
+        // fov
+        check("custom fov: goes beyond the vanilla 30..110 slider, clamped to 10..170; dynamic FOV can be scaled or turned off", RenderFx.customFov(150) == 150 && RenderFx.customFov(500) == 170 && RenderFx.customFov(1) == 10 && RenderFx.fovEffects(false, 1) == 0 && RenderFx.fovEffects(true, 0.4) == 0.4);
+        // glint
+        int[] gt = RenderFx.glintTexture(32, 0xFF0000, 1, new int[32 * 32]);
+        boolean onlyRed = true, tiles = true; int max = 0; for (int p : gt) { onlyRed &= (p & 0xFFFF) == 0 && p >>> 24 == 255; max = Math.max(max, p >> 16 & 255); }
+        int adj = 0; for (int y = 0; y < 31; y++) for (int x = 0; x < 31; x++) adj = Math.max(adj, Math.max(Math.abs((gt[y * 32 + x] >> 16 & 255) - (gt[(y + 1) * 32 + x] >> 16 & 255)), Math.abs((gt[y * 32 + x] >> 16 & 255) - (gt[y * 32 + x + 1] >> 16 & 255))));
+        for (int k = 0; k < 32; k++) { tiles &= Math.abs((gt[k] >> 16 & 255) - (gt[31 * 32 + k] >> 16 & 255)) <= adj && Math.abs((gt[k * 32] >> 16 & 255) - (gt[k * 32 + 31] >> 16 & 255)) <= adj; }
+        check("glint: the texture is light in the chosen colour only, bright streaks, tiling without seams", onlyRed && max > 200 && tiles, max);
+        int[] gd = RenderFx.glintTexture(32, 0xFFFFFF, 0.5, new int[32 * 32]); int maxD = 0; for (int p : gd) maxD = Math.max(maxD, p & 255);
+        check("glint: intensity dims it; chroma cycles", maxD < max && RenderFx.glintColor(0x00FF00, false, 1, 5) == 0x00FF00 && RenderFx.glintColor(0, true, 1, 0) != RenderFx.glintColor(0, true, 1, 2));
+        // low health
+        check("low health: nothing above the threshold or when dead; absorption counts only when chosen", RenderFx.lowHealth(10, 0, 6, true, true, 1, 0) == 0 && RenderFx.lowHealth(0, 0, 6, true, true, 1, 0) == 0
+            && RenderFx.lowHealth(4, 4, 6, true, false, 1, 0) == 0 && RenderFx.lowHealth(4, 4, 6, false, false, 1, 0) > 0);
+        check("low health: stronger the lower you are", RenderFx.lowHealth(1, 0, 6, true, false, 1, 0) > RenderFx.lowHealth(5, 0, 6, true, false, 1, 0));
+        double mn = 1, mx = 0; for (int k = 0; k < 200; k++) { double x = RenderFx.lowHealth(3, 0, 6, true, true, 1, k * 0.01); mn = Math.min(mn, x); mx = Math.max(mx, x); }
+        check("low health: it pulses (a heartbeat) between soft and full, within 0..1", mx - mn > 0.15 && mn > 0 && mx <= 1, mn, mx);
+        int[] m = RenderFx.edgeMask(64, 0.22, new int[64 * 64]);
+        check("low health: the edge mask is clear in the middle and solid at the edges, white only", m[32 * 64 + 32] >>> 24 == 0 && m[32 * 64] >>> 24 > 200 && m[0] >>> 24 > 230 && (m[0] & 0xFFFFFF) == 0xFFFFFF);
+        // time changer
+        check("time changer: fixed time, wall clock (06:00 sunrise, 12:00 noon, 00:00 midnight) and off", RenderFx.localTime("fixed", 123, 18000, 1, 0, 0, 0, 0) == 18000 && RenderFx.realTicks(6, 0) == 0 && RenderFx.realTicks(12, 0) == 6000 && RenderFx.realTicks(0, 0) == 18000 && RenderFx.realTicks(5, 30) == 23500 && RenderFx.localTime("off", 777, 0, 1, 0, 0, 0, 0) == 777);
+        check("time changer: speed mode runs a local clock (x1 = 20 ticks a second, 0 freezes) and wraps the day", RenderFx.localTime("speed", 0, 0, 1, 1000, 10, 0, 0) == 1200 && RenderFx.localTime("speed", 0, 0, 0, 1000, 99, 0, 0) == 1000 && RenderFx.localTime("speed", 0, 0, 10, 23000, 10, 0, 0) == 1000);
+        check("time changer: the server's day count is kept (moon phase), labels read as a clock", RenderFx.withDay(24000 * 5 + 300, 13000) == 24000 * 5 + 13000 && RenderFx.clockLabel(0).equals("06:00") && RenderFx.clockLabel(6000).equals("12:00") && RenderFx.clockLabel(18000).equals("00:00"));
+        // no render
+        RenderFx.NoRender nr = new RenderFx.NoRender(); nr.fire = true; nr.explosions = true;
+        check("no render: nothing is hidden while the module is off", !nr.fire() && !nr.hidesParticle("minecraft:explosion"));
+        nr.on = true;
+        check("no render: toggles hide only what they name; explosions drop explosion particles only", nr.fire() && !nr.pumpkin() && nr.hidesParticle("minecraft:explosion_emitter") && !nr.hidesParticle("minecraft:flame"));
+        long before = alloc(); RenderFx.BlockOverlay bx = new RenderFx.BlockOverlay(); int[] px = new int[2]; double acc = 0;
+        for (int k = 0; k < 100_000; k++) { bx.update(k % 50 != 0, a, 0.016, 0.07, 0.14); acc += RenderFx.blurWeight(k % 720, 0.5, true, acc * 0, 0.016) + RenderFx.lowHealth(3, 0, 6, true, true, 1, k * 0.016); RenderFx.gradeTexture(n, 0.1, px); }
+        long used = alloc() - before;
+        check("render modules: per-frame work (overlay, blur weight, warning, grade parameters) allocates almost nothing", used < 6_000_000 && acc > 0, used);
     }
     static boolean run(Runnable r) { r.run(); return true; }
     static long alloc() { return ((com.sun.management.ThreadMXBean) java.lang.management.ManagementFactory.getThreadMXBean()).getThreadAllocatedBytes(Thread.currentThread().threadId()); }

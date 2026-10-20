@@ -84,6 +84,20 @@ public final class Config {
             add("lowfire", "Low Fire", Category.VISUALS, true, exp, plain(dbl("height", 0.4, 0.0, 1.0), integer("opacity", 90, 10, 100)));
             add("particles", "Particle Settings", Category.VISUALS, true, exp, plain(dbl("multiplier", 1.0, 0.0, 1.0), bool("hideExplosions", false), bool("hideBlockBreak", false), bool("hideRain", false)));
             add("fullbright", "Fullbright", Category.VISUALS, true, exp + ". Some servers forbid fullbright; check their rules", plain(dbl("level", 1.0, 0.1, 1.0)));
+            // Rendering modules (RenderFx). All local: they change only what you see.
+            add("blockoverlay", "Block Overlay", Category.VISUALS, true, exp + ". Replaces the outline on the block you look at; shows only blocks Minecraft would outline", plain(color("color", "6FE3FF"), bool("chroma", false), dbl("chromaSpeed", 1.0, 0.1, 5.0),
+                integer("thickness", 2, 1, 8), integer("opacity", 90, 10, 100), bool("fill", true), color("fillColor", "6FE3FF"), integer("fillOpacity", 16, 0, 100), bool("fillChroma", true), integer("fadeMs", 140, 0, 600), integer("glideMs", 70, 0, 300)));
+            add("colorgrade", "Color Grading", Category.VISUALS, true, exp + ". A post effect on the world only; the HUD and menus keep their colours", plain(dbl("saturation", 1.15, 0.0, 2.0), dbl("contrast", 1.05, 0.5, 1.5), dbl("brightness", 1.0, 0.5, 1.5),
+                dbl("warmth", 0.0, -1.0, 1.0), dbl("tint", 0.0, -1.0, 1.0), dbl("vignette", 0.25, 0.0, 1.0), dbl("vignetteSize", 0.5, 0.0, 1.0)));
+            add("motionblur", "Motion Blur", Category.VISUALS, true, exp + ". Blends in the previous frame while you turn", plain(dbl("strength", 0.5, 0.05, 1.0), bool("onlyTurning", true)));
+            add("customfov", "Custom FOV", Category.PLAYER, true, exp + ". Overrides Minecraft's FOV slider while on; your saved setting is kept", plain(integer("fov", 90, 10, 170), bool("dynamic", true), dbl("dynamicScale", 1.0, 0.0, 1.0)));
+            add("glint", "Custom Enchant Glint", Category.VISUALS, true, exp + ". Recolours the enchantment shimmer on items and armour", plain(color("color", "B57CFF"), bool("chroma", false), dbl("chromaSpeed", 1.0, 0.1, 5.0),
+                dbl("speed", 1.0, 0.0, 5.0), dbl("scale", 1.0, 0.25, 4.0), dbl("intensity", 1.0, 0.1, 2.0), bool("separateArmor", false), color("armorColor", "6FE3FF")));
+            add("lowhealth", "Low Health Warning", Category.HUD, true, exp + ". Pulses a red glow at the screen edges when your health is low", plain(integer("threshold", 6, 1, 40), bool("absorption", true), color("color", "FF2A3A"),
+                integer("opacity", 65, 10, 100), dbl("depth", 0.22, 0.05, 0.6), bool("pulse", true), dbl("pulseSpeed", 1.0, 0.2, 3.0)));
+            add("timechanger", "Time Changer", Category.SKY, true, exp + ". Changes the time of day only for you; the server's time and mobs are unaffected", plain(choice("mode", "fixed", List.of("fixed", "speed", "real")), integer("time", 6000, 0, 23999), dbl("speed", 1.0, 0.0, 50.0)));
+            add("norender", "No Render", Category.VISUALS, true, exp + ". Hides screen effects you don't want; Low Fire lowers the fire instead of hiding it", plain(bool("fire", true), bool("pumpkin", true), bool("freeze", false), bool("vignette", false), bool("totem", false),
+                bool("hurtShake", false), bool("weather", false), bool("explosions", false), bool("water", false), bool("portal", false)));
             add("serverinfo", "Server Information", Category.INFORMATION, true, exp, hud("TL", 84, bool("showAddress", true), bool("showPlayers", true), bool("showPing", true), bool("showVersion", false)));
             add("frametime", "FPS and Frame Time", Category.INFORMATION, true, exp, hud("TL", 100, integer("graphWidth", 80, 40, 200), bool("showGraph", true)));
             add("memory", "Memory Usage", Category.INFORMATION, true, exp, hud("TL", 128, bool("showBar", false)));
