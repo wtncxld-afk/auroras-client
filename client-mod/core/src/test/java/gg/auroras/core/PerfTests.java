@@ -58,6 +58,13 @@ public final class PerfTests {
           long a0 = allocated(), st = System.nanoTime(); int F = 20_000; for (int fr = 0; fr < F; fr++) acc += skyFrame(bu, fr / 60.0, mo, o4); long ns = System.nanoTime() - st, by = allocated() - a0;
           check("animated sky: a High-quality effects frame allocates nothing", by < 20_000, by + " bytes over " + F + " frames (" + (acc > 0) + ")");
           check("animated sky: a High-quality effects frame computes in under 0.15 ms", ns / (double) F < 150_000, String.format("%.4f ms", ns / 1e6 / F)); }
+        { Perf.LongMap<String> lm = new Perf.LongMap<>(); java.util.Map<Long, String> ref = new java.util.HashMap<>(); java.util.Random rnd = new java.util.Random(7); boolean same = true;
+          for (int i = 0; i < 5000; i++) { long k = Perf.LongMap.key(rnd.nextInt(8), rnd.nextInt(300), rnd.nextInt(40)); String v = "v" + i; lm.put(k, v); ref.put(k, v); }
+          for (java.util.Map.Entry<Long, String> en : ref.entrySet()) if (!en.getValue().equals(lm.get(en.getKey()))) same = false;
+          check("LongMap: matches a HashMap after thousands of puts, overwrites and growth", same && lm.size() == ref.size() && lm.get(Perf.LongMap.key(9, 1, 1)) == null);
+          check("LongMap: keys for different shapes and sizes don't collide", Perf.LongMap.key(1, 2, 3) != Perf.LongMap.key(1, 3, 2) && Perf.LongMap.key(1, 2, 3) != Perf.LongMap.key(2, 2, 3));
+          long lt0 = System.nanoTime(); int hits = 0; for (int r = 0; r < 200_000; r++) if (lm.get(Perf.LongMap.key(r & 7, r % 300, r % 40)) != null) hits++; double ns = (System.nanoTime() - lt0) / 200_000.0;
+          check("LongMap: a lookup takes well under a microsecond", ns < 1000, ns + " ns", hits); }
         System.out.println("\n" + pass + " passed, " + fail + " failed"); if (fail > 0) System.exit(1);
     }
 }

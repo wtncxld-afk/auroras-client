@@ -1,6 +1,6 @@
 /* ----- HUD editor: the game's HUD laid out with the game's own maths (visuals.js mirrors Hud.java / HudKit.java) ----- */
-// Text widths follow Minecraft's default font (most glyphs 6 px including spacing). Real glyph shapes differ, so the
-// preview is labelled approximate; positions, anchors, clamping, snapping and scale use exactly the game's rules.
+// Widgets are drawn like the game's (Inter text, glass cards, HudSkin sizes mirrored in visuals.js); positions, anchors,
+// clamping, snapping and scale use exactly the game's rules. mcWidth is still used for the module list's length sort.
 const MCW=ch=>"i!.,:;|'".includes(ch)?2:ch==="l"||ch==="`"?3:"It[]\" ".includes(ch)?4:"fk<>*()".includes(ch)?5:ch.charCodeAt(0)>255?9:6;
 const mcWidth=s=>{let w=0;for(const ch of String(s))w+=MCW(ch);return Math.max(0,w-1)};
 const SCREENS=[["1920x1080",1920,1080],["2560x1440",2560,1440],["1366x768",1366,768],["1280x720",1280,720],["3440x1440",3440,1440],["1024x768",1024,768]];
@@ -29,8 +29,13 @@ case"keystrokes":return null;
 default:return[REG.modules.find(m=>m.id===id).name]}}
 function Calc_clock(h,m,s,h24,sec){const p=n=>String(n).padStart(2,"0");if(h24)return sec?`${p(h)}:${p(m)}:${p(s)}`:`${p(h)}:${p(m)}`;const hh=h%12===0?12:h%12,ap=h<12?"AM":"PM";return sec?`${hh}:${p(m)}:${p(s)} ${ap}`:`${hh}:${p(m)} ${ap}`}
 /** Element box in GUI pixels at scale 1 (before the element's own scale). */
-function hudBase(id){const st=VX.styleOf(dv(id,"style"));if(id==="spotify"){const c=VX.H.spotifyCard(dv(id,"layout"),dv(id,"showArt")==="true",dv(id,"showProgress")==="true");return{w:c.w,h:c.h,lines:null,card:c}}if(id==="keystrokes"){const ks=ksLayout(id);return{w:ks.w+st.padX*2,h:ks.h+st.padY*2,lines:null,ks}}
-const lines=hudSample(id),label=st.label?REG.modules.find(m=>m.id===id).name.toUpperCase():null,tw=Math.max(...lines.map(mcWidth),label?mcWidth(label)*0.75:0),th=lines.length*10-1+(label?7:0),bx=VX.box(dv(id,"style"),Math.ceil(tw),th);return{w:bx[0],h:bx[1],lines,label}}
+/** Measures text in the HUD's font (Inter, like the game's widgets). */
+const HUD_MEASURE=document.createElement("canvas").getContext("2d");
+const hudWidth=(s,size,weight=600)=>{HUD_MEASURE.font=`${weight} ${size}px 'Inter',system-ui,sans-serif`;return HUD_MEASURE.measureText(s).width};
+/** Element box in GUI pixels at scale 1 (before the element's own scale), sized by HudSkin like the game. */
+function hudBase(id){const sty=dv(id,"style"),cd=VX.SKIN.card(sty);if(id==="spotify"){const c=VX.H.spotifyCard(dv(id,"layout"),dv(id,"showArt")==="true",dv(id,"showProgress")==="true");return{w:c.w,h:c.h,lines:null,card:c}}
+if(id==="keystrokes"){const ks=ksLayout(id),pad=dv(id,"keyStyle")==="creamy"?3:2;return{w:ks.w+pad*2,h:ks.h+pad*2,lines:null,ks}}
+const lines=hudSample(id),label=VX.styleOf(sty).label?REG.modules.find(m=>m.id===id).name.toUpperCase():null,tw=Math.max(...lines.map(l=>hudWidth(l,cd.text))),lw=label?hudWidth(label,cd.label,500)*1.08:0,bx=VX.SKIN.size(cd,tw,lines.length,lw,cd.icon>0);return{w:bx[0],h:bx[1],lines,label}}
 function hudRect(id,sw,sh){const b=hudBase(id),sc=+dv(id,"scale"),w=VX.scaledPx(b.w,sc),h=VX.scaledPx(b.h,sc),p=VX.resolve(dv(id,"anchor"),+dv(id,"offX"),+dv(id,"offY"),w,h,sw,sh);return{x:p[0],y:p[1],w,h,b,sc}}
 /** Keystrokes layout from the game's own rules (Keystrokes.java, mirrored in visuals.js). */
 const ksLayout=id=>VX.KS.layout(+dv(id,"keySize"),+dv(id,"gap"),dv(id,"showMouse")==="true",dv(id,"showModifiers")==="true",dv(id,"showSpace")==="true",dv(id,"spaceStyle"));
@@ -38,39 +43,62 @@ const ksLayout=id=>VX.KS.layout(+dv(id,"keySize"),+dv(id,"gap"),dv(id,"showMouse
 const fillRects=(ctx,x,y,list)=>{for(let i=0;i<list.length;i+=4)ctx.fillRect(x+list[i],y+list[i+1],list[i+2]-list[i],list[i+3]-list[i+1])};
 const hexOf=n=>n.toString(16).padStart(6,"0");
 const rgba=(hex,a)=>{const n=parseInt(hex,16);return`rgba(${n>>16&255},${n>>8&255},${n&255},${a})`};
-function drawHudEl(ctx,id,r,t){const st=VX.styleOf(dv(id,"style")),op=+dv(id,"opacity")/100,acc=dv(id,"accent"),col=dv(id,"color"),sh=dv(id,"shadow")==="true";
+/** Widget icons (visuals/icons, white masks), tinted once per colour and cached. */
+const HUD_ICONS={},HUD_TINT={};
+function hudIcon(name,hex){const key=name+hex;if(HUD_TINT[key])return HUD_TINT[key];let im=HUD_ICONS[name];if(!im){im=HUD_ICONS[name]=new Image();im.src="../visuals/icons/"+name+".png";im.onload=()=>{if(HE.open!==undefined)heDraw()}}
+ if(!im.complete||!im.naturalWidth)return null;const c=document.createElement("canvas");c.width=c.height=128;const x=c.getContext("2d");x.drawImage(im,0,0);x.globalCompositeOperation="source-in";x.fillStyle="#"+hex;x.fillRect(0,0,128,128);return HUD_TINT[key]=c}
+/** A rounded rectangle path (GUI units). */
+const rr=(ctx,x,y,w,h,r)=>{ctx.beginPath();ctx.roundRect(x,y,w,h,Math.max(0,Math.min(r,w/2,h/2)))};
+/** The game's HUD look (ui/HudArt.java with core HudSkin, mirrored as VX.SKIN): glass cards, Inter text, icon chips, three key styles. */
+function drawHudEl(ctx,id,r,t){const st=dv(id,"style"),cd=VX.SKIN.card(st),op=+dv(id,"opacity")/100,acc=dv(id,"accent"),col=dv(id,"color"),sh=dv(id,"shadow")==="true";
 ctx.save();ctx.translate(r.x,r.y);ctx.scale(r.sc,r.sc);const W=r.b.w,Hh=r.b.h;
-const bgc=dv(id,"bgColor")||"0C0F16",rad=+(dv(id,"radius")??0),mode=dv(id,"textMode")||"solid",csp=+(dv(id,"chromaSpeed")??1),sec=REDUCED()?0:t/1000,bg=dv(id,"background")==="true",bd=dv(id,"border")==="true";
-if(bg&&id!=="keystrokes"){ctx.fillStyle=rgba(bgc,(+dv(id,"bgOpacity")/100)*op);fillRects(ctx,0,0,VX.H.roundRect(W,Hh,rad))}
-if(bd&&id!=="keystrokes"){ctx.fillStyle=rgba(acc,0.55*op);fillRects(ctx,0,0,VX.H.roundOutline(W,Hh,rad))}
-if(st.accent){const fr=VX.H.fitRadius(rad,W,Hh);ctx.fillStyle=rgba(acc,op);ctx.fillRect(0,fr,st.accent,Hh-fr*2)}
-ctx.font="8px 'Inter',system-ui,sans-serif";ctx.textBaseline="top";
-/** Text in the element's colour mode, like the game: one run when solid, per character for chroma and gradient. */
-const text=(s,x,y,c,a,to,k=0)=>{const one=(ch,cx,cc)=>{if(sh){ctx.fillStyle=`rgba(0,0,0,${0.6*a})`;ctx.fillText(ch,cx+1,y+1)}ctx.fillStyle=rgba(cc,a);ctx.fillText(ch,cx,y)};const blend=n=>k>0?VX.mix(n,parseInt(to,16),k):n;
-  if(!VX.H.perChar(mode)){one(s,x,hexOf(blend(parseInt(c,16))));return}let cx=x;for(const ch of s){one(ch,cx,hexOf(blend(VX.H.textColor(mode,parseInt(c,16),parseInt(acc,16),r.x+cx,sec,csp))));cx+=ctx.measureText(ch).width}};
-if(id==="spotify"){drawSpotifyCard(ctx,r.b.card,t,op,col,acc,sh);ctx.restore();return}
-if(id==="keystrokes"){const ks=r.b.ks,mode2=dv(id,"labels"),ss=dv(id,"spaceStyle"),pt=dv(id,"pressedText"),pp=+dv(id,"pressedOpacity"),rest=bg?+dv(id,"bgOpacity"):0,anim=dv(id,"animate")==="true"&&!REDUCED(),cps=dv(id,"showCps")==="true";
+const bgc=dv(id,"bgColor")||"0C0F16",rad=+(dv(id,"radius")??0),mode=dv(id,"textMode")||"solid",csp=+(dv(id,"chromaSpeed")??1),sec=REDUCED()?0:t/1000,bg=dv(id,"background")==="true",bd=dv(id,"border")==="true",bp=+dv(id,"bgOpacity")/100;
+const font=s=>`600 ${s}px 'Inter',system-ui,sans-serif`;ctx.textBaseline="alphabetic";
+/** Text in the widget's colour mode, like the game: one run when solid, per character for chroma and gradient. top = cap top. */
+const text=(s,x,top,size,c,a,to,k=0,solid=false)=>{ctx.font=font(size);const y=top+size*0.78,one=(ch,cx,cc)=>{if(sh){ctx.fillStyle=`rgba(0,0,0,${0.38*a})`;ctx.fillText(ch,cx,y+Math.max(0.35,size/14))}ctx.fillStyle=rgba(cc,a);ctx.fillText(ch,cx,y)};const blend=n=>k>0?VX.mix(n,parseInt(to,16),k):n;
+  if(solid||!VX.H.perChar(mode)){one(s,x,hexOf(blend(parseInt(c,16))));return}let cx=x;for(const ch of s){one(ch,cx,hexOf(blend(VX.H.textColor(mode,parseInt(c,16),parseInt(acc,16),r.x+cx,sec,csp))));cx+=ctx.measureText(ch).width}};
+const card=(w,h)=>{const R=VX.SKIN.radius(rad,w,h);if(bg&&bp>0){ctx.save();ctx.shadowColor=`rgba(0,0,0,${0.22*bp*op})`;ctx.shadowBlur=3.5;ctx.shadowOffsetY=0.8;rr(ctx,0,0,w,h,R);ctx.fillStyle=rgba(bgc,bp*op);ctx.fill();ctx.restore();
+  const g=ctx.createLinearGradient(0,0,0,Math.min(h*0.55,9));g.addColorStop(0,`rgba(255,255,255,${0.07*bp*op})`);g.addColorStop(1,"rgba(255,255,255,0)");rr(ctx,0,0,w,h,R);ctx.fillStyle=g;ctx.fill()}
+ if(bd||bg&&bp>0){rr(ctx,0.25,0.25,w-0.5,h-0.5,R);ctx.strokeStyle=bd?rgba(acc,0.6*op):`rgba(255,255,255,${0.09*bp*op})`;ctx.lineWidth=0.5;ctx.stroke()}};
+if(id==="spotify"){card(W,Hh);ctx.font=font(7.5);ctx.textBaseline="top";drawSpotifyCard(ctx,r.b.card,t,op,col,acc,sh);ctx.restore();return}
+if(id==="keystrokes"){const ks=r.b.ks,ksty=dv(id,"keyStyle")||"glass",pad=ksty==="creamy"?3:2,mode2=dv(id,"labels"),ss=dv(id,"spaceStyle"),pt=dv(id,"pressedText"),pp=+dv(id,"pressedOpacity"),rest=bg?+dv(id,"bgOpacity"):0,anim=dv(id,"animate")==="true"&&!REDUCED(),cps=dv(id,"showCps")==="true";
  // The preview presses W, A, S, D, then the mouse buttons in turn, fading out like the game (Release fade).
  const order=ks.keys.map(k=>k.input),cyc=(t/1000)%(order.length*0.45),cur=order[Math.floor(cyc/0.45)],into=cyc%0.45,fade=+dv(id,"fadeMs")/1000;
  for(const k of ks.keys){let g=0;if(anim){const idx=order.indexOf(k.input),on=Math.floor(cyc/0.45);if(k.input===cur)g=into<0.2?1:VX.H.keyGlowFade(1,false,into-0.2,fade);else if(idx===on-1||(on===0&&idx===order.length-1))g=VX.H.keyGlowFade(1,false,into+0.25,fade)}
-  const x=st.padX+k.x,y=st.padY+k.y,pct=Math.round(rest+(pp-rest)*g);
-  if(pct>0){ctx.fillStyle=rgba(hexOf(VX.mix(parseInt(bgc,16),parseInt(acc,16),g)),pct/100*op);fillRects(ctx,x,y,VX.H.roundRect(k.w,k.h,rad))}
-  if(bd){ctx.fillStyle=rgba(acc,0.55*op);fillRects(ctx,x,y,VX.H.roundOutline(k.w,k.h,rad))}
-  if(k.input===6&&ss!=="text"){const lw=Math.max(4,Math.trunc(k.w*2/5)),lh=k.h>=12?2:1;ctx.fillStyle=rgba(hexOf(VX.mix(parseInt(col,16),parseInt(pt,16),g)),op);ctx.fillRect(x+Math.trunc((k.w-lw)/2),y+Math.trunc((k.h-lh)/2),lw,lh);continue}
-  let lab=VX.KS.label(mode2,k.input,["W","A","S","D","Left Button","Right Button","Space","Left Shift","Left Control"][k.input],ss),sub=cps&&(k.input===4||k.input===5)?(k.input===4?"11":"4")+" CPS":null;
+  let x=pad+k.x,y=pad+k.y,w=k.w,h=k.h;const p=VX.SKIN.press(g),bar=k.input===6&&ss!=="text";let tc=col,ptc=pt,gk=g;
+  let lab=bar?"":VX.KS.label(mode2,k.input,["W","A","S","D","Left Button","Right Button","Space","Left Shift","Left Control"][k.input],ss),sub=cps&&(k.input===4||k.input===5)?(k.input===4?"11":"4")+" CPS":null;
   if(sub&&!VX.KS.cpsLine(k.h)){lab=sub;sub=null}
-  // Same fit and centring rules as the game, measured with the preview's own font so labels sit centred here too.
-  const tw=q=>ctx.measureText(q).width,sc=VX.KS.fitScale(Math.ceil(tw(lab)),k.w),th=Math.round(8*sc)+(sub?7:0),ty=y+Math.trunc((k.h-th+1)/2);
-  ctx.save();ctx.translate(x+(k.w-tw(lab)*sc)/2,ty);ctx.scale(sc,sc);text(lab,0,0,col,op,pt,g);ctx.restore();
-  if(sub){const s2=Math.min(0.75,VX.KS.fitScale(Math.ceil(tw(sub)),k.w));ctx.save();ctx.translate(x+(k.w-tw(sub)*s2)/2,ty+Math.round(8*sc)+1);ctx.scale(s2,s2);text(sub,0,0,hexOf(VX.mix(parseInt(col,16),parseInt(bgc,16),0.25)),op,pt,g);ctx.restore()}}
+  if(ksty==="creamy"){const C=VX.SKIN.CREAM,lip=Math.min(C.lip,h*0.2),tr=Math.min(lip,VX.SKIN.travel(C,g)),R=Math.min(VX.SKIN.radius(Math.max(rad,2),w,h)+1,h/2);
+   ctx.save();ctx.shadowColor=`rgba(26,16,8,${(0.34-0.12*p)*op})`;ctx.shadowBlur=3-1.2*p;ctx.shadowOffsetY=1.2-0.6*p;rr(ctx,x,y+lip*0.6,w,h-lip*0.6,R);ctx.fillStyle=rgba(hexOf(C.side),op);ctx.fill();ctx.restore();
+   const fy=y+tr,fh=h-lip;rr(ctx,x,fy,w,fh,R);ctx.fillStyle=rgba(hexOf(VX.mix(C.top,C.topPressed,p)),op);ctx.fill();
+   rr(ctx,x+w*0.12,fy+0.6,w*0.76,Math.min(fh*0.38,4),Math.min(R,2));ctx.fillStyle=`rgba(255,255,255,${(0.45-0.25*p)*op})`;ctx.fill();
+   if(g>0.01){rr(ctx,x+0.25,fy+0.25,w-0.5,fh-0.5,R);ctx.strokeStyle=rgba(acc,0.4*g*op);ctx.lineWidth=0.5;ctx.stroke()}
+   y=fy;h=fh;tc=hexOf(C.text);ptc="3A2A1C";gk=p}
+  else if(ksty==="classic"){const R=VX.SKIN.radius(rad,w,h),pct=Math.round(rest+(pp-rest)*g);if(pct>0){rr(ctx,x,y,w,h,R);ctx.fillStyle=rgba(hexOf(VX.mix(parseInt(bgc,16),parseInt(acc,16),g)),pct/100*op);ctx.fill()}
+   if(bd){rr(ctx,x+0.25,y+0.25,w-0.5,h-0.5,R);ctx.strokeStyle=rgba(acc,0.55*op);ctx.lineWidth=0.5;ctx.stroke()}}
+  else{const s=VX.SKIN.squish(g),R0=Math.min(VX.SKIN.radius(rad,w,h)+1,h/2);x+=w*(1-s)/2;y+=h*(1-s)/2;w*=s;h*=s;const R=R0*s,pct=Math.round(rest+(pp-rest)*p);
+   ctx.save();if(p>0.01){ctx.shadowColor=rgba(acc,0.38*p*op);ctx.shadowBlur=4}else if(bg){ctx.shadowColor=`rgba(0,0,0,${0.2*bp*op})`;ctx.shadowBlur=2.5;ctx.shadowOffsetY=0.6}
+   rr(ctx,x,y,w,h,R);ctx.fillStyle=rgba(hexOf(VX.mix(parseInt(bgc,16),parseInt(acc,16),p)),pct/100*op);ctx.fill();ctx.restore();
+   const gr=ctx.createLinearGradient(0,y,0,y+Math.min(h*0.5,7));gr.addColorStop(0,`rgba(255,255,255,${(0.09+0.1*p)*op})`);gr.addColorStop(1,"rgba(255,255,255,0)");rr(ctx,x,y,w,h,R);ctx.fillStyle=gr;ctx.fill();
+   rr(ctx,x+0.25,y+0.25,w-0.5,h-0.5,R);ctx.strokeStyle=bd?rgba(acc,(0.6+0.3*p)*op):rgba(hexOf(VX.mix(0xffffff,parseInt(acc,16),p)),(0.1+0.3*p)*op);ctx.lineWidth=0.5;ctx.stroke();gk=p}
+  if(bar){const lw=Math.max(4,w*0.4),lh=h>=12?1.6:1.1;rr(ctx,x+(w-lw)/2,y+(h-lh)/2,lw,lh,lh/2);ctx.fillStyle=rgba(hexOf(VX.mix(parseInt(tc,16),parseInt(ptc,16),gk)),op);ctx.fill();continue}
+  let ts=VX.SKIN.keyText(Math.min(h,w*1.4));ctx.font=font(ts);let tw=ctx.measureText(lab).width;if(tw>w-4){ts=Math.max(4,ts*(w-4)/tw);ctx.font=font(ts);tw=ctx.measureText(lab).width}
+  const block=ts*0.74+(sub?ts*0.62+1.5:0),top=y+(h-block)/2-ts*0.04,keepSh=sh;
+  text(lab,x+(w-tw)/2,top-ts*0.04,ts,tc,op,ptc,gk);
+  if(sub){const s2=ts*0.62;ctx.font=font(s2);const sw2=ctx.measureText(sub).width;text(sub,x+(w-sw2)/2,top+ts*0.74+1.5,s2,hexOf(VX.mix(parseInt(tc,16),parseInt(bgc,16),0.3)),0.8*op,ptc,gk)}}
  ctx.restore();return}
-let y=st.padY;if(r.b.label){ctx.save();ctx.font="6px 'Inter',system-ui,sans-serif";ctx.fillStyle=rgba(acc,0.9*op);ctx.fillText(r.b.label,st.padX+st.accent,y);ctx.restore();y+=7}
-const right=id==="modulelist"&&dv(id,"align")==="right";
-r.b.lines.forEach((ln,i)=>{const lw=mcWidth(ln),x=right?W-st.padX-lw:st.padX+st.accent;let c=col;if(id==="ping"){c=hexs(VX.H.PING_COLORS[VX.H.pingLevel(42,+dv(id,"goodMs"),+dv(id,"okMs"))]).slice(1);if(sh){ctx.fillStyle=`rgba(0,0,0,${0.6*op})`;ctx.fillText(ln,x+1,y+1)}ctx.fillStyle=rgba(c,op);ctx.fillText(ln,x,y);y+=10;return}if(id==="modulelist"&&!VX.H.perChar(mode))c=i%2?dv(id,"color"):acc;text(ln,x,y,c,op);y+=10});ctx.restore()}
+card(W,Hh);let x0=cd.padX;const block=VX.SKIN.textBlock(cd,r.b.lines.length)+(r.b.label?cd.label+cd.labelGap:0);let y=(Hh-block)/2;
+if(cd.icon>0){const S=cd.icon,cx=cd.padX,cy=(Hh-S)/2,R=S*0.3;rr(ctx,cx,cy,S,S,R);ctx.fillStyle=rgba(acc,0.2*op);ctx.fill();rr(ctx,cx+0.25,cy+0.25,S-0.5,S-0.5,R);ctx.strokeStyle=rgba(acc,0.24*op);ctx.lineWidth=0.5;ctx.stroke();
+ const ic=hudIcon(VX.SKIN.icon(id),acc);if(ic){ctx.save();ctx.globalAlpha=op;ctx.imageSmoothingEnabled=true;ctx.drawImage(ic,cx+S*0.22,cy+S*0.22,S*0.56,S*0.56);ctx.restore()}x0+=S+cd.iconGap}
+if(r.b.label){ctx.save();ctx.font=`500 ${cd.label}px 'Inter',system-ui,sans-serif`;ctx.letterSpacing=(cd.label*0.08)+"px";ctx.fillStyle=rgba(hexOf(VX.mix(parseInt(col,16),parseInt(acc,16),0.55)),0.7*op);ctx.fillText(r.b.label,x0,y+cd.label*0.78);ctx.restore();y+=cd.label+cd.labelGap}
+const right=id==="modulelist"&&dv(id,"align")==="right";ctx.font=font(cd.text);
+r.b.lines.forEach((ln,i)=>{const lw=ctx.measureText(ln).width,x=right?W-cd.padX-lw:x0;let c=col;
+ if(id==="ping"){c=hexs(VX.H.PING_COLORS[VX.H.pingLevel(42,+dv(id,"goodMs"),+dv(id,"okMs"))]).slice(1);text(ln,x,y,cd.text,c,op,null,0,true);y+=cd.line;return}
+ if(id==="modulelist"&&!VX.H.perChar(mode))c=i%2?dv(id,"color"):acc;text(ln,x,y,cd.text,c,op);y+=cd.line});ctx.restore()}
 /** Spotify card, laid out by VX.H.spotifyCard exactly like the game. The editor shows an example track (labelled as such) and the
     note-glyph cover the game uses when there's no artwork. */
 const SP_DEMO={title:"Example Track With A Long Title (Remastered)",artist:"Example Artist",prog:65000,dur:200000};
-function drawSpotifyCard(ctx,c,t,op,col,acc,sh){const mono=s=>mcWidth(s),txt=(s,x,y,cc,a)=>{if(sh){ctx.fillStyle=`rgba(0,0,0,${0.6*a})`;ctx.fillText(s,x+1,y+1)}ctx.fillStyle=rgba(cc,a);ctx.fillText(s,x,y)};
+function drawSpotifyCard(ctx,c,t,op,col,acc,sh){const mono=s=>ctx.measureText(s).width,txt=(s,x,y,cc,a)=>{if(sh){ctx.fillStyle=`rgba(0,0,0,${0.6*a})`;ctx.fillText(s,x+1,y+1)}ctx.fillStyle=rgba(cc,a);ctx.fillText(s,x,y)};
   if(c.art){const x=c.pad,y=c.pad,g=ctx.createLinearGradient(x,y,x+c.art,y+c.art);g.addColorStop(0,`rgba(40,48,66,${op})`);g.addColorStop(1,`rgba(26,31,42,${op})`);ctx.fillStyle=g;ctx.fillRect(x,y,c.art,c.art);
     ctx.fillStyle=rgba(acc,0.9*op);const k=c.art/16;ctx.fillRect(x+9*k,y+3*k,1.4*k,8*k);ctx.fillRect(x+9*k,y+3*k,4*k,1.4*k);ctx.beginPath();ctx.ellipse(x+7.6*k,y+11.2*k,2.2*k,1.7*k,-0.4,0,Math.PI*2);ctx.fill()}
   const sec=REDUCED()?0:t/1000,clip=(x,w,fn)=>{ctx.save();ctx.beginPath();ctx.rect(x,0,w,c.h);ctx.clip();fn();ctx.restore()},mq=dv("spotify","marquee")==="true";
@@ -89,8 +117,9 @@ ctx.fillStyle="rgba(255,255,255,.85)";ctx.fillRect(sw/2-0.5,sh/2-4,1,9);ctx.fill
 ctx.fillStyle="rgba(0,0,0,.45)";ctx.fillRect(sw/2-91,sh-22,182,22);for(let i=0;i<9;i++){ctx.strokeStyle="rgba(255,255,255,.25)";ctx.strokeRect(sw/2-91+i*20+1.5,sh-20.5,18,18)}
 const t=performance.now()-HE.t0,ids=hudMods().map(m=>m.id).filter(id=>HE.draft[id+".enabled"]==="true");HE.rects={};
 for(const id of ids){const r=hudRect(id,sw,sh);HE.rects[id]=r;drawHudEl(ctx,id,r,t)}
-if(!HE.preview){for(const id of ids){const r=HE.rects[id],on=id===HE.sel;ctx.strokeStyle=on?"#6fe3ff":"rgba(255,255,255,.35)";ctx.lineWidth=1/k;ctx.setLineDash(on?[]:[3/k,2/k]);ctx.strokeRect(r.x+0.5/k,r.y+0.5/k,r.w-1/k,r.h-1/k);ctx.setLineDash([]);
- if(on){ctx.fillStyle="#6fe3ff";ctx.fillRect(r.x+r.w-3,r.y+r.h-3,4,4)}}
+if(!HE.preview){for(const id of ids){const r=HE.rects[id],on=id===HE.sel,R=Math.min(5,(r.h+3)/2);ctx.save();if(on){ctx.shadowColor="rgba(111,227,255,.45)";ctx.shadowBlur=5}
+ ctx.beginPath();ctx.roundRect(r.x-1.5,r.y-1.5,r.w+3,r.h+3,R);ctx.strokeStyle=on?"#6fe3ff":"rgba(255,255,255,.35)";ctx.lineWidth=on?1/k*1.5:1/k;ctx.setLineDash(on?[]:[3/k,2/k]);ctx.stroke();ctx.restore();ctx.setLineDash([]);
+ if(on){ctx.beginPath();ctx.arc(r.x+r.w+1.5,r.y+r.h+1.5,3,0,Math.PI*2);ctx.fillStyle="#fff";ctx.fill();ctx.beginPath();ctx.arc(r.x+r.w+1.5,r.y+r.h+1.5,2.2,0,Math.PI*2);ctx.fillStyle="#6fe3ff";ctx.fill()}}
  ctx.strokeStyle="rgba(181,140,255,.9)";ctx.lineWidth=1/k;const[gx,gy]=HE.guides;if(gx!=null){ctx.beginPath();ctx.moveTo(gx,0);ctx.lineTo(gx,sh);ctx.stroke()}if(gy!=null){ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(sw,gy);ctx.stroke()}}
 $("#he-info").textContent=`${HE.screen} at GUI scale ${g}${HE.gui?"":" (Auto)"}: ${sw}×${sh} GUI pixels`}
 function heHit(e){const cv=$("#he-cv"),r=cv.getBoundingClientRect(),x=(e.clientX-r.left)/HE.k,y=(e.clientY-r.top)/HE.k;let hit=null,handle=false;
@@ -112,7 +141,7 @@ const d=document.createElement("div");d.id="hudedit";d.innerHTML=`<div class="he
 <label style="display:flex;gap:6px;align-items:center"><button class="tg" role="switch" id="he-prev" aria-checked="${HE.preview}" aria-label="Preview without outlines"></button><small>Preview</small></label>
 <button class="btn" data-he="cancel">Cancel</button><button class="btn pri" data-he="apply">Save layout</button></div>
 <div class="he-main"><div class="he-side"><h2>Elements</h2><div id="he-list"></div><h2 style="margin-top:14px">Layout presets</h2><div id="he-presets"></div></div><div class="he-stage"><div class="he-badge" id="he-badge"><i></i>Editing layout · nothing is saved until you press Save layout</div><canvas id="he-cv" aria-label="HUD layout"></canvas></div><div class="he-side" id="he-panel"></div></div>
-<small class="he-foot">Positions, anchors, scaling, snapping and screen-edge clamping use the game’s own code. Text is drawn with a stand-in font, so lettering is approximate. ${esc(whereNote().replace(/<[^>]+>/g,""))}</small>`;
+<small class="he-foot">Positions, anchors, scaling, snapping and screen-edge clamping use the game’s own code. Widgets are drawn the way the game draws them, with the same font, sizes and styles. ${esc(whereNote().replace(/<[^>]+>/g,""))}</small>`;
 document.body.appendChild(d);heList();hePanel();hePresets();heDraw();
 const cv=$("#he-cv");
 cv.onpointerdown=e=>{const h=heHit(e);HE.sel=h.id;heList();hePanel();if(h.id){const r=HE.rects[h.id];HE.drag={id:h.id,handle:h.handle,dx:h.x-r.x,dy:h.y-r.y,sx:h.x,sc0:+dv(h.id,"scale"),bw:r.b.w};cv.setPointerCapture(e.pointerId)}heDraw()};

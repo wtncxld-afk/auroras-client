@@ -100,6 +100,26 @@ public final class HudTests {
           int n = HudKit.roundRect(40, 20, 3, buf); check("rounded boxes: corners are cut and tiny boxes stay square", n == 7 && buf[0] == 3 && HudKit.fitRadius(6, 8, 8) == 2 && HudKit.roundRect(2, 2, 6, buf) == 1); }
         { Config.Registry r2 = new Config.Registry(); boolean allSt = true; for (Config.Module mm : r2.modules()) if (HudKit.positionable(mm)) for (String k : List.of("bgColor", "radius", "textMode", "chromaSpeed")) allSt &= mm.setting(k) != null;
           check("every HUD element has background colour, corner radius and text colour mode settings, saved in layouts", allSt && HudKit.LAYOUT_KEYS.containsAll(List.of("bgColor", "radius", "textMode", "chromaSpeed"))); }
+        { // HudSkin: the new glass cards and keycaps
+          HudSkin.Card mn = HudSkin.card(HudKit.Style.MINIMAL), ex = HudSkin.card(HudKit.Style.EXPANDED), cp = HudSkin.card(HudKit.Style.COMPACT);
+          int[] one = HudSkin.size(mn, 40, 1, 0, false), three = HudSkin.size(mn, 40, 3, 0, false), wide = HudSkin.size(mn, 90, 1, 0, false), exs = HudSkin.size(ex, 40, 1, 30, true), cps = HudSkin.size(cp, 40, 1, 0, false);
+          check("HUD cards: padding on both sides of the text, taller for more lines, wider for longer text", one[0] == 50 && one[1] == 14 && three[1] == 35 && wide[0] == 100, Arrays.toString(one), Arrays.toString(three), Arrays.toString(wide));
+          check("HUD cards: compact is smaller than minimal, expanded makes room for the icon chip and the label", cps[0] < one[0] && cps[1] < one[1] && exs[0] >= 40 + 17 + 6 + 12 && exs[1] >= 5.5 + 3 + 8 + 11, Arrays.toString(cps), Arrays.toString(exs));
+          int[] dot = HudSkin.size(mn, 4, 1, 0, false); check("HUD cards: a one-digit readout is at least square, never a sliver", dot[0] >= dot[1], Arrays.toString(dot));
+          boolean labelWider = HudSkin.size(ex, 10, 1, 60, true)[0] > HudSkin.size(ex, 10, 1, 0, true)[0];
+          check("HUD cards: an expanded label longer than the value widens the card", labelWider);
+          check("HUD cards: corner radius follows the setting and never exceeds a pill", HudSkin.radius(0, 50, 20) == 0 && HudSkin.radius(2, 50, 20) == 3 && HudSkin.radius(6, 50, 12) == 6 && HudSkin.radius(6, 8, 8) == 4);
+          boolean icons = true; for (Config.Module m : new Config.Registry().modules()) if (HudKit.positionable(m) && !m.id().equals("logo")) { String ic = HudSkin.icon(m.id()); if (!Files.exists(dir.resolve("icons").resolve(ic + ".a8"))) { icons = false; System.out.println("  missing icon " + ic + " for " + m.id()); } }
+          check("HUD cards: every widget's icon exists in visuals/icons", icons);
+          check("keycaps: press eases out (fast down, settles), stays within 0..1", HudSkin.press(0) == 0 && HudSkin.press(1) == 1 && HudSkin.press(0.5) > 0.5 && HudSkin.press(2) == 1 && HudSkin.press(-1) == 0);
+          check("creamy keycaps: the face travels down by the lip when held and rests at 0", HudSkin.travel(HudSkin.CREAM, 0) == 0 && Math.abs(HudSkin.travel(HudSkin.CREAM, 1) - HudSkin.CREAM.lip()) < 1e-9);
+          check("glass keys: shrink a little when pressed, never vanish", HudSkin.squish(0) == 1 && HudSkin.squish(1) > 0.9 && HudSkin.squish(1) < 1);
+          check("keycaps: label size scales with the key and stays readable", HudSkin.keyText(18) > HudSkin.keyText(12) && HudSkin.keyText(4) == 5 && HudSkin.keyText(100) == 11);
+          double lum = (0.2126 * ((HudSkin.CREAM.top() >> 16) & 255) + 0.7152 * ((HudSkin.CREAM.top() >> 8) & 255) + 0.0722 * (HudSkin.CREAM.top() & 255)), tl = (0.2126 * ((HudSkin.CREAM.text() >> 16) & 255) + 0.7152 * ((HudSkin.CREAM.text() >> 8) & 255) + 0.0722 * (HudSkin.CREAM.text() & 255));
+          check("creamy keycaps: cream face, darker lip, dark cocoa legends with strong contrast", lum > 220 && ((HudSkin.CREAM.side() >> 8) & 255) < ((HudSkin.CREAM.top() >> 8) & 255) && lum - tl > 120);
+          Config.Registry r3 = new Config.Registry(); Config.SettingDef ks = r3.get("keystrokes").setting("keyStyle");
+          check("keystrokes: Key style setting offers glass, creamy and classic (default glass)", ks != null && ks.def().equals("glass") && ks.options().equals(List.of("glass", "creamy", "classic")) && r3.validate("keystrokes.keyStyle", "creamy") == null && r3.validate("keystrokes.keyStyle", "fluffy") != null);
+        }
         check("golden: visuals/hud-golden.json is up to date (run Golden after changing HUD code)", Files.readString(dir.resolve("hud-golden.json")).equals(Golden.hud()));
         System.out.println("\n" + pass + " passed, " + fail + " failed"); if (fail > 0) System.exit(1);
     }

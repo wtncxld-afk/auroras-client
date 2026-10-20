@@ -121,7 +121,7 @@ public final class ModuleMenu {
             Map.entry("scrollAdjust", "Scroll to change zoom"), Map.entry("skipFront", "Skip front view with F5"), Map.entry("hideRain", "Hide rain splashes"), Map.entry("multiplier", "Amount kept"), Map.entry("level", "Brightness"), Map.entry("graphWidth", "Graph width (px)"), Map.entry("showGraph", "Frame graph"), Map.entry("dynamic", "Widen while moving"),
             Map.entry("bgColor", "Background colour"), Map.entry("radius", "Corner radius"), Map.entry("textMode", "Text colour"), Map.entry("chromaSpeed", "Colour speed"),
             Map.entry("keySize", "Key size"), Map.entry("gap", "Key gap"), Map.entry("labels", "Key labels"), Map.entry("spaceStyle", "Space bar"), Map.entry("showModifiers", "Sneak and sprint keys"),
-            Map.entry("fadeMs", "Release fade (ms)"), Map.entry("pressedText", "Pressed text colour"), Map.entry("pressedOpacity", "Pressed opacity"), Map.entry("showSpace", "Space bar key"), Map.entry("showMouse", "Mouse buttons"), Map.entry("showCps", "CPS on mouse buttons"));
+            Map.entry("fadeMs", "Release fade (ms)"), Map.entry("keyStyle", "Key style"), Map.entry("pressedText", "Pressed text colour"), Map.entry("pressedOpacity", "Pressed opacity"), Map.entry("showSpace", "Space bar key"), Map.entry("showMouse", "Mouse buttons"), Map.entry("showCps", "CPS on mouse buttons"));
     /** Focus order for keyboard users: search, categories, then cards (grid) or rows (settings). */
     public int focusCount(Layout l) { return 2 + l.cats().size() + (open == null ? l.cards().size() : l.rows().size() + 1); }
 }

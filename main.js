@@ -201,8 +201,26 @@ async function prepareAuroras(I, gameDir, send) {
       say("Downloading Fabric API"); const fr = await mrResolve(FABRIC_API, { loader: "Fabric", mc: String(I.mc) });
       fs.mkdirSync(mods, { recursive: true }); await download(fr, mods, () => {}); man[fr.key] = { filename: fr.filename, version: fr.version }; writeMan(I.id, man);
     } catch (e) { r.fabricApi = "Fabric API couldn’t be downloaded (" + e.message + "). Install it from the Mods page."; }
+    if (readSettings().perfMods !== false) r.perf = await installPerfMods(I, mods, say);
   }
   return r;
+}
+/** Sodium, Lithium and friends (perfmods.js), installed once per instance. A mod with no build for this version is skipped; nothing here blocks the launch. */
+const perfmods = require("./perfmods.js");
+async function installPerfMods(I, mods, say) {
+  const man = readMan(I.id), ids = {}, done = [], missing = [];
+  for (const m of perfmods.PERF_MODS) { const k = Object.entries(man).find(([, v]) => v.perf === m.slug); if (k) ids[m.slug] = k[0].slice(2); }
+  const files = fs.existsSync(mods) ? fs.readdirSync(mods) : [];
+  for (const m of perfmods.plan(man, files, ids).install) {
+    try {
+      say("Downloading " + m.name + " (" + m.why + ")");
+      const proj = await getJson("https://api.modrinth.com/v2/project/" + m.slug); if (!/^[A-Za-z0-9]{8}$/.test(String(proj.id))) throw new Error("unexpected project id");
+      if (man["m:" + proj.id]) continue; // installed from the Mods page under its id
+      const fr = await mrResolve(proj.id, { loader: "Fabric", mc: String(I.mc) });
+      fs.mkdirSync(mods, { recursive: true }); await download(fr, mods, () => {}); man[fr.key] = { filename: fr.filename, version: fr.version, perf: m.slug }; writeMan(I.id, man); done.push(m.name);
+    } catch (e) { missing.push(m.name); console.log("[auroras] " + m.name + " not installed: " + e.message); }
+  }
+  return perfmods.summary(done, missing);
 }
 let SHIPPED_AUTH = {}; try { SHIPPED_AUTH = JSON.parse(fs.readFileSync(path.join(__dirname, "auth.json"), "utf8")); } catch {}
 /** The Azure app ID to use: Settings first, then the one shipped in auth.json. "" when neither is set. */
@@ -311,12 +329,13 @@ ipcMain.handle("settings:set", (_e, o) => {
   const s = readSettings();
   if (typeof o.msClientId === "string") s.msClientId = /^[0-9a-f-]{36}$/i.test(o.msClientId.trim()) ? o.msClientId.trim() : (o.msClientId.trim() === "" ? "" : (() => { throw new Error("That doesn’t look like an Azure application (client) ID"); })());
   if (typeof o.autoMod === "boolean") s.autoMod = o.autoMod;
+  if (typeof o.perfMods === "boolean") s.perfMods = o.perfMods;
   if (typeof o.spotifyClientId === "string") { const v = o.spotifyClientId.trim(); if (v && !/^[0-9a-f]{32}$/i.test(v)) throw new Error("That doesn’t look like a Spotify client ID (32 letters and numbers)."); s.spotifyClientId = v; }
   if (typeof o.friendsUrl === "string") { const v = o.friendsUrl.trim(); if (v && !friends.checkUrl(v)) throw new Error("The friends server address must start with https://"); s.friendsUrl = v ? friends.checkUrl(v) : ""; }
   if (typeof o.updateUrl === "string") { if (o.updateUrl) { if (new URL(o.updateUrl).protocol !== "https:") throw new Error("Update URL must be https"); } s.updateUrl = o.updateUrl.trim(); }
   writeSettings(s); return true;
 });
-ipcMain.handle("settings:all", () => { const s = readSettings(); return { autoMod: s.autoMod !== false, releaseRepo: RELEASES ? RELEASE.githubRepo : "", cfKey: !!cfKey(), msClientId: s.msClientId || "", msShipped: !!msauth.clientId({}, SHIPPED_AUTH), updateUrl: s.updateUrl || "", friendsUrl: s.friendsUrl || "", friendsShipped: !!friends.friendsUrl({}, SHIPPED_AUTH), spotifyClientId: s.spotifyClientId || "", spotifyConnected: !!readSpotifyToken(), secureStorage: vault.available(), version: app.getVersion() }; });
+ipcMain.handle("settings:all", () => { const s = readSettings(); return { autoMod: s.autoMod !== false, perfMods: s.perfMods !== false, releaseRepo: RELEASES ? RELEASE.githubRepo : "", cfKey: !!cfKey(), msClientId: s.msClientId || "", msShipped: !!msauth.clientId({}, SHIPPED_AUTH), updateUrl: s.updateUrl || "", friendsUrl: s.friendsUrl || "", friendsShipped: !!friends.friendsUrl({}, SHIPPED_AUTH), spotifyClientId: s.spotifyClientId || "", spotifyConnected: !!readSpotifyToken(), secureStorage: vault.available(), version: app.getVersion() }; });
 
 // ---------- Updates (signed manifest; nothing is applied unless it verifies) ----------
 async function fetchBytes(url) { const r = await net.fetch(updater.httpsUrl ? updater.httpsUrl(url) : url, { headers: { "User-Agent": UA } }); if (!r.ok) throw new Error(`Update server returned ${r.status}`); return Buffer.from(await r.arrayBuffer()); }

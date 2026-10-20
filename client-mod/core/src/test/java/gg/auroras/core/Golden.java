@@ -177,6 +177,12 @@ public final class Golden {
         for (String mode : new String[]{"bound", "wasd", "arrows"}) for (String ss : new String[]{"bar", "text"}) for (int in = 0; in < Keystrokes.INPUTS; in++) for (String bn : bound)
             f.add(arr(List.of(q("ksLabel"), q(mode), q(ss), String.valueOf(in), bn == null ? "null" : q(bn), q(Keystrokes.label(mode, in, bn, ss)))));
         for (int[] tw : new int[][]{{0, 18}, {10, 18}, {28, 18}, {500, 18}, {33, 28}}) f.add(arr(List.of(q("ksFit"), String.valueOf(tw[0]), String.valueOf(tw[1]), n(Keystrokes.fitScale(tw[0], tw[1])))));
+        for (String st : new String[]{"minimal", "compact", "expanded"}) for (double tw : new double[]{0, 12.5, 61.3, 140}) for (int lines : new int[]{1, 3}) for (double lw : new double[]{0, 44.4}) for (boolean ic : new boolean[]{false, true}) {
+            int[] s = HudSkin.size(HudSkin.card(HudKit.Style.of(st)), tw, lines, lw, ic); f.add(arr(List.of(q("skinSize"), q(st), n(tw), String.valueOf(lines), n(lw), String.valueOf(ic), String.valueOf(s[0]), String.valueOf(s[1])))); }
+        for (int r : new int[]{0, 2, 6}) for (double[] wh : new double[][]{{40, 12}, {80, 30}, {8, 8}}) f.add(arr(List.of(q("skinRadius"), String.valueOf(r), n(wh[0]), n(wh[1]), n(HudSkin.radius(r, wh[0], wh[1])))));
+        for (double gp : new double[]{0, 0.1, 0.5, 0.9, 1}) f.add(arr(List.of(q("skinPress"), n(gp), n(HudSkin.press(gp)), n(HudSkin.travel(HudSkin.CREAM, gp)), n(HudSkin.squish(gp)))));
+        for (double h : new double[]{6, 12, 18, 30}) f.add(arr(List.of(q("skinKeyText"), n(h), n(HudSkin.keyText(h)))));
+        for (String id : new String[]{"fps", "coords", "keystrokes", "nothing"}) f.add(arr(List.of(q("skinIcon"), q(id), q(HudSkin.icon(id)))));
         { List<String> kg2 = new ArrayList<>(); double g2 = 0; for (int k = 0; k < 12; k++) { g2 = HudKit.keyGlow(g2, k < 2, 0.05, 0.3); kg2.add(n(g2)); } f.add(arr(List.of(q("keyGlowFade"), arr(kg2)))); }
         for (String mode : new String[]{"solid", "chroma", "gradient"}) for (double px : new double[]{0, 17, 90, 400}) for (double t : new double[]{0, 1.3, 7.75}) for (double sp : new double[]{0.5, 1, 3})
             f.add(arr(List.of(q("textColor"), q(mode), n(px), n(t), n(sp), String.valueOf(HudKit.textColor(mode, 0x6FE3FF, 0xB58CFF, px, t, sp)))));

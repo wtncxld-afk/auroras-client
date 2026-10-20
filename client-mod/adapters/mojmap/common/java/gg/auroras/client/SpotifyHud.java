@@ -8,6 +8,8 @@ package gg.auroras.client;
 import gg.auroras.core.*;
 import com.mojang.blaze3d.platform.NativeImage;
 import gg.auroras.client.platform.Gfx;
+import gg.auroras.client.ui.Glass;
+import gg.auroras.client.ui.HudArt;
 import gg.auroras.client.platform.Platform;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
@@ -47,38 +49,36 @@ final class SpotifyHud {
         if (n == null) { title = "Spotify"; artist = "Play something in the Spotify app"; } else if (!n.status().isEmpty()) { title = "Spotify"; artist = cap(n.status()); }
         else if (n.title().isEmpty()) { title = "Spotify"; artist = "Nothing playing"; } else { title = n.title(); artist = n.artist(); }
         if (n != null && n.version() != trackVersion) { if (!title.equals(lastTitle)) trackIn = reduced ? 1 : 0; trackVersion = n.version(); lastTitle = title; }
-        trackIn = Math.min(1, trackIn + dt / 0.25); double a = fade * (0.35 + 0.65 * trackIn); int op = e.opacity;
+        trackIn = Math.min(1, trackIn + dt / 0.25); double a = 0.35 + 0.65 * trackIn;
         double sec = (System.nanoTime() - T0) / 1e9;
-        ctx.push(); ctx.translate(e.pos[0], e.pos[1]); ctx.scale(e.scale);
-        HudRenderer.panel(ctx, e, c.w(), c.h(), fade);
+        HudArt.Look l = HudRenderer.look(e, fade); HudArt.card(ctx, l, c.w(), c.h());
         if (c.art() > 0) {
-            int x = c.pad(), y = c.pad(), s = c.art();
-            if (artReady && has) ctx.texture(ART, x, y, s, s, HudKit.argb(0xFFFFFF, op, a));
-            else { ctx.fill(x, y, x + s, y + s, HudKit.argb(0x222836, op, fade)); int k = s / 16; int nc = HudKit.argb(e.accent, 90 * op / 100, fade);
-                ctx.fill(x + 9 * k, y + 3 * k, x + 10 * k + 1, y + 11 * k, nc); ctx.fill(x + 9 * k, y + 3 * k, x + 13 * k, y + 4 * k + 1, nc); ctx.fill(x + 6 * k, y + 10 * k, x + 10 * k, y + 13 * k, nc); }
+            double x = c.pad(), y = c.pad(), s = c.art(), r = Math.min(3, s * 0.18);
+            if (artReady && has) { ctx.texture(ART, (int) Math.round(l.X(x)), (int) Math.round(l.Y(y)), (int) Math.round(s * l.k), (int) Math.round(s * l.k), HudKit.argb(0xFFFFFF, e.opacity, fade * a));
+                Glass.outline(ctx, l.X(x), l.Y(y), s * l.k, s * l.k, r * l.k, l.a(0xFFFFFF, 12)); }
+            else { HudArt.rect(ctx, l, x, y, s, s, r, l.a(Sky.mix(e.bgColor, e.accent, 0.18), 100)); Glass.icon(ctx, "music", l.X(x + s * 0.25), l.Y(y + s * 0.25), s * 0.5 * l.k, l.a(e.accent, 90)); }
         }
-        int txt = HudKit.argb(e.color, op, a), mute = HudKit.argb(0x8A93A6, op, a);
-        if (c.expanded()) { line(ctx, e, c, title, c.titleY(), txt, sec, marquee); line(ctx, e, c, artist, c.artistY(), mute, sec, marquee); }
-        else line(ctx, e, c, artist.isEmpty() ? title : title + " · " + artist, c.titleY(), txt, sec, marquee);
+        double ts = c.expanded() ? 7.5 : 7, small = 6.5;
+        if (c.expanded()) { line(ctx, l, c, title, c.titleY() - 1, ts, e.color, a, sec, marquee); line(ctx, l, c, artist, c.artistY() - 1, small, 0x9AA3B8, a, sec, marquee); }
+        else line(ctx, l, c, artist.isEmpty() ? title : title + " · " + artist, c.titleY() - 0.5, ts, e.color, a, sec, marquee);
         if (prog && has && n.durationMs() > 0) {
-            double f = HudKit.progressFrac(n.progressNow(now), n.durationMs()); int track = HudKit.argb(0xFFFFFF, 14 * op / 100, fade), fill = HudKit.argb(e.accent, op, fade);
+            double f = HudKit.progressFrac(n.progressNow(now), n.durationMs()); int track = l.a(0xFFFFFF, 14), fill = l.a(e.accent, 100);
             if (c.expanded()) {
                 String[] t = HudKit.spotify("x", "", true, n.progressNow(now), n.durationMs(), true, null).split("  ")[1].split(" / ");
-                int l0 = Gfx.width(t[0]), l1 = Gfx.width(t[1]), bx = c.textX() + l0 + 4, bw = c.textW() - l0 - l1 - 8;
-                ctx.text(t[0], c.textX(), c.barY() - 3, mute, false); ctx.text(t[1], c.textX() + c.textW() - l1, c.barY() - 3, mute, false);
-                ctx.fill(bx, c.barY(), bx + bw, c.barY() + c.barH(), track); ctx.fill(bx, c.barY(), bx + (int) Math.round(bw * f), c.barY() + c.barH(), fill);
-            } else { int bw = c.w() - c.pad() * 2; ctx.fill(c.pad(), c.barY(), c.pad() + bw, c.barY() + c.barH(), track); ctx.fill(c.pad(), c.barY(), c.pad() + (int) Math.round(bw * f), c.barY() + c.barH(), fill); }
+                double l0 = HudArt.width(small, t[0]), l1 = HudArt.width(small, t[1]), bx = c.textX() + l0 + 4, bw = c.textW() - l0 - l1 - 8, by = c.barY() + 0.5;
+                HudArt.text(ctx, l, small, t[0], c.textX(), by - 2.2, 0x9AA3B8); HudArt.text(ctx, l, small, t[1], c.textX() + c.textW() - l1, by - 2.2, 0x9AA3B8);
+                HudArt.rect(ctx, l, bx, by, bw, 2, 1, track); if (f > 0) HudArt.rect(ctx, l, bx, by, Math.max(2, bw * f), 2, 1, fill);
+            } else { double bw = c.w() - c.pad() * 2; HudArt.rect(ctx, l, c.pad(), c.barY() - 0.5, bw, 1.5, 0.75, track); if (f > 0) HudArt.rect(ctx, l, c.pad(), c.barY() - 0.5, Math.max(1.5, bw * f), 1.5, 0.75, fill); }
         }
-        ctx.pop();
     }
     /** One text line clipped to the card's text column: scrolls when too long (marquee on), otherwise ends with an ellipsis. */
-    static void line(Gfx ctx, HudRenderer.El e, HudKit.SpotifyCard c, String s, int y, int color, double sec, boolean marquee) {
-        int w = Gfx.width(s);
-        if (w <= c.textW() || !marquee) { ctx.text(UiKit.ellipsize(s, c.textW(), Gfx::width), c.textX(), y, color, e.shadow); return; }
-        double off = HudKit.marquee(w, c.textW(), sec, 24, 1.5, false);
-        // Since 1.21.6 the clip box goes through the current transform, so it's given in the card's own coordinates.
-        ctx.scissor(c.textX(), y - 1, c.textX() + c.textW(), y + 10);
-        ctx.text(s, c.textX() - (int) Math.round(off), y, color, e.shadow); ctx.noScissor();
+    static void line(Gfx ctx, HudArt.Look l, HudKit.SpotifyCard c, String s, double top, double size, int color, double alpha, double sec, boolean marquee) {
+        double w = HudArt.width(size, s);
+        if (w <= c.textW() || !marquee) { HudArt.text(ctx, l, size, w <= c.textW() ? s : Glass.fit(HudArt.W, size, s, c.textW()), c.textX(), top, color, alpha, 0, 0); return; }
+        double off = HudKit.marquee((int) Math.ceil(w), c.textW(), sec, 24, 1.5, false);
+        // Since 1.21.6 the clip box goes through the current transform; here that is plain GUI units.
+        ctx.scissor((int) Math.floor(l.X(c.textX())), (int) Math.floor(l.Y(top - 2)), (int) Math.ceil(l.X(c.textX() + c.textW())), (int) Math.ceil(l.Y(top + size + 3)));
+        HudArt.text(ctx, l, size, s, c.textX() - off, top, color, alpha, 0, 0); ctx.noScissor();
     }
     static String cap(String s) { return s.isEmpty() ? s : Character.toUpperCase(s.charAt(0)) + s.substring(1); }
 }

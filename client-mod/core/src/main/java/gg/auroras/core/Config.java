@@ -58,7 +58,7 @@ public final class Config {
             add("coords", "Coordinates", Category.HUD, true, exp, hud("TL", 36, integer("decimals", 1, 0, 3), bool("showX", true), bool("showY", true), bool("showZ", true), bool("showDirection", true), key("key", 67)));
             add("keystrokes", "Keystrokes", Category.HUD, true, exp, hud("BL", -24, bool("showMouse", true), bool("showCps", true), bool("showSpace", true), bool("showModifiers", false), bool("animate", true),
                 integer("keySize", 18, 12, 32), integer("gap", 2, 0, 6), choice("labels", "bound", List.of("bound", "wasd", "arrows")), choice("spaceStyle", "bar", List.of("bar", "text")),
-                integer("fadeMs", 120, 0, 600), color("pressedText", "06141F"), integer("pressedOpacity", 85, 10, 100)));
+                integer("fadeMs", 120, 0, 600), color("pressedText", "06141F"), integer("pressedOpacity", 85, 10, 100), choice("keyStyle", HudSkin.GLASS, HudSkin.KEY_STYLES)));
             add("cps", "CPS Counter", Category.HUD, true, exp, hud("TL", 52, integer("windowMs", 1000, 250, 5000), bool("showRight", true)));
             add("armor", "Armor Status", Category.HUD, true, exp, hud("BR", -24, choice("format", "percent", List.of("percent", "numeric", "bar")), bool("showHeld", true), choice("layout", "vertical", List.of("vertical", "horizontal"))));
             add("clock", "Clock", Category.HUD, true, exp, hud("TR", 4, bool("h24", true), bool("seconds", false)));

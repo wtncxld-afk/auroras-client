@@ -27,7 +27,7 @@
       "friends.js",
       "build/**",
       "compat.js",
-      "msauth.js",
+      "msauth.js", "perfmods.js",
       "installer.js",
       "launcher.js",
       "launchplan.js",

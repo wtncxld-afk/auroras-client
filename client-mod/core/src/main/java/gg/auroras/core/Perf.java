@@ -39,6 +39,25 @@ public final class Perf {
         }
     }
 
+    /**
+     * long -> object map with open addressing, so per-frame lookups (texture caches keyed by shape and size) don't box
+     * keys or build strings. Not thread-safe; grows when 60% full.
+     */
+    public static final class LongMap<V> {
+        private long[] keys = new long[64]; private Object[] vals = new Object[64]; private int size;
+        public static long key(int kind, int a, int b) { return ((long) kind << 48) ^ ((long) (a & 0xFFFFFF) << 24) ^ (b & 0xFFFFFF); }
+        private static int mix(long k) { k ^= k >>> 33; k *= 0xff51afd7ed558ccdL; k ^= k >>> 33; return (int) k; }
+        @SuppressWarnings("unchecked") public V get(long k) { int m = keys.length - 1; for (int i = mix(k) & m; vals[i] != null; i = (i + 1) & m) if (keys[i] == k) return (V) vals[i]; return null; }
+        public void put(long k, V v) {
+            if (v == null) throw new IllegalArgumentException("null value");
+            if ((size + 1) * 5 > keys.length * 3) grow();
+            int m = keys.length - 1, i = mix(k) & m; for (; vals[i] != null; i = (i + 1) & m) if (keys[i] == k) { vals[i] = v; return; }
+            keys[i] = k; vals[i] = v; size++;
+        }
+        public int size() { return size; }
+        private void grow() { long[] ok = keys; Object[] ov = vals; keys = new long[ok.length * 2]; vals = new Object[ok.length * 2]; size = 0; for (int i = 0; i < ok.length; i++) if (ov[i] != null) { @SuppressWarnings("unchecked") V v = (V) ov[i]; put(ok[i], v); } }
+    }
+
     public static long usedMemoryBytes() { Runtime r = Runtime.getRuntime(); return r.totalMemory() - r.freeMemory(); }
     public static long maxMemoryBytes() { return Runtime.getRuntime().maxMemory(); }
 

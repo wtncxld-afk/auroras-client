@@ -8,6 +8,7 @@ package gg.auroras.client.ui;
 
 import gg.auroras.client.platform.Gfx;
 import gg.auroras.client.platform.Platform;
+import gg.auroras.core.Perf;
 import gg.auroras.core.UiArt;
 import net.minecraft.resources.Identifier;
 
@@ -17,7 +18,9 @@ import java.util.Map;
 
 public final class Glass {
     private Glass() {}
-    private static final Map<String, Identifier> TEX = new HashMap<>();
+    /** Baked shape textures by kind, size and parameter: looked up every draw call, so the key is a plain long (no strings). */
+    private static final Perf.LongMap<Identifier> TEX = new Perf.LongMap<>();
+    private static final Map<String, Integer> KINDS = new HashMap<>();
     /** The player's 8x8 face texture and name, when the radial menu has loaded them (shown in the menu's profile card). */
     public static Identifier face; public static String player = "Player";
 
@@ -37,7 +40,7 @@ public final class Glass {
         if (w <= 0 || h <= 0 || (argb >>> 24) == 0) return;
         int X = px(x), Y = px(y), W = px(x + w) - X, H = px(y + h) - Y, R = Math.max(2, Math.min(px(r), Math.min(W, H) / 2)); double st = Math.max(1, Math.round(gs() * 0.5));
         c.push(); c.scale((float) (1 / gs()));
-        nine(c, tex("ring" + (int) st, R, 0, () -> UiArt.ring(R, st), 2 * R, 2 * R), R, 2 * R, X, Y, W, H, argb, false);
+        nine(c, tex("ring", R, (int) st, () -> UiArt.ring(R, st), 2 * R, 2 * R), R, 2 * R, X, Y, W, H, argb, false);
         c.pop();
     }
     /** A soft shadow under a rounded rectangle, spreading blur GUI units out from its edge. */
@@ -62,7 +65,7 @@ public final class Glass {
     /** One of the menu icons (visuals/icons, drawn by scripts/draw-icons.py), size GUI units square, tinted argb. */
     public static void icon(Gfx c, String name, double x, double y, double size, int argb) {
         int S = Math.max(4, px(size)), X = px(x), Y = px(y);
-        Identifier id = tex("icon_" + name, S, 0, () -> UiArt.icon(mask(name), 128, 128, S), S, S);
+        Identifier id = tex(name, S, -1, () -> UiArt.icon(mask(name), 128, 128, S), S, S);
         c.push(); c.scale((float) (1 / gs())); c.texture(id, X, Y, S, S, argb); c.pop();
     }
     /** A sakura petal (core UiArt.petal) size GUI units long, centred on (cx, cy), turned rot radians, tinted argb. */
@@ -95,8 +98,9 @@ public final class Glass {
     }
     /** The texture for one shape and size, baked and uploaded the first time it's needed (render thread). */
     private static Identifier tex(String kind, int a, int b, java.util.function.Supplier<int[]> art, int w, int h) {
-        String key = kind + "_" + a + "_" + b; Identifier id = TEX.get(key);
-        if (id == null) { id = Identifier.fromNamespaceAndPath("auroras_client", "ui/" + key.toLowerCase(java.util.Locale.ROOT)); Platform.texture(id, art.get(), w, h); TEX.put(key, id); }
+        Integer k = KINDS.get(kind); if (k == null) KINDS.put(kind, k = KINDS.size()); // a handful of kinds, interned once
+        long key = Perf.LongMap.key(k, a, b); Identifier id = TEX.get(key);
+        if (id == null) { id = Identifier.fromNamespaceAndPath("auroras_client", "ui/" + (kind + "_" + a + "_" + (b < 0 ? "icon" : b)).toLowerCase(java.util.Locale.ROOT)); Platform.texture(id, art.get(), w, h); TEX.put(key, id); }
         return id;
     }
     private static final Map<String, float[]> MASKS = new HashMap<>();

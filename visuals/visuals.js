@@ -341,6 +341,29 @@
     const guide = (p, len, vals) => { for (const e of [p, p + idiv(len, 2), p + len]) if (vals.includes(e)) return e; return null; };
     return [c[0], c[1], guide(c[0], w, xs), guide(c[1], h, ys)]; // a guide shows whenever the element sits on a line, snapped or already aligned
   }
+  /** HudSkin (core): the HUD widgets' glass cards, icons and keycaps. Sizes in GUI units at scale 1; hud-golden.json checks they agree. */
+  const SKIN = (() => {
+    const C = (padX, padY, text, line, label, labelGap, icon, iconGap) => ({ padX, padY, text, line, label, labelGap, icon, iconGap });
+    const CARDS = { minimal: C(5, 3, 8, 10.5, 0, 0, 0, 0), compact: C(4, 2, 7.5, 9.5, 0, 0, 0, 0), expanded: C(6, 5.5, 8, 10.5, 5.5, 3, 17, 6) };
+    const ICONS = { fps: "gauge", coords: "pin", cps: "mouse", clock: "clock", ping: "signal", potions: "flask", armor: "shield", direction: "compass", target: "target", memory: "chip", biome: "leaf",
+      session: "hourglass", sessioninfo: "hourglass", serverinfo: "server", frametime: "pulse", spotify: "music", modulelist: "list", keystrokes: "keys", freelookstatus: "eye", brandinghud: "sparkles" };
+    const textBlock = (c, n) => (n <= 0 ? 0 : (n - 1) * c.line + c.text);
+    const press = (g) => { g = Math.max(0, Math.min(1, g)); return 1 - (1 - g) * (1 - g) * (1 - g); };
+    const CREAM = { lip: 2.5, top: 0xf6eee2, topPressed: 0xeadcc7, side: 0xcdb696, text: 0x5a4532, shine: 0xffffff };
+    return {
+      CARDS, CREAM, KEY_STYLES: ["glass", "creamy", "classic"], card: (s) => CARDS[s] || CARDS.minimal, textBlock, press,
+      size(c, textW, lines, labelW, icon) {
+        const body = Math.max(textW, labelW), lab = c.label > 0 && labelW > 0 ? c.label + c.labelGap : 0, ic = icon && c.icon > 0 ? c.icon + c.iconGap : 0;
+        const h = Math.max(textBlock(c, lines) + lab, ic > 0 ? c.icon : 0) + c.padY * 2, w = body + ic + c.padX * 2, H = Math.ceil(h - 1e-9);
+        return [Math.max(H, Math.ceil(w - 1e-9)), H];
+      },
+      radius: (setting, w, h) => Math.max(0, Math.min(setting * 1.5, Math.min(w, h) / 2)),
+      icon: (id) => ICONS[id] || "info",
+      travel: (cap, g) => cap.lip * press(g),
+      squish: (g) => 1 - 0.06 * press(g),
+      keyText: (h) => Math.max(5, Math.min(11, h * 0.45)),
+    };
+  })();
   const STYLES = { minimal: { padX: 3, padY: 2, label: false, accent: 0 }, compact: { padX: 2, padY: 1, label: false, accent: 0 }, expanded: { padX: 5, padY: 3, label: true, accent: 2 } };
   const styleOf = (s) => STYLES[s] || STYLES.minimal;
   const box = (st, tw, th) => { const s = styleOf(st); return [tw + s.padX * 2 + s.accent, th + s.padY * 2]; };
@@ -477,6 +500,6 @@
     FX_NONE, parseFx, FX_BUDGET, skyQuality, fxClock, fxU, SLOT, METEOR_FIELDS, meteors, petal, cloud, cloudColor, nebula, auroraWave, auroraShimmer, Constellations,
     clamp, THEME_IDS, hex, loadThemes, NONE, skyAngle, daylight, sunsetAmount, nightAmount, mix, adjust, skyColor, Rng, StarField, auroraElevation, themeFor,
     QUALITY, STYLE_IDS, Particles, Governor, CAPE_DESIGNS, CapeSim, capeScale, CAPE_FACES, totemPose, makeRules, exportProfile, importProfile, placeKey, PLACE, NAME,
-    FORMAT, ANCHORS, resolve, fromPosition, snap, scaledPx, scaleFromDrag, box, argb, styleOf, H, KS, LAYOUT_KEYS, captureLayout, exportLayout, importLayout };
+    FORMAT, ANCHORS, resolve, fromPosition, snap, scaledPx, scaleFromDrag, box, argb, styleOf, H, KS, SKIN, LAYOUT_KEYS, captureLayout, exportLayout, importLayout };
   if (typeof module !== "undefined" && module.exports) module.exports = V; else root.AurorasVisuals = V;
 })(typeof window !== "undefined" ? window : globalThis);

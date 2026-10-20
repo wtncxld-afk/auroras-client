@@ -42,6 +42,12 @@ test(`all ${G.length} HUD cases from the game match`, () => {
   for (const c of of("textColor")) eq(c, H.textColor(c[1], 0x6fe3ff, 0xb58cff, c[2], c[3], c[4]), c[5]);
   for (const c of of("roundRect")) eq(c, H.roundRect(c[1], c[2], c[3]), c[4]);
   for (const c of of("roundOutline")) eq(c, H.roundOutline(c[1], c[2], c[3]), c[4]);
+  for (const c of of("skinSize")) eq(c, V.SKIN.size(V.SKIN.card(c[1]), c[2], c[3], c[4], c[5]), [c[6], c[7]]);
+  for (const c of of("skinRadius")) { const v = V.SKIN.radius(c[1], c[2], c[3]); if (Math.abs(v - c[4]) > 1e-9) bad.push([c, v]); }
+  for (const c of of("skinPress")) { const v = [V.SKIN.press(c[1]), V.SKIN.travel(V.SKIN.CREAM, c[1]), V.SKIN.squish(c[1])]; if (v.some((x, i) => Math.abs(x - c[2 + i]) > 1e-9)) bad.push([c, v]); }
+  for (const c of of("skinKeyText")) { const v = V.SKIN.keyText(c[1]); if (Math.abs(v - c[2]) > 1e-9) bad.push([c, v]); }
+  for (const c of of("skinIcon")) eq(c, V.SKIN.icon(c[1]), c[2]);
+  assert.ok(of("skinSize").length === 96 && of("skinPress").length === 5, "HUD card sizes (HudSkin) are in the golden file");
   assert.ok(of("ksLayout").length === 192 && of("ksLabel").length === 648 && of("textColor").length === 108 && of("roundRect").length === 42, "keystrokes and styling cases are in the golden file");
   assert.deepStrictEqual(bad.slice(0, 8), []);
 });

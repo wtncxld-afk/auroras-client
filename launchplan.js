@@ -60,10 +60,22 @@ function buildArgs(v, env, ctx, features = {}) {
   if (!v.mainClass) throw new Error("Version has no main class");
   return { jvm, mainClass: v.mainClass, game };
 }
-/** Final argv for spawning Java (no shell involved). memMb and extraJvm come from the instance settings. */
+/**
+ * Garbage collector tuning for a game client: G1 with short pauses and a large young generation, so the many short-lived
+ * objects Minecraft makes every frame are collected without stutter. Only used when the instance's own Java arguments
+ * don't already pick a collector or tune G1 (yours always win).
+ */
+const GC_FLAGS = ["-XX:+UseG1GC", "-XX:+ParallelRefProcEnabled", "-XX:MaxGCPauseMillis=40", "-XX:+UnlockExperimentalVMOptions", "-XX:+DisableExplicitGC",
+  "-XX:G1NewSizePercent=30", "-XX:G1MaxNewSizePercent=50", "-XX:G1HeapRegionSize=8M", "-XX:G1ReservePercent=15", "-XX:InitiatingHeapOccupancyPercent=20"];
+const tunesGc = (args) => args.some((a) => /^-XX:[+-]Use\w*GC$|^-XX:[+-]?\w*G1\w*/.test(a));
+/**
+ * Final argv for spawning Java (no shell involved). memMb and extraJvm come from the instance settings. The starting heap
+ * equals the maximum, so the game never stalls growing its heap mid-play.
+ */
 function command(javaPath, built, { memMb, extraJvm = [] }) {
   if (!Number.isInteger(memMb) || memMb < 512 || memMb > 65536) throw new Error("Memory must be between 512 MB and 64 GB");
-  return { file: javaPath, args: [`-Xmx${memMb}M`, `-Xms${Math.min(512, memMb)}M`, ...built.jvm, ...extraJvm, built.mainClass, ...built.game] };
+  const gc = tunesGc(extraJvm) ? [] : GC_FLAGS;
+  return { file: javaPath, args: [`-Xmx${memMb}M`, `-Xms${memMb}M`, ...gc, ...built.jvm, ...extraJvm, built.mainClass, ...built.game] };
 }
 function assetObjects(index) {
   return Object.entries(index.objects || {}).map(([name, o]) => { if (!/^[0-9a-f]{40}$/.test(o.hash)) throw new Error("Bad asset hash for " + name); const p = o.hash.slice(0, 2); return { name, hash: o.hash, size: o.size, path: `objects/${p}/${o.hash}`, url: `https://resources.download.minecraft.net/${p}/${o.hash}` }; });

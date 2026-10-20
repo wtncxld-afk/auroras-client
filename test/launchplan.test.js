@@ -68,6 +68,18 @@ test("command: argv array (no shell), memory bounds, usernames with spaces stay 
   assert.ok(c.args.indexOf("net.fabricmc.loader.impl.launch.knot.KnotClient") < c.args.indexOf("--username"));
   assert.throws(() => lp.command("j", built, { memMb: 100 }), /Memory/); assert.throws(() => lp.command("j", built, { memMb: "4096" }), /Memory/);
 });
+test("command: tuned G1 flags by default, the heap starts at its maximum, and your own GC arguments replace ours", () => {
+  const built = lp.buildArgs(lp.mergeProfiles(vanilla(), fabric()), WIN, ctx);
+  const d = lp.command("j", built, { memMb: 4096 });
+  assert.deepStrictEqual(d.args.slice(0, 2), ["-Xmx4096M", "-Xms4096M"]);
+  assert.ok(d.args.includes("-XX:+UseG1GC") && d.args.includes("-XX:MaxGCPauseMillis=40"));
+  assert.ok(d.args.indexOf("-XX:+UseG1GC") < d.args.indexOf(built.mainClass), "JVM options come before the main class");
+  const z = lp.command("j", built, { memMb: 4096, extraJvm: ["-XX:+UseZGC"] });
+  assert.ok(!z.args.includes("-XX:+UseG1GC") && z.args.includes("-XX:+UseZGC"), "a collector you chose is not overridden");
+  const g = lp.command("j", built, { memMb: 4096, extraJvm: ["-XX:G1HeapRegionSize=16M"] });
+  assert.ok(!g.args.includes("-XX:G1HeapRegionSize=8M") && g.args.includes("-XX:G1HeapRegionSize=16M"));
+  assert.strictEqual(new Set(d.args.filter((a) => a.startsWith("-XX"))).size, d.args.filter((a) => a.startsWith("-XX")).length, "no duplicate flags");
+});
 test("asset index to downloadable objects, with hash validation", () => {
   const hash = "ab" + "c".repeat(38), o = lp.assetObjects({ objects: { "icons/icon.png": { hash, size: 100 } } })[0];
   assert.strictEqual(o.path, `objects/ab/${hash}`); assert.strictEqual(o.url, `https://resources.download.minecraft.net/ab/${hash}`);

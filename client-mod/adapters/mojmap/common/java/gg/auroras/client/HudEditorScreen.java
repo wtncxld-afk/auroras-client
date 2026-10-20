@@ -28,11 +28,15 @@ public class HudEditorScreen extends AScreen {
         long now = System.nanoTime(); double dt = (now - last) / 1e9; last = now;
         ctx.fill(0, 0, width, height, 0x40000000);
         HudRenderer.render(ctx, Minecraft.getInstance(), dt, true, selected);
+        gg.auroras.core.UiTokens tk = gg.auroras.client.ui.AUi.tokens(); int acc = tk.opaque("acc");
+        HudRenderer.El hov = dragging == null ? at(mx, my) : null;
         for (HudRenderer.El e : HudRenderer.ELS.values()) {
-            if (!e.on || e.w == 0) continue; boolean sel = e.id.equals(selected); gg.auroras.core.UiTokens tk = gg.auroras.client.ui.AUi.tokens(); int c = sel ? tk.opaque("acc") : tk.argb("text", 0.45);
-            ctx.fill(e.pos[0], e.pos[1], e.pos[0] + e.w, e.pos[1] + 1, c); ctx.fill(e.pos[0], e.pos[1] + e.h - 1, e.pos[0] + e.w, e.pos[1] + e.h, c);
-            ctx.fill(e.pos[0], e.pos[1], e.pos[0] + 1, e.pos[1] + e.h, c); ctx.fill(e.pos[0] + e.w - 1, e.pos[1], e.pos[0] + e.w, e.pos[1] + e.h, c);
-            if (sel) ctx.fill(e.pos[0] + e.w - 3, e.pos[1] + e.h - 3, e.pos[0] + e.w + 1, e.pos[1] + e.h + 1, tk.opaque("acc"));
+            if (!e.on || e.w == 0) continue; boolean sel = e.id.equals(selected), h = e == hov; double x = e.pos[0] - 1.5, y = e.pos[1] - 1.5, w = e.w + 3, hh = e.h + 3, r = Math.min(5, hh / 2);
+            if (sel) gg.auroras.client.ui.Glass.shadow(ctx, x, y, w, hh, r, 5, gg.auroras.client.ui.AUi.fade(acc, 0.35));
+            gg.auroras.client.ui.Glass.outline(ctx, x, y, w, hh, r, sel ? acc : tk.argb("text", h ? 0.7 : 0.32));
+            if (sel || h) { String name = e.mod.name(); double tw = gg.auroras.client.ui.Glass.width("medium", 6, name) + 8, ty = y - 11 < 2 ? y + hh + 2 : y - 11;
+                gg.auroras.client.ui.Glass.rect(ctx, x, ty, tw, 9, 4.5, sel ? acc : tk.argb("s1", 0.92)); gg.auroras.client.ui.Glass.label(ctx, "medium", 6, name, x + 4, ty + 4.5, 0, sel ? 0xFF06141F : tk.opaque("text")); }
+            if (sel) { gg.auroras.client.ui.Glass.circle(ctx, x + w, y + hh, 3, 0xFFFFFFFF); gg.auroras.client.ui.Glass.circle(ctx, x + w, y + hh, 2.2, acc); }
         }
         int gc = 0xC0000000 | gg.auroras.client.ui.AUi.tokens().guide; if (guide[0] >= 0) ctx.fill(guide[0], 0, guide[0] + 1, height, gc);
         if (guide[1] >= 0) ctx.fill(0, guide[1], width, guide[1] + 1, gc);

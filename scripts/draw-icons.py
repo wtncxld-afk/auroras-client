@@ -8,7 +8,9 @@ OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
 S, K = 128, 4
 def canvas(): im = Image.new("L", (S * K, S * K), 0); return im, ImageDraw.Draw(im)
 def save(im, name):
-    small = im.resize((S, S), Image.LANCZOS); small.save(os.path.join(OUT, name + ".png"))
+    small = im.resize((S, S), Image.LANCZOS)
+    # the PNG is white with the mask as its alpha, so the launcher can tint it (canvas "source-in")
+    rgba = Image.new("RGBA", (S, S), (255, 255, 255, 0)); rgba.putalpha(small); rgba.save(os.path.join(OUT, name + ".png"))
     # .a8 = the same mask as raw bytes (128x128 alpha, row by row), so the mod reads it without an image decoder
     open(os.path.join(OUT, name + ".a8"), "wb").write(small.tobytes())
 W = 9 * K  # stroke
@@ -106,4 +108,68 @@ for a in (0, 90, 180, 270):
     for s in (-1, 1):
         b = r + math.pi + s * math.radians(40); d.line(P(tip[0], tip[1], tip[0] + L * math.cos(b), tip[1] + L * math.sin(b)), fill=255, width=W)
 save(im, "move")
+
+# ---- HUD widget icons (expanded style: a chip beside each readout) ----
+def arcpts(cx, cy, r, a0, a1, step=3): return [((cx + r * math.cos(math.radians(a))) * K, (cy + r * math.sin(math.radians(a))) * K) for a in range(a0, a1 + 1, step)]
+# FPS: a speed gauge with its needle
+im, d = canvas(); d.arc(P(14, 22, 114, 122), 180, 360, fill=255, width=W); d.line(P(64, 72, 92, 44), fill=255, width=W); dot(d, 64, 72, 9)
+for a in (200, 240, 300, 340): d.line([((64 + 40 * math.cos(math.radians(a))) * K, (72 + 40 * math.sin(math.radians(a))) * K), ((64 + 30 * math.cos(math.radians(a))) * K, (72 + 30 * math.sin(math.radians(a))) * K)], fill=255, width=6 * K)
+save(im, "gauge")
+# Coordinates: a map pin
+im, d = canvas(); d.polygon([(64 * K, 118 * K)] + arcpts(64, 50, 36, 150, 390) , fill=255); d.ellipse(P(50, 36, 78, 64), fill=0); save(im, "pin")
+# CPS: a mouse
+im, d = canvas(); d.rounded_rectangle(P(30, 10, 98, 118), radius=34 * K, outline=255, width=W); d.line(P(64, 12, 64, 52), fill=255, width=W); d.line(P(32, 52, 96, 52), fill=255, width=W); save(im, "mouse")
+# Clock
+im, d = canvas(); ring(d, 64, 64, 50); d.line(P(64, 64, 64, 34), fill=255, width=W); d.line(P(64, 64, 86, 76), fill=255, width=W); dot(d, 64, 64, 7); save(im, "clock")
+# Ping: signal bars
+im, d = canvas()
+for i, h in enumerate((28, 52, 76, 100)): d.rounded_rectangle(P(14 + i * 27, 112 - h, 34 + i * 27, 112), radius=5 * K, fill=255)
+save(im, "signal")
+# Potions: a round flask
+im, d = canvas(); d.ellipse(P(20, 46, 108, 122), outline=255, width=W); d.rectangle(P(50, 14, 78, 50), fill=0); d.line(P(50, 16, 50, 52), fill=255, width=W); d.line(P(78, 16, 78, 52), fill=255, width=W)
+d.line(P(42, 12, 86, 12), fill=255, width=W); d.chord(P(29, 55, 99, 113), 10, 170, fill=255); save(im, "flask")
+# Armor: a shield (outer shape filled, inner cut out, so the stroke has no seams)
+def shieldpts(i): return [(64, 8 + i), (110 - i, 24 + i * 0.5), (110 - i, 62)] + [(64 + (46 - i) * math.cos(math.radians(a)), 62 + (54 - i) * math.sin(math.radians(a))) for a in range(0, 181, 4)] + [(18 + i, 62), (18 + i, 24 + i * 0.5)]
+im, d = canvas(); d.polygon([(x * K, y * K) for x, y in shieldpts(0)], fill=255); d.polygon([(x * K, y * K) for x, y in shieldpts(9)], fill=0); d.line(P(64, 24, 64, 104), fill=255, width=7 * K); save(im, "shield")
+# Direction: a compass needle in a ring
+im, d = canvas(); ring(d, 64, 64, 52); d.polygon(P(64, 22, 80, 64, 64, 106, 48, 64), outline=255, fill=0, width=6 * K); d.polygon(P(64, 22, 80, 64, 48, 64), fill=255); save(im, "compass")
+# Target: crosshair
+im, d = canvas(); ring(d, 64, 64, 40)
+for a, b in (((64, 4), (64, 40)), ((64, 88), (64, 124)), ((4, 64), (40, 64)), ((88, 64), (124, 64))): d.line(P(*a, *b), fill=255, width=W)
+dot(d, 64, 64, 8); save(im, "target")
+# Memory: a chip
+im, d = canvas(); d.rounded_rectangle(P(28, 28, 100, 100), radius=10 * K, outline=255, width=W); d.rounded_rectangle(P(48, 48, 80, 80), radius=4 * K, fill=255)
+for i in (44, 64, 84): d.line(P(i, 8, i, 28), fill=255, width=7 * K); d.line(P(i, 100, i, 120), fill=255, width=7 * K); d.line(P(8, i, 28, i), fill=255, width=7 * K); d.line(P(100, i, 120, i), fill=255, width=7 * K)
+save(im, "chip")
+# Biome: a leaf (two arcs meeting at the tip and stem) with its vein
+def leafpts(i):
+    ax, ay, bx, by = 22, 106, 106, 22; L = math.hypot(bx - ax, by - ay); nx, ny = (ay - by) / L, (bx - ax) / L; side = []
+    for s in (1, -1):
+        rng = range(0, 101, 2) if s == 1 else range(100, -1, -2)
+        for k in rng: u = k / 100; wdt = max(0, 30 * math.sin(math.pi * u) ** 0.8 - i); side.append((ax + (bx - ax) * u + s * nx * wdt, ay + (by - ay) * u + s * ny * wdt))
+    return side
+im, d = canvas(); d.polygon([(x * K, y * K) for x, y in leafpts(0)], fill=255); d.polygon([(x * K, y * K) for x, y in leafpts(10)], fill=0)
+d.line(P(14, 114, 92, 36), fill=255, width=7 * K); save(im, "leaf")
+# Session: an hourglass with sand in the bottom
+im, d = canvas(); d.line(P(24, 12, 104, 12), fill=255, width=W); d.line(P(24, 116, 104, 116), fill=255, width=W)
+d.line(P(36, 14, 64, 64), fill=255, width=W); d.line(P(92, 14, 64, 64), fill=255, width=W); d.line(P(36, 114, 64, 64), fill=255, width=W); d.line(P(92, 114, 64, 64), fill=255, width=W)
+d.line(P(36, 14, 36, 20), fill=255, width=W); d.polygon(P(44, 112, 84, 112, 64, 84), fill=255); save(im, "hourglass")
+# Server: two stacked units with lights
+im, d = canvas()
+for y in (14, 70): d.rounded_rectangle(P(14, y, 114, y + 44), radius=10 * K, outline=255, width=W); dot(d, 36, y + 22, 7); d.line(P(58, y + 22, 92, y + 22), fill=255, width=6 * K)
+save(im, "server")
+# Frame time: a pulse line
+im, d = canvas(); d.line(P(6, 70, 34, 70, 48, 30, 66, 104, 80, 54, 90, 70, 122, 70), fill=255, width=W, joint="curve"); save(im, "pulse")
+# Spotify: a music note
+im, d = canvas(); d.line(P(52, 92, 52, 18), fill=255, width=W); d.line(P(98, 82, 98, 8), fill=255, width=W); d.polygon(P(48, 14, 102, 4, 102, 26, 48, 36), fill=255)
+d.ellipse(P(20, 76, 58, 108), fill=255); d.ellipse(P(66, 66, 104, 98), fill=255); save(im, "music")
+# Module list: three lines of different length
+im, d = canvas()
+for y, x1 in ((30, 112), (64, 92), (98, 72)): d.line(P(16, y, x1, y), fill=255, width=11 * K)
+save(im, "list")
+# Keystrokes: a keyboard key cluster
+im, d = canvas()
+for x, y in ((46, 10), (6, 52), (46, 52), (86, 52)): d.rounded_rectangle(P(x, y, x + 36, y + 36), radius=8 * K, outline=255, width=7 * K)
+d.rounded_rectangle(P(6, 96, 122, 118), radius=8 * K, outline=255, width=7 * K); save(im, "keys")
+
 print("icons:", sorted(os.listdir(OUT)))
