@@ -52,7 +52,7 @@ Rules and curves are core `PlayerFx` (tested in `ModuleTests.playerFx`); the ada
 
 | Module | Hook |
 |---|---|
-| Swing Animation | `versions/<t>/mixin/HandRendererMixin` changes the swing progress argument and wraps the held-item submit (push pose, offsets, pop); `LivingEntityMixin` changes `getCurrentSwingDuration` for your own player; the "no cooldown dip" option redirects `getItemSwapScale` in `ItemInHandRenderer#tick` (not on 26.3, whose hand renderer was rewritten) |
+| Swing Animation | `versions/<t>/mixin/HandRendererMixin` changes the swing progress argument and wraps the held-item submit (push pose, offsets, pop); `LivingEntityMixin` changes `getCurrentSwingDuration` for your own player; inspect ends on a swing seen in that same swing argument; the "no cooldown dip" option redirects `getItemSwapScale` in `ItemInHandRenderer#tick` (not on 26.3, whose hand renderer was rewritten) |
 | Weapon Inspect | Key `key.auroras.inspect` (default I). The inspect pose is added in the same item-submit wrap. Blade skins mark the item with an identity-unique tint array (`ItemLayerMixin`) and `ItemTintMixin` colours its quads at `getLayerColorSafe` |
 | Hand Aura | The item-submit wrap submits extra scaled shells marked with the aura tint; `ItemTintMixin` makes them translucent (1.21.11: the submit's RenderType; 26.x: the buffer chosen in `ItemFeatureRenderer`). `HandAuraMixin` adds translucent emissive arm shells after `AvatarRenderer#renderHand` (`platform/HandDraw`) |
 | Totem Spirit | `ClientPacketListenerMixin` sees entity event 35; `AurorasSpirit` spawns ordinary depth-tested world particles, so walls hide them |

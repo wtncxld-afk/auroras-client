@@ -72,8 +72,8 @@ public final class AurorasHands {
         if (mc.player == null) { INSPECT.stop(); lastSlot = -1; return; }
         int slot = mc.player.getInventory().getSelectedSlot();
         while (inspectKey.consumeClick()) if (inspectOn && Mc.screen(mc) == null && inspectable(mc.player.getMainHandItem())) INSPECT.start(inspectStyle, inspectDur);
-        if (INSPECT.active() && (slot != lastSlot || mc.player.isUsingItem() || (cancelOnSwing && mc.player.getAttackAnim(1f) > 0) || !inspectable(mc.player.getMainHandItem()))) INSPECT.cancel();
-        lastSlot = slot;
+        if (INSPECT.active() && (slot != lastSlot || mc.player.isUsingItem() || (cancelOnSwing && swungSince) || !inspectable(mc.player.getMainHandItem()))) INSPECT.cancel();
+        lastSlot = slot; swungSince = false;
     }
     static boolean weapon(ItemStack s) {
         return s.is(ItemTags.SWORDS) || s.is(ItemTags.AXES) || s.is(ItemTags.PICKAXES) || s.is(ItemTags.SHOVELS) || s.is(ItemTags.HOES) || s.is(Items.TRIDENT) || s.is(Items.MACE);
@@ -82,7 +82,9 @@ public final class AurorasHands {
 
     // ---- hooks ----
     /** Swing progress the arm and item are drawn at (HandRendererMixin, the arm-with-item method's swing argument). */
-    public static float swing(float p) { return swingOn ? (float) PlayerFx.swing(swingStyle, p) : p; }
+    public static float swing(float p) { if (p > 0) swungSince = true; return swingOn ? (float) PlayerFx.swing(swingStyle, p) : p; }
+    /** The main hand was drawn mid-swing since the last tick (read by tick() to end an inspect when you swing; no entity field needed, so it works on every release). */
+    static boolean swungSince;
     /** LivingEntity#getCurrentSwingDuration for your own player: how long the swing animation runs on your screen. */
     public static int swingTicks(Object entity, int ticks) {
         if (!swingOn || entity != Minecraft.getInstance().player) return ticks;
