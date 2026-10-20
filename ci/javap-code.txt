@@ -1,3 +1,2 @@
 # javap -p -c (bytecode) for these, to check what mixin @At targets call
-net.minecraft.client.MouseHandler
-net.minecraft.client.renderer.texture.OverlayTexture
+net.minecraft.client.KeyMapping
