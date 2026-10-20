@@ -21,7 +21,7 @@ public final class Config {
         COSMETIC("Cosmetic only: changes what you see, nothing else"), DISPLAY("Shows information on screen"), INPUT("Changes how your controls behave");
         public final String label; Impact(String label) { this.label = label; }
     }
-    public enum Type { BOOL, INT, DOUBLE, COLOR, ENUM, KEY }
+    public enum Type { BOOL, INT, DOUBLE, COLOR, ENUM, KEY, TEXT }
     public record SettingDef(String key, Type type, String def, double min, double max, List<String> options) {}
     public record Module(String id, String name, Category cat, Impact impact, boolean available, String note, List<SettingDef> settings) {
         public SettingDef setting(String key) { for (SettingDef s : settings) if (s.key().equals(key)) return s; return null; }
@@ -31,6 +31,8 @@ public final class Config {
     static SettingDef integer(String k, int d, int lo, int hi) { return new SettingDef(k, Type.INT, String.valueOf(d), lo, hi, List.of()); }
     static SettingDef dbl(String k, double d, double lo, double hi) { return new SettingDef(k, Type.DOUBLE, String.valueOf(d), lo, hi, List.of()); }
     static SettingDef color(String k, String d) { return new SettingDef(k, Type.COLOR, d, 0, 0, List.of()); }
+    /** A short label (Name Protect's alias): letters, numbers, spaces and . _ - only, up to 16 characters. */
+    static SettingDef text(String k, String d) { return new SettingDef(k, Type.TEXT, d, 0, 16, List.of()); }
     static SettingDef key(String k, int d) { return new SettingDef(k, Type.KEY, String.valueOf(d), -1, 348, List.of()); }
     static SettingDef anchor(String k, String d) { return new SettingDef(k, Type.ENUM, d, 0, 0, Arrays.stream(Hud.Anchor.values()).map(Enum::name).toList()); }
 
@@ -50,6 +52,8 @@ public final class Config {
             Impact i = c == Category.PLAYER ? Impact.INPUT : c == Category.HUD || c == Category.INFORMATION ? Impact.DISPLAY : Impact.COSMETIC;
             mods.put(id, new Module(id, name, c, i, ok, note, s));
         }
+        /** For modules whose category doesn't say what they touch (Name Protect and Stream Hide only change what you see). */
+        private void add(String id, String name, Category c, Impact i, boolean ok, String note, List<SettingDef> s) { mods.put(id, new Module(id, name, c, i, ok, note, s)); }
         static SettingDef choice(String k, String d, List<String> opts) { return new SettingDef(k, Type.ENUM, d, 0, 0, List.copyOf(opts)); }
         static List<String> withOff(List<String> l) { List<String> o = new ArrayList<>(List.of("off")); o.addAll(l); return o; }
         public Registry() {
@@ -122,6 +126,18 @@ public final class Config {
                 dbl("density", 1.0, 0.1, 3.0), dbl("lifetime", 1.5, 0.1, 10.0), dbl("spawnRate", 20.0, 0.0, 200.0), dbl("speed", 1.0, 0.1, 3.0), integer("maxDistance", 32, 4, 128), integer("maxCount", 256, 0, 4096),
                 bool("ambient", true), bool("events", true), bool("autoReduce", true), bool("reducedMotion", false)));
             add("menuanim", "Menu Animations", Category.ANIMATIONS, true, exp + ". Applies to the Auroras menus", plain(dbl("speed", 1.0, 0.25, 2.0), bool("reducedMotion", false)));
+            // First person, totems and streaming (core PlayerFx). All local: nothing is sent to the server and other players see nothing different.
+            add("swinganim", "Swing Animation", Category.ANIMATIONS, true, exp + ". Changes only how your first-person hand looks: attack speed and cooldown are untouched", plain(choice("style", "vanilla", PlayerFx.SWING_STYLES), dbl("speed", 1.0, 0.25, 2.0), bool("noCooldownDip", false),
+                dbl("posX", 0.0, -1.0, 1.0), dbl("posY", 0.0, -1.0, 1.0), dbl("posZ", 0.0, -1.0, 1.0), dbl("itemScale", 1.0, 0.3, 2.0), integer("rotX", 0, -180, 180), integer("rotY", 0, -180, 180), integer("rotZ", 0, -180, 180), bool("offHand", true)));
+            add("inspect", "Weapon Inspect", Category.ANIMATIONS, true, exp + ". Only you see the inspect animation and blade skins", plain(key("key", 73), choice("style", "showcase", PlayerFx.INSPECT_STYLES), dbl("duration", 2.0, 0.5, 6.0), bool("anyItem", false), bool("cancelOnSwing", true),
+                choice("bladeSkin", "none", PlayerFx.BLADE_SKINS), color("bladeColor", "6FE3FF"), dbl("bladeStrength", 0.7, 0.0, 1.0), bool("skinTools", false)));
+            add("handaura", "Hand Aura", Category.PLAYER_VISUALS, true, exp + ". A glow around your first-person hand and held item, on your screen only", plain(color("color", "6FE3FF"), bool("chroma", false), dbl("chromaSpeed", 1.0, 0.1, 5.0), dbl("intensity", 0.6, 0.0, 1.0),
+                dbl("size", 0.08, 0.01, 0.4), integer("layers", 2, 1, 4), bool("pulse", true), bool("hand", true), bool("item", true)));
+            add("totemspirit", "Totem Spirit", Category.TOTEMS, true, exp + ". A glowing spirit rises where a player pops a totem. Ordinary particles: walls hide them", plain(choice("shape", "spiral", PlayerFx.SPIRIT_SHAPES), color("color", "FFE27A"), color("color2", "6FE3FF"), bool("chroma", false),
+                dbl("density", 1.0, 0.1, 3.0), dbl("duration", 1.6, 0.3, 5.0), dbl("riseHeight", 2.5, 0.5, 6.0), dbl("speed", 1.0, 0.2, 3.0), dbl("size", 1.0, 0.3, 3.0), bool("sparkles", true), bool("self", true), bool("others", true), integer("maxDistance", 48, 8, 128)));
+            add("nameprotect", "Name Protect", Category.PLAYER, Impact.COSMETIC, true, exp + ". Changes only what your screen shows (for streaming); servers and other players still see your real name", plain(text("alias", "You"), bool("hideOthers", false), text("othersAlias", "Player")));
+            add("streamhide", "Stream Hide Inventory", Category.PLAYER, Impact.COSMETIC, true, exp + ". Hides items on your screen only, for screenshares; your inventory works as normal", plain(key("key", -1), bool("hotbar", true), bool("inventory", true), bool("held", false), bool("tooltips", true), bool("placeholder", true), bool("badge", true)));
+            add("skinchanger", "Skin Changer", Category.COSMETICS, true, exp + ". Only you see this skin: other players and servers still see your Minecraft skin. Pick it on the Skins page", plain(choice("model", "auto", PlayerFx.SKIN_MODELS)));
             add("emotes", "Emotes", Category.COSMETICS, true, exp + ". Only you see your emotes: nothing is sent to servers or other players", plain(key("wheelKey", 66), dbl("speed", 1.0, 0.25, 3.0), dbl("blend", 0.2, 0.0, 1.0), bool("cancelOnMove", true), bool("thirdPerson", true)));
         }
         /**
@@ -133,8 +149,11 @@ public final class Config {
         }
         public Collection<Module> modules() { return mods.values(); }
         public Module get(String id) { return mods.get(id); }
-        public static final String GUI_KEY = "settings.guiKey", QUALITY = "settings.quality", MENU_THEME = "settings.menuTheme", MENU_FX = "settings.menuFx";
-        private static final Pattern HEX = Pattern.compile("[0-9A-Fa-f]{6}");
+        public static final String GUI_KEY = "settings.guiKey", QUALITY = "settings.quality", MENU_THEME = "settings.menuTheme", MENU_FX = "settings.menuFx",
+            CUSTOM_TITLE = "settings.customTitle", CUSTOM_PAUSE = "settings.customPause", TITLE_LAYOUT = "settings.titleLayout";
+        /** The main menu's layouts: buttons in a column on the left, or centred under the logo. */
+        public static final List<String> TITLE_LAYOUTS = List.of("left", "centre");
+        private static final Pattern HEX = Pattern.compile("[0-9A-Fa-f]{6}"), TEXT = Pattern.compile("[A-Za-z0-9 ._-]{0,16}");
         /** Plain decimal numbers only (no exponents, suffixes or spaces), so the launcher can apply exactly the same rule. */
         private static final Pattern INTEGER = Pattern.compile("-?\\d{1,9}"), DECIMAL = Pattern.compile("-?\\d{1,9}(\\.\\d{1,12})?");
         /** Returns null when the key/value pair is valid, otherwise a human-readable error. */
@@ -142,7 +161,8 @@ public final class Config {
             if (v == null || v.length() > 64 || v.contains("\n") || v.contains("\r")) return "bad value";
             if (fullKey.equals(QUALITY)) return Quality.parse(v) != null ? null : "quality must be LOW, BALANCED or HIGH";
             if (fullKey.equals(MENU_THEME)) return MenuTheme.IDS.contains(v) ? null : "unknown menu theme";
-            if (fullKey.equals(MENU_FX)) return v.equals("true") || v.equals("false") ? null : fullKey + " must be true or false";
+            if (fullKey.equals(MENU_FX) || fullKey.equals(CUSTOM_TITLE) || fullKey.equals(CUSTOM_PAUSE)) return v.equals("true") || v.equals("false") ? null : fullKey + " must be true or false";
+            if (fullKey.equals(TITLE_LAYOUT)) return TITLE_LAYOUTS.contains(v) ? null : "unknown main menu layout";
             if (fullKey.equals(GUI_KEY)) return v.matches("-?\\d{1,3}") && Integer.parseInt(v) >= 0 && Integer.parseInt(v) <= 348 ? null : "bad key code";
             int dot = fullKey.indexOf('.'); if (dot < 1) return "unknown key " + fullKey;
             Module m = mods.get(fullKey.substring(0, dot)); if (m == null) return "unknown module in " + fullKey;
@@ -153,12 +173,13 @@ public final class Config {
                     case INT: case KEY: { if (!INTEGER.matcher(v).matches()) return fullKey + " is not a number"; int n = Integer.parseInt(v); return n >= d.min() && n <= d.max() ? null : fullKey + " out of range"; }
                     case DOUBLE: { if (!DECIMAL.matcher(v).matches()) return fullKey + " is not a number"; double n = Double.parseDouble(v); return n >= d.min() && n <= d.max() ? null : fullKey + " out of range"; }
                     case COLOR: return HEX.matcher(v).matches() ? null : fullKey + " must be a 6-digit hex colour";
+                    case TEXT: return TEXT.matcher(v).matches() ? null : fullKey + " may only use up to 16 letters, numbers, spaces, dots, dashes or underscores";
                     default: return d.options().contains(v) ? null : fullKey + " has an unknown option";
                 }
             } catch (NumberFormatException e) { return fullKey + " is not a number"; }
         }
         public Map<String, String> defaults() {
-            Map<String, String> m = new TreeMap<>(); m.put(GUI_KEY, "344"); m.put(QUALITY, "BALANCED"); m.put(MENU_THEME, "aurora"); m.put(MENU_FX, "true");
+            Map<String, String> m = new TreeMap<>(); m.put(GUI_KEY, "344"); m.put(QUALITY, "BALANCED"); m.put(MENU_THEME, "aurora"); m.put(MENU_FX, "true"); m.put(CUSTOM_TITLE, "true"); m.put(CUSTOM_PAUSE, "true"); m.put(TITLE_LAYOUT, "left");
             for (Module mod : mods.values()) for (SettingDef s : mod.settings()) m.put(mod.id() + "." + s.key(), s.def());
             return m;
         }

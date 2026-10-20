@@ -1,15 +1,3 @@
 # javap -p for these (names only). Edit freely: it only feeds the "Minecraft names (javap)" step of mod-check.yml.
-net.minecraft.client.gui.Hud
-net.minecraft.client.ClientClockManager
-net.minecraft.world.clock.ClockManager
-net.minecraft.client.renderer.rendertype.RenderTypes
-net.minecraft.client.renderer.OrderedSubmitNodeCollector
-net.minecraft.client.Options
-net.minecraft.client.renderer.texture.AbstractTexture
-net.minecraft.client.renderer.texture.DynamicTexture
-net.minecraft.client.renderer.texture.TextureManager
-net.minecraft.client.renderer.state.LevelRenderState
-net.minecraft.client.renderer.state.level.LevelRenderState
-net.minecraft.client.renderer.SubmitNodeCollector$CustomGeometryRenderer
-net.minecraft.client.renderer.SubmitNodeCollector
-net.minecraft.world.phys.shapes.VoxelShape
+net.minecraft.client.multiplayer.chat.report.ReportingContext
+net.minecraft.client.resources.sounds.SimpleSoundInstance

@@ -35,6 +35,8 @@ public final class Platform {
     public static void hud() {
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, Identifier.fromNamespaceAndPath("auroras_client", "hud"), (g, tick) -> AurorasClient.renderHud(new Gfx(g)));
         HudElementRegistry.replaceElement(VanillaHudElements.CROSSHAIR, vanilla -> (g, tick) -> { if (!AurorasClient.crosshair(new Gfx(g))) vanilla.render(g, tick); });
+        // Stream Hide Inventory covers the hotbar items after the vanilla hotbar is drawn
+        HudElementRegistry.replaceElement(VanillaHudElements.HOTBAR, vanilla -> (g, tick) -> { vanilla.render(g, tick); gg.auroras.client.AurorasStream.coverHotbar(new Gfx(g)); });
         HudElementRegistry.replaceElement(VanillaHudElements.BOSS_BAR, vanilla -> (g, tick) -> {
             Gfx x = new Gfx(g); if (AurorasClient.bossBarBefore(x)) { vanilla.render(g, tick); AurorasClient.bossBarAfter(x); } });
     }
@@ -44,6 +46,14 @@ public final class Platform {
     public static NativeImage image(int[] argb, int w, int h) { NativeImage img = new NativeImage(w, h, false); for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) img.setPixel(x, y, argb[y * w + x]); return img; }
     /** Uploads an image as a GUI texture (Spotify cover art). Call on the render thread. */
     public static void texture(Identifier id, NativeImage img) { Minecraft.getInstance().getTextureManager().register(id, new DynamicTexture(id::toString, img)); }
+    /** A PNG bundled in the mod (e.g. /assets/auroras_client/textures/gui/emblem.png) as straight ARGB pixels; wh receives its size. Null if missing. */
+    public static int[] png(String resource, int[] wh) {
+        try (java.io.InputStream in = Platform.class.getResourceAsStream(resource)) {
+            if (in == null) return null; NativeImage img = NativeImage.read(in); int w = img.getWidth(), h = img.getHeight(); int[] px = new int[w * h];
+            for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) px[y * w + x] = img.getPixel(x, y);
+            img.close(); wh[0] = w; wh[1] = h; return px;
+        } catch (Exception e) { System.out.println("[Auroras] image not loaded: " + resource + ": " + e.getMessage()); return null; }
+    }
     /** A GUI texture whose pixels change while it's on screen (the menu's 3D head): one texture, updated in place. Render thread only. */
     public static final class Live {
         private final Identifier id; private DynamicTexture tex; private int w, h;

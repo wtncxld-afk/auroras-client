@@ -1,9 +1,3 @@
-# javap -p -c (bytecode) for these, to check what mixin @At targets call. "a.B#m1|m2" prints only those methods.
-net.minecraft.client.renderer.GameRenderer#render|applyPostEffects|preparePostEffects|displayItemActivation
-net.minecraft.client.renderer.LevelRenderer#renderBlockOutline|extractBlockOutline|submitBlockOutline|renderHitOutline|submitHitOutline
-net.minecraft.client.renderer.rendertype.TextureTransform#setupGlintTexturing
-net.minecraft.client.gui.Gui#renderCameraOverlays|extractCameraOverlays|renderTextureOverlay|extractTextureOverlay
-net.minecraft.client.gui.Hud#renderCameraOverlays|extractCameraOverlays|renderTextureOverlay|extractTextureOverlay
-net.minecraft.client.renderer.PostChain#load|createPass
-net.minecraft.client.multiplayer.ClientLevel#getDefaultClockTime|tickTime|setTimeFromServer
-net.minecraft.client.ClientClockManager
+# javap -p -c (bytecode) for these, to check what mixin @At targets call. "a.B:m1|m2" limits it to methods whose declaration contains m1 or m2.
+net.minecraft.client.gui.screens.TitleScreen:method_|lambda$init|lambda$createNormalMenuOptions
+net.minecraft.client.gui.screens.PauseScreen:method_19836|method_72129|method_19845|lambda$createPauseMenu$10|lambda$createPauseMenu$11|lambda$createPauseMenu$0

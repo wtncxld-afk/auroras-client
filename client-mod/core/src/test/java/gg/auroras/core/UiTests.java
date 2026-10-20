@@ -94,7 +94,58 @@ public class UiTests {
         boolean readable = true; for (MenuTheme.Theme th : MenuTheme.THEMES) { UiTokens tt = t.themed(th); readable &= contrast(tt.c("text"), tt.c("s1")) >= 7 && contrast(tt.c("mute"), tt.c("s2")) >= 4.5 && contrast(tt.c("accInk"), tt.c("acc")) >= 4.5 && contrast(tt.c("acc"), tt.c("bg")) >= 3; }
         check("themes: every theme keeps text readable (7:1 body, 4.5:1 secondary, accents 3:1 on the background)", readable);
         int[] pt = UiArt.petal(32); check("art: a petal is solid in the middle and clear in the corners", (pt[16 * 32 + 16] >>> 24) > 200 && (pt[0] >>> 24) == 0 && (pt[16 * 32] >>> 24) < 40);
+        gameMenus(dir);
         System.out.println("\n" + pass + " passed, " + fail + " failed"); if (fail > 0) System.exit(1);
+    }
+    /** The Auroras main menu and pause menu (core GameMenus) and their settings. */
+    static void gameMenus(Path dir) {
+        List<GameMenus.Item> ti = GameMenus.titleItems(true), tOff = GameMenus.titleItems(false);
+        check("main menu: Singleplayer, Multiplayer, Join VexVanilla, Auroras menu, Options and Quit, in that order", ti.stream().map(GameMenus.Item::id).toList().equals(List.of("singleplayer", "multiplayer", "vexvanilla", "auroras", "options", "quit")));
+        check("main menu: Join VexVanilla goes to vexvanilla.net and is shown with its address", GameMenus.VEX_ADDRESS.equals("vexvanilla.net") && ti.get(2).hint().equals("vexvanilla.net") && ti.get(2).label().equals("Join VexVanilla"));
+        check("main menu: when Minecraft refuses multiplayer, Multiplayer and Join are greyed out, the rest still work", !tOff.get(1).enabled() && !tOff.get(2).enabled() && tOff.get(0).enabled() && tOff.get(5).enabled());
+        List<String> sp = GameMenus.pauseItems(true, "Open to LAN", true).stream().map(GameMenus.Item::id).toList(), mp = GameMenus.pauseItems(false, null, false).stream().map(GameMenus.Item::id).toList();
+        check("pause menu: the world button (Open to LAN) only when the release has one here; the last button saves and quits or disconnects", sp.contains("world") && !mp.contains("world") && sp.get(sp.size() - 1).equals("disconnect")
+            && GameMenus.pauseItems(true, "Open to LAN", true).get(sp.size() - 1).label().equals("Save and quit to title") && GameMenus.pauseItems(false, null, false).get(mp.size() - 1).label().equals("Disconnect"));
+        check("pause menu: the world button is greyed out when vanilla's is (a world already open to LAN), and keeps the release's label", !GameMenus.pauseItems(true, "Open to LAN", false).get(sp.indexOf("world")).enabled()
+            && GameMenus.pauseItems(false, "World options", true).stream().anyMatch(i -> i.label().equals("World options") && i.enabled()));
+        boolean icons = true; for (GameMenus.Item it : ti) icons &= Files.exists(dir.resolve("icons/" + it.icon() + ".a8")); for (GameMenus.Item it : GameMenus.pauseItems(true, "Open to LAN", true)) icons &= Files.exists(dir.resolve("icons/" + it.icon() + ".a8"));
+        check("menus: every button's icon is bundled", icons);
+        // layout on common GUI sizes (1080p at scale 2-4, 720p at 2, a tiny 320x240 window) and both main menu layouts
+        boolean fits = true, noOverlap = true, halves = true; String why = "";
+        for (int[] s : new int[][]{{960, 540}, {640, 360}, {480, 270}, {640, 360}, {427, 240}, {320, 240}, {320, 180}}) for (String lay : new String[]{"left", "centre", "pause"}) {
+            GameMenus.Layout l = lay.equals("pause") ? GameMenus.pause(s[0], s[1], GameMenus.pauseItems(true, "Open to LAN", true)) : GameMenus.title(s[0], s[1], ti, lay);
+            for (GameMenus.Placed p : l.buttons()) { GameMenus.Rect r = p.r(); boolean ok = r.x() >= 0 && r.y() >= 0 && r.right() <= s[0] && r.bottom() <= s[1] - (lay.equals("pause") ? 0 : 14) && r.h() >= 15; if (!ok) why = lay + " " + s[0] + "x" + s[1] + " " + r; fits &= ok; }
+            for (int i = 0; i < l.buttons().size(); i++) for (int j = i + 1; j < l.buttons().size(); j++) { GameMenus.Rect a = l.buttons().get(i).r(), b = l.buttons().get(j).r();
+                if (a.x() < b.right() && b.x() < a.right() && a.y() < b.bottom() && b.y() < a.bottom()) noOverlap = false; }
+            GameMenus.Rect au = l.buttons().get(l.indexOf("auroras")).r(), op = l.buttons().get(l.indexOf("options")).r(); halves &= au.y() == op.y() && au.w() == op.w();
+            if (lay.equals("pause")) { fits &= l.panel().x() >= 0 && l.panel().bottom() <= s[1]; for (GameMenus.Placed p : l.buttons()) fits &= l.panel().x() < p.r().x() && p.r().right() < l.panel().right() && p.r().bottom() < l.panel().bottom(); }
+        }
+        check("layout: every button is on screen (above the footer), at least 15 units tall, on every common GUI size", fits, why);
+        check("layout: no two buttons overlap", noOverlap);
+        check("layout: half-width buttons share a row at the same width", halves);
+        GameMenus.Layout left = GameMenus.title(640, 360, ti, "left"), mid = GameMenus.title(640, 360, ti, "centre");
+        check("layout: 'left' keeps the column on the left third; 'centre' centres it", left.panel().right() < 640 / 2 && Math.abs(mid.panel().cx() - 320) <= 1 && mid.centred() && !left.centred());
+        check("layout: the main action is the biggest button and Quit the smallest", left.buttons().get(0).r().h() > left.buttons().get(1).r().h() && left.buttons().get(5).r().h() < left.buttons().get(1).r().h());
+        GameMenus.Rect sp0 = left.buttons().get(0).r();
+        check("hit testing: a click on a button finds it; disabled buttons and gaps find nothing", left.hit(sp0.cx(), sp0.cy()) == 0 && left.hit(sp0.x() - 1, sp0.cy()) == -1
+            && GameMenus.title(640, 360, tOff, "left").hit(left.buttons().get(1).r().cx(), left.buttons().get(1).r().cy()) == -1);
+        GameMenus.Layout off = GameMenus.title(640, 360, tOff, "left");
+        check("keyboard: arrows skip greyed-out buttons and wrap round", GameMenus.step(off, 0, 1) == 3 && GameMenus.step(off, 3, -1) == 0 && GameMenus.step(off, 5, 1) == 0 && GameMenus.step(off, -1, 1) == 0 && GameMenus.step(off, -1, -1) == 5);
+        // motion
+        boolean staggered = GameMenus.entrance(0.2, 0, false) > GameMenus.entrance(0.2, 3, false) && GameMenus.entrance(0, 0, false) == 0;
+        boolean arrives = GameMenus.entrance(GameMenus.FIRST + GameMenus.STAGGER * 5 + GameMenus.DURATION, 5, false) == 1 && GameMenus.settled(GameMenus.FIRST + GameMenus.STAGGER * 5 + GameMenus.DURATION, 6) && !GameMenus.settled(0.2, 6);
+        boolean monotone = true; double prev = -1; for (int k = 0; k <= 100; k++) { double v = GameMenus.entrance(k / 100.0, 2, false); monotone &= v >= prev && v >= 0 && v <= 1; prev = v; }
+        check("motion: buttons slide in one after another, ease out smoothly and all arrive", staggered && arrives && monotone);
+        check("motion: reduced motion shows everything at once", GameMenus.entrance(0, 4, true) == 1 && GameMenus.fadeIn(0, true) == 1 && GameMenus.fadeIn(0, false) == 0);
+        // settings
+        Config.Registry reg = new Config.Registry(); Config.ProfileManager pm = new Config.ProfileManager(reg);
+        check("settings: custom main menu and pause menu are on by default, main menu layout is left", pm.get(Config.Registry.CUSTOM_TITLE).equals("true") && pm.get(Config.Registry.CUSTOM_PAUSE).equals("true") && pm.get(Config.Registry.TITLE_LAYOUT).equals("left"));
+        check("settings: the toggles take true or false, the layout left or centre, nothing else", reg.validate(Config.Registry.CUSTOM_TITLE, "false") == null && reg.validate(Config.Registry.CUSTOM_PAUSE, "1") != null
+            && reg.validate(Config.Registry.TITLE_LAYOUT, "centre") == null && reg.validate(Config.Registry.TITLE_LAYOUT, "right") != null);
+        ModuleMenu mm = new ModuleMenu(reg, pm); mm.openSettings("settings"); List<String> keys = mm.layout(480, 270).rows().stream().map(r -> r.d().key()).toList();
+        check("settings page: Custom main menu, its layout and Custom pause menu are listed under Settings", keys.containsAll(List.of("customTitle", "titleLayout", "customPause")) && ModuleMenu.label("customTitle").equals("Custom main menu") && ModuleMenu.label("customPause").equals("Custom pause menu"));
+        GameMenus.Item title0 = ti.get(0); mm.set(mm.openModule().setting("customPause"), "false");
+        check("settings page: switching Custom pause menu off writes settings.customPause (the game then shows vanilla's)", pm.get(Config.Registry.CUSTOM_PAUSE).equals("false") && title0.enabled());
     }
     static boolean mono(UiTokens t) { double p = -1; for (int k = 0; k <= 50; k++) { double v = t.easeAt(k / 50.0); if (v < p - 1e-9) return false; p = v; } return true; }
     static boolean iae(Runnable r) { try { r.run(); return false; } catch (IllegalArgumentException | ClassCastException | NullPointerException e) { return true; } }

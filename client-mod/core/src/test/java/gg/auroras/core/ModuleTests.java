@@ -101,6 +101,7 @@ public class ModuleTests {
         { Calc.SprintToggle st = new Calc.SprintToggle(); st.update(true, true, false, true); st.update(false, true, false, true); boolean wasOn = st.on(); st.reset();
           check("toggle sprint: reset (module turned off) forgets the toggle, so re-enabling doesn't sprint by itself", wasOn && !st.on() && !st.update(false, true, false, true)); }
         renderFx(reg);
+        playerFx(reg);
         System.out.println("\n" + pass + " passed, " + fail + " failed"); if (fail > 0) System.exit(1);
     }
     static void renderFx(Config.Registry reg) {
@@ -182,5 +183,93 @@ public class ModuleTests {
         check("render modules: per-frame work (overlay, blur weight, warning, grade parameters) allocates almost nothing", used < 6_000_000 && acc > 0, used);
     }
     static boolean run(Runnable r) { r.run(); return true; }
+    /** Swing Animation, Weapon Inspect, blade skins, Hand Aura, Totem Spirit, Name Protect, Stream Hide and Skin Changer (core PlayerFx). */
+    static void playerFx(Config.Registry reg) {
+        // registry: the new modules sit in existing categories, are available, and say they are local only
+        String[][] want = {{"swinganim", "Animations"}, {"inspect", "Animations"}, {"handaura", "Player Visuals"}, {"totemspirit", "Totems"}, {"nameprotect", "Player"}, {"streamhide", "Player"}, {"skinchanger", "Cosmetics"}};
+        boolean cats = true; for (String[] w : want) { Config.Module m = reg.get(w[0]); cats &= m != null && m.cat().label.equals(w[1]) && m.available(); }
+        check("player fx: the seven modules are registered in their categories", cats);
+        check("player fx: Name Protect and Stream Hide are labelled as changing only what you see", reg.get("nameprotect").impact() == Config.Impact.COSMETIC && reg.get("streamhide").impact() == Config.Impact.COSMETIC);
+        check("player fx: cosmetic notes say only you see them", reg.get("skinchanger").note().contains("Only you see") && reg.get("nameprotect").note().contains("real name") && reg.get("inspect").note().contains("Only you"));
+        check("player fx: the inspect key defaults to I (F is Minecraft's swap-hands key)", reg.get("inspect").setting("key").def().equals("73"));
+        // text settings
+        check("text settings: aliases accept names and reject anything that could break the settings file", reg.validate("nameprotect.alias", "Aurora_Fan 7") == null && reg.validate("nameprotect.alias", "") == null
+            && reg.validate("nameprotect.alias", "a=b") != null && reg.validate("nameprotect.alias", "seventeen chars!!") != null && reg.validate("nameprotect.alias", "naïve") != null && reg.validate("nameprotect.alias", "x\ny") != null);
+        Config.ProfileManager pm = new Config.ProfileManager(reg); ModuleMenu mm = new ModuleMenu(reg, pm); mm.openSettings("nameprotect"); Config.SettingDef al = reg.get("nameprotect").setting("alias");
+        mm.eraseText(al); mm.eraseText(al); mm.eraseText(al); boolean typed = mm.typeText(al, "S") && mm.typeText(al, "k") && !mm.typeText(al, "=") && !mm.typeText(al, "é");
+        for (int k = 0; k < 20; k++) mm.typeText(al, "x");
+        check("text settings: typing in game keeps only allowed characters and stops at 16", typed && pm.get("nameprotect.alias").startsWith("Sk") && pm.get("nameprotect.alias").length() == 16 && UiKit.controlFor(al) == UiKit.Control.TEXT, pm.get("nameprotect.alias"));
+        // swing
+        check("swing: vanilla and legacy keep the curve; smooth eases in and out and still ends at the ends", PlayerFx.swing("vanilla", 0.3) == 0.3 && PlayerFx.swing("legacy", 0.3) == 0.3 && PlayerFx.swing("smooth", 0) == 0 && PlayerFx.swing("smooth", 1) == 1
+            && PlayerFx.swing("smooth", 0.1) < 0.1 && PlayerFx.swing("smooth", 0.9) > 0.9 && Math.abs(PlayerFx.swing("smooth", 0.5) - 0.5) < 1e-9);
+        boolean mono = true; for (int k = 1; k <= 100; k++) mono &= PlayerFx.swing("smooth", k / 100.0) >= PlayerFx.swing("smooth", (k - 1) / 100.0);
+        check("swing: the smooth curve never goes backwards", mono);
+        check("swing: speed stretches the animation (slow halves it again), clamped to 1..40 ticks", PlayerFx.swingTicks("vanilla", 6, 1) == 6 && PlayerFx.swingTicks("vanilla", 6, 0.5) == 12 && PlayerFx.swingTicks("slow", 6, 1) == 12
+            && PlayerFx.swingTicks("vanilla", 6, 2) == 3 && PlayerFx.swingTicks("slow", 30, 0.25) == 40 && PlayerFx.swingTicks("vanilla", 0, 2) == 1);
+        check("swing: the 1.7 style hides the cooldown dip by itself", PlayerFx.hideCooldownDip("legacy", false) && !PlayerFx.hideCooldownDip("vanilla", false) && PlayerFx.hideCooldownDip("smooth", true));
+        double[] o = new double[7]; PlayerFx.itemOffset(0.3, -0.2, 0.1, 1.5, 10, 20, 30, true, o);
+        check("swing: the off hand mirrors sideways moves and turns; values are clamped", o[0] == -0.3 && o[1] == -0.2 && o[5] == -20 && o[6] == -30 && o[4] == 10 && o[3] == 1.5);
+        PlayerFx.itemOffset(0, 0, 0, 1, 0, 0, 0, false, o); boolean id = PlayerFx.identity(o); PlayerFx.itemOffset(5, 0, 0, 9, 0, 0, 999, false, o);
+        check("swing: default offsets are the identity (no extra work), out-of-range ones are clamped", id && o[0] == 1 && o[3] == 2 && o[6] == 180);
+        // inspect
+        double[] pz = new double[6]; boolean rest = true;
+        for (String st : PlayerFx.INSPECT_STYLES) { PlayerFx.inspectPose(st, 0, pz); for (double v : pz) rest &= Math.abs(v % 360) < 1e-9; PlayerFx.inspectPose(st, 1, pz); for (double v : pz) rest &= Math.abs(v % 360) < 1e-9; }
+        check("inspect: every style starts and ends at rest", rest);
+        boolean smooth = true;
+        for (String st : PlayerFx.INSPECT_STYLES) { double[] a = new double[6], b = new double[6]; for (int k = 1; k <= 400; k++) { PlayerFx.inspectPose(st, (k - 1) / 400.0, a); PlayerFx.inspectPose(st, k / 400.0, b);
+            for (int j = 0; j < 3; j++) smooth &= Math.abs(a[j] - b[j]) < 0.01; for (int j = 3; j < 6; j++) if (!(st.equals("twirl") && j == 4 && (k == 320 || k == 400))) smooth &= Math.abs(a[j] - b[j]) < 6; } }
+        check("inspect: poses change smoothly from frame to frame (no jumps)", smooth);
+        PlayerFx.Inspect in = new PlayerFx.Inspect(); in.start("showcase", 1.0); for (int k = 0; k < 30; k++) in.frame(1 / 60.0); in.pose(pz); double mid = Math.abs(pz[0]);
+        for (int k = 0; k < 120; k++) in.frame(1 / 60.0);
+        check("inspect: plays for its duration and then stops by itself", mid > 0.05 && !in.active());
+        in.start("twirl", 3); for (int k = 0; k < 60; k++) in.frame(1 / 60.0); in.cancel(); in.pose(pz); double before = Math.abs(pz[0]); in.frame(0.05); in.pose(pz); double during = Math.abs(pz[0]); in.frame(0.2);
+        check("inspect: cancelling blends back over a moment instead of snapping", before > 0 && during < before && during > 0 && !in.active());
+        PlayerFx.Inspect fr = new PlayerFx.Inspect(), fs = new PlayerFx.Inspect(); fr.start("flip", 2); fs.start("flip", 2); for (int k = 0; k < 144; k++) fr.frame(1 / 144.0); for (int k = 0; k < 30; k++) fs.frame(1 / 30.0);
+        double[] p1 = new double[6], p2 = new double[6]; fr.pose(p1); fs.pose(p2);
+        check("inspect: the same moment looks the same at 30 and 144 fps", Math.abs(p1[3] - p2[3]) < 1e-6);
+        // blade skins
+        check("blade skins: none leaves the item alone; strength 0 is white; 1 is the full colour", PlayerFx.bladeTint("none", 0, 1, 0) == -1 && PlayerFx.bladeTint("frost", 0, 0, 0) == 0xFFFFFFFF && PlayerFx.bladeTint("frost", 0, 1, 0) == 0xFF9FE8FF
+            && PlayerFx.bladeTint("custom", 0x123456, 1, 0) == 0xFF123456);
+        check("blade skins: every listed skin gives an opaque tint", PlayerFx.BLADE_SKINS.stream().filter(k -> !k.equals("none")).allMatch(k -> (PlayerFx.bladeTint(k, 0x808080, 0.7, 3) >>> 24) == 0xFF));
+        check("blade skins: aurora and eclipse move over time; the rest stay put", PlayerFx.bladeTint("aurora", 0, 1, 0) != PlayerFx.bladeTint("aurora", 0, 1, 2) && PlayerFx.bladeTint("eclipse", 0, 1, 0) != PlayerFx.bladeTint("eclipse", 0, 1, 1) && PlayerFx.bladeTint("ember", 0, 1, 0) == PlayerFx.bladeTint("ember", 0, 1, 9));
+        check("colour helpers: hue wheel and mixing", PlayerFx.hue(0) == 0xFF0000 && PlayerFx.hue(1 / 3.0) == 0x00FF00 && PlayerFx.hue(2 / 3.0) == 0x0000FF && PlayerFx.mixRgb(0x000000, 0xFFFFFF, 0.5) == 0x808080);
+        // hand aura
+        int a0 = PlayerFx.auraColor(0x6FE3FF, false, 1, 1, false, 0, 3, 0), a2 = PlayerFx.auraColor(0x6FE3FF, false, 1, 1, false, 2, 3, 0);
+        check("hand aura: inner shells are stronger than outer ones, all translucent, in the chosen colour", (a0 >>> 24) > (a2 >>> 24) && (a0 >>> 24) < 255 && (a0 & 0xFFFFFF) == 0x6FE3FF && PlayerFx.auraColor(0x6FE3FF, false, 1, 0, false, 0, 3, 0) == 0);
+        check("hand aura: chroma changes colour over time; shells spread out to 1 + size", PlayerFx.auraColor(0, true, 1, 1, false, 0, 2, 0) != PlayerFx.auraColor(0, true, 1, 1, false, 0, 2, 2) && Math.abs(PlayerFx.auraScale(0.1, 1, 2) - 1.1) < 1e-9 && PlayerFx.auraScale(0.1, 0, 2) < PlayerFx.auraScale(0.1, 1, 2));
+        // totem spirit
+        PlayerFx.Spirit sp = new PlayerFx.Spirit(7, 2.0); int first = sp.count(1, 0.05); sp.age = 1.5; int late = sp.count(1, 0.05); sp.age = 2; int gone = sp.count(1, 0.05);
+        check("totem spirit: strongest at the pop, fading to nothing by the end", first > late && late > 0 && gone == 0 && sp.done() && new PlayerFx.Spirit(1, 1).count(3, 0.05) > first);
+        boolean inside = true; double[] mo = new double[4];
+        for (String sh : PlayerFx.SPIRIT_SHAPES) for (int k = 0; k < 40; k++) for (double age = 0; age < 2; age += 0.1) { PlayerFx.spiritMote(sh, age, 2, k, 40, 3, 1, 42, mo); inside &= Math.hypot(mo[0], mo[2]) <= 1.0 && mo[1] >= 0 && mo[1] <= 3.0 && mo[3] > 0; }
+        check("totem spirit: every mote of every shape starts in a column around the player, rising", inside);
+        PlayerFx.spiritMote("pillar", 0.5, 2, 3, 10, 3, 1, 42, mo); double x1 = mo[0]; PlayerFx.spiritMote("pillar", 0.5, 2, 3, 10, 3, 1, 42, mo);
+        check("totem spirit: motes are a pure function of the seed (same input, same place)", x1 == mo[0]);
+        check("totem spirit: colours blend from the base colour to the top colour", PlayerFx.spiritColor(0xFF0000, 0x0000FF, false, 0, 2, 0, 0) == 0xFF0000 && PlayerFx.spiritColor(0xFF0000, 0x0000FF, false, 2, 2, 0, 0) == 0x0000FF);
+        // name protect
+        String[] nm = new String[8], als = new String[8]; int nc = PlayerFx.nameTable("Steve", "You", List.of("Alex", "Steve", "Alexander"), true, "Player", nm, als);
+        check("name protect: the table has you first-or-longest, others numbered in a stable order, no duplicate of you", nc == 3 && nm[0].equals("Alexander") && Arrays.asList(nm).subList(0, 3).containsAll(List.of("Steve", "Alex", "Alexander"))
+            && als[Arrays.asList(nm).indexOf("Alex")].equals("Player 1") && als[Arrays.asList(nm).indexOf("Alexander")].equals("Player 2"));
+        String chat = "<Steve> hi Alex and alexander, steve_2 isn't Steve";
+        String out = PlayerFx.protect(chat, nm, als, nc);
+        check("name protect: whole names are replaced (any case), longer names first, parts of other names are left alone", out.equals("<You> hi Player 1 and Player 2, steve_2 isn't You"), out);
+        String plain = "nothing to see"; check("name protect: text without names comes back as the same object (no allocation)", PlayerFx.protect(plain, nm, als, nc) == plain && PlayerFx.protect(chat, nm, als, 0) == chat);
+        int[] cps = "§Steve!".codePoints().toArray(); Object[] sty = new Object[cps.length]; for (int i = 0; i < cps.length; i++) sty[i] = i < 3 ? "red" : "blue"; int[] oc = new int[64]; Object[] os = new Object[64];
+        int on = PlayerFx.protect(cps, sty, cps.length, nm, als, nc, oc, os);
+        check("name protect: styled text keeps each letter's style; the alias takes the name's first style", on == 5 && new String(oc, 0, on).equals("§You!") && os[1] == "red" && os[3] == "red" && os[4] == "blue", on);
+        check("name protect: styled text without names says so (draw the original)", PlayerFx.protect("hello".codePoints().toArray(), new Object[5], 5, nm, als, nc, oc, os) == -1);
+        check("name protect: bad aliases fall back", PlayerFx.cleanAlias("  ", "You").equals("You") && PlayerFx.cleanAlias("a=b", "You").equals("You") && PlayerFx.cleanAlias(" Nova ", "You").equals("Nova"));
+        long b0 = alloc(); for (int k = 0; k < 100_000; k++) PlayerFx.protect(plain, nm, als, nc); long used = alloc() - b0;
+        check("name protect: checking text without names allocates nothing", used < 64 * 1024, used);
+        // stream hide
+        check("stream hide: nothing is hidden while off or toggled off; each part has its own bit", PlayerFx.hideMask(false, true, true, true, true, true) == 0 && PlayerFx.hideMask(true, false, true, true, true, true) == 0
+            && PlayerFx.hideMask(true, true, true, false, true, false) == 5 && PlayerFx.hideMask(true, true, true, true, true, true) == 15);
+        // skin changer
+        check("skin changer: 64x64 and old 64x32 skins only; auto keeps the account's arms", PlayerFx.skinSize(64, 64) && PlayerFx.skinSize(64, 32) && !PlayerFx.skinSize(128, 128) && !PlayerFx.skinSize(64, 48)
+            && PlayerFx.slim("auto", true) && !PlayerFx.slim("auto", false) && PlayerFx.slim("slim", false) && !PlayerFx.slim("wide", true));
+        int[] old = new int[64 * 32]; for (int i = 0; i < old.length; i++) old[i] = 0xFF000000 | i; int[] conv = PlayerFx.legacySkin(old);
+        check("skin changer: old skins get Minecraft's mirrored left arm and leg; the top half is unchanged", conv.length == 4096 && conv[0] == old[0] && conv[31 * 64 + 63] == old[31 * 64 + 63]
+            && conv[52 * 64 + 24] == old[20 * 64 + 3] && conv[52 * 64 + 43] == old[20 * 64 + 40] && conv[48 * 64 + 20] == old[16 * 64 + 7] && conv[63 * 64 + 0] == 0);
+    }
     static long alloc() { return ((com.sun.management.ThreadMXBean) java.lang.management.ManagementFactory.getThreadMXBean()).getThreadAllocatedBytes(Thread.currentThread().threadId()); }
 }

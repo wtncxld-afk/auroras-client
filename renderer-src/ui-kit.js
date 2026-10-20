@@ -45,6 +45,11 @@ function sectionsFor(m,exclude=[]){const keys=m.settings.map(s=>s.key).filter(k=
       ["Stars",["starDensity","starSize","starBrightness","twinkleSpeed","constellations"],false],["Sun and moon",["sunSize","moonSize"],false],["Quality",["skyQuality"],false]],
     particlefx:[["Look",["style","color","size","opacity"],true],["Amount",["density","lifetime","spawnRate","speed","maxDistance","maxCount"],true],["Behaviour",["ambient","events","autoReduce","reducedMotion"],false]],
     totemfx:[["Particles",["particles","particleColor","density","duration","scale","spin"],true],["Screen overlay",["overlay","overlayIntensity","overlayDuration"],false]],
+    swinganim:[["Swing",["style","speed","noCooldownDip"],true],["Held item position",["posX","posY","posZ","itemScale","rotX","rotY","rotZ","offHand"],true]],
+    inspect:[["Inspect",["key","style","duration","anyItem","cancelOnSwing"],true],["Blade skin",["bladeSkin","bladeColor","bladeStrength","skinTools"],true]],
+    handaura:[["Glow",["color","chroma","chromaSpeed","intensity","pulse"],true],["Shape",["size","layers","hand","item"],true]],
+    totemspirit:[["Spirit",["shape","color","color2","chroma","size","sparkles"],true],["Motion",["density","duration","riseHeight","speed"],true],["Who",["self","others","maxDistance"],false]],
+    streamhide:[["Hide",["key","hotbar","inventory","held","tooltips"],true],["Look",["placeholder","badge"],false]],
     emotes:[["Playback",["speed","blend","cancelOnMove","thirdPerson"],true],["Controls",["wheelKey"],true]]};
   let g=G[m.id];if(!g&&has("anchor"))g=[["Content",keys.filter(k=>!HUD_APPEAR.includes(k)&&!HUD_POS.includes(k)),true],["Appearance",HUD_APPEAR,true],["Position and size",HUD_POS,false]];
   if(!g)g=[["Settings",keys,true]];
@@ -56,6 +61,7 @@ function ctrlHtml(m,d,v){const id=`set-${m.id}-${d.key}`,lab=label(d.key),tip=UI
   if(d.type==="COLOR")return row(UI.color(`data-sk="${d.key}"`,v,id,lab),id);
   if(d.type==="ENUM"){if(d.options.length<=4)return row(UI.seg(`data-sk="${d.key}"`,d.options.map(o=>[o,optLabel(o)]),v,lab));
     return row(`<select class="f" id="${id}" data-sk="${d.key}" style="max-width:200px">${d.options.map(o=>`<option value="${esc(o)}"${o===v?" selected":""}>${esc(optLabel(o))}</option>`).join("")}</select>`,id)}
+  if(d.type==="TEXT")return row(`<input class="f" type="text" id="${id}" data-sk="${d.key}" value="${esc(v)}" maxlength="16" spellcheck="false" autocomplete="off" pattern="[A-Za-z0-9 ._\\-]{0,16}" style="max-width:200px" aria-label="${esc(lab)}">`,id);
   if(d.type==="KEY")return row(`<button class="btn sm" data-skey="${d.key}" data-code="${esc(v)}" style="min-width:110px;justify-content:center" aria-label="${lab}: ${esc(keyName2(v))}. Press to change">${esc(keyName2(v))}</button>`);
   const step=d.type==="INT"?1:Math.pow(10,Math.floor(Math.log10((d.max-d.min)/50)));
   const f=fillPct(v,d.min,d.max);
@@ -64,17 +70,18 @@ function ctrlHtml(m,d,v){const id=`set-${m.id}-${d.key}`,lab=label(d.key),tip=UI
 function readCtrls(root,m){const out={};root.querySelectorAll("[data-sk]").forEach(el=>{const d=m.settings.find(s=>s.key===el.dataset.sk);if(!d)return;
   if(d.type==="BOOL")out[d.key]=String(el.getAttribute("aria-checked")==="true");else if(d.type==="COLOR")out[d.key]=el.value.slice(1).toUpperCase();
   else if(d.type==="ENUM")out[d.key]=el.classList.contains("seg")?el.dataset.value:el.value;
+  else if(d.type==="TEXT")out[d.key]=el.value.replace(/[^A-Za-z0-9 ._-]/g,"").slice(0,16);
   else if(d.type==="INT")out[d.key]=String(Math.round(+el.value));else out[d.key]=String(Math.round(+el.value*1e6)/1e6).replace(/^(-?\d+)$/,"$1.0")});
   root.querySelectorAll("[data-skey]").forEach(el=>{out[el.dataset.skey]=el.dataset.code});return out}
 function setCtrl(root,m,key,v){const el=root.querySelector(`[data-sk="${key}"]`),kb=root.querySelector(`[data-skey="${key}"]`),d=m.settings.find(s=>s.key===key);if(!d)return;
   if(kb){kb.dataset.code=v;kb.textContent=keyName2(v)}else if(!el)return;else if(d.type==="BOOL")el.setAttribute("aria-checked",v==="true");else if(d.type==="COLOR"){el.value="#"+v.toLowerCase();const hx=el.parentElement.querySelector(".hex");if(hx)hx.value=v.toUpperCase()}
   else if(el.classList.contains("seg")){el.dataset.value=v;el.querySelectorAll("button").forEach(b=>{const on=b.dataset.v===v;b.setAttribute("aria-checked",on);b.tabIndex=on?0:-1})}
   else{el.value=v;if(el.classList.contains("rng")){el.style.setProperty("--fill",fillPct(v,+el.min,+el.max)+"%");const n=root.querySelector(`[data-numfor="${el.id}"]`)||el.nextElementSibling;if(n&&n.classList.contains("num"))n.value=fmtNum(v,el.step)}}}
-function markChanged(root,m){const cur=readCtrls(root,m);root.querySelectorAll("[data-row]").forEach(r=>{const d=m.settings.find(s=>s.key===r.dataset.row);if(d)r.classList.toggle("changed",String(cur[d.key])!==String(d.def)&&!(d.type!=="ENUM"&&d.type!=="BOOL"&&d.type!=="KEY"&&+cur[d.key]===+d.def))})}
+function markChanged(root,m){const cur=readCtrls(root,m);root.querySelectorAll("[data-row]").forEach(r=>{const d=m.settings.find(s=>s.key===r.dataset.row);if(d)r.classList.toggle("changed",String(cur[d.key])!==String(d.def)&&!(d.type!=="ENUM"&&d.type!=="BOOL"&&d.type!=="KEY"&&d.type!=="TEXT"&&+cur[d.key]===+d.def))})}
 function wireCtrls(root,onChange,m){const host=root.matches&&root.matches("[data-mod]")?root:root.querySelector("[data-mod]");m=m||(host&&REG.modules.find(x=>x.id===host.dataset.mod));const ch=()=>{if(m)markChanged(root,m);onChange&&onChange()};
   root.querySelectorAll(".tg[data-sk]").forEach(b=>b.onclick=()=>{b.setAttribute("aria-checked",b.getAttribute("aria-checked")!=="true");ch()});
   kitWire(root,ch);
-  root.querySelectorAll("select[data-sk],input[type=color][data-sk]").forEach(x=>x.oninput=x.onchange=ch);
+  root.querySelectorAll("select[data-sk],input[type=color][data-sk],input[type=text][data-sk]").forEach(x=>x.oninput=x.onchange=ch);
   root.querySelectorAll("[data-rst]").forEach(b=>b.onclick=()=>{if(!m)return;const d=m.settings.find(s=>s.key===b.dataset.rst);if(d){setCtrl(root,m,d.key,d.def);ch()}});
   root.querySelectorAll("[data-skey]").forEach(b=>b.onclick=()=>{b.textContent="Press a key…";const h=e=>{e.preventDefault();e.stopPropagation();document.removeEventListener("keydown",h,true);
     const code=e.key==="Escape"?-1:glfwCode(e);b.dataset.code=String(code);b.textContent=keyName2(code);ch()};document.addEventListener("keydown",h,true)})}
