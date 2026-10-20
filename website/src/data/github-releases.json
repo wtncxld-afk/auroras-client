@@ -1,0 +1,388 @@
+{
+ "_comment": "Snapshot of the real GitHub releases of wtncxld-afk/auroras-client (assets, sizes, SHA-256 from each release's SHA256SUMS.txt) and the commit subjects between release tags. Regenerate with: npm run import:github -- --refresh (needs network and the repository's git tags).",
+ "repo": "wtncxld-afk/auroras-client",
+ "releases": [
+  {
+   "tag": "v0.1.1",
+   "version": "0.1.1",
+   "publishedAt": "2026-10-19T15:05:55Z",
+   "body": "Download **AurorasClientSetup-0.1.1.exe** below and run it.\n\nThe Auroras mod didn't build in this release, so Fabric instances start without it. See the mod jobs in the Actions tab.\n",
+   "htmlUrl": "https://github.com/wtncxld-afk/auroras-client/releases/tag/v0.1.1",
+   "assets": [
+    {
+     "name": "AurorasClientSetup-0.1.1.exe",
+     "size": 95156796,
+     "sha256": "08e4f52e8e42e914759ef671800a95b68da3dcbd3c5a9c8167ee6c2a35e2b190",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.1/AurorasClientSetup-0.1.1.exe"
+    }
+   ],
+   "commits": [
+    "Click sounds, 8 new capes + SkinMC link, auto-updater with restart prompt, Halloween backgrounds",
+    "Ship the owner's Azure app ID in auth.json; CI keeps it unless AZURE_CLIENT_ID overrides",
+    "Spotify HUD without sign-in: read the Spotify app's window title on Windows",
+    "Security pass: encrypted-only secrets, locked windows, friends data validation, malware scan test",
+    "Launcher visual overhaul; capes and custom skies on 1.21.11 and 26.x",
+    "Friends system and module audit fixes",
+    "Sidebar redesign: brand header, icon tiles, glowing active page, account card",
+    "Cape library and editor, VexVanilla pinned, simpler sign-in, polished controls",
+    "Launcher home revamp and richer Sakura scenes",
+    "Launcher backgrounds: rebuilt aurora, nebula, rain, islands and minimal; sharper, 60 fps, grain, vignette, crossfade; readable welcome text",
+    "Widget and module polish: keystrokes rebuild, styling for every HUD element, smoother zoom and crosshair, live keybinds",
+    "Radial Right Shift menu, Auroras font, player face, hand-over notes",
+    "Auroras Client launcher and mod"
+   ]
+  },
+  {
+   "tag": "v0.1.2",
+   "version": "0.1.2",
+   "publishedAt": "2026-10-19T16:13:35Z",
+   "body": "Download **AurorasClientSetup-0.1.2.exe** below and run it.\n\nThe Auroras mod is included for Minecraft: 1.21.11 26.1 26.2 26.3 (Fabric). The launcher installs it when you press Play on a Fabric instance of one of these versions.\n",
+   "htmlUrl": "https://github.com/wtncxld-afk/auroras-client/releases/tag/v0.1.2",
+   "assets": [
+    {
+     "name": "auroras-client-fabric-1.21.11.jar",
+     "size": 839685,
+     "sha256": "9c92cc9dc69c381dc92e2792230e10d6d8bf49559740dfd9e126343bb91a7ed6",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.2/auroras-client-fabric-1.21.11.jar"
+    },
+    {
+     "name": "auroras-client-fabric-26.1.jar",
+     "size": 837343,
+     "sha256": "6d929d65dbf9338394ac329a1dcce0003b2ac12cb5ef504f818ec0819e90e371",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.2/auroras-client-fabric-26.1.jar"
+    },
+    {
+     "name": "auroras-client-fabric-26.2.jar",
+     "size": 837349,
+     "sha256": "ccbae4d852dcacd9779ed76ce446b53de4c255272b1867b5ba35c8bdcb9787fa",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.2/auroras-client-fabric-26.2.jar"
+    },
+    {
+     "name": "auroras-client-fabric-26.3.jar",
+     "size": 837341,
+     "sha256": "d51063f911c7061723b5bc643ce8cbb43ccdb94f11b50b16006f653d252d2238",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.2/auroras-client-fabric-26.3.jar"
+    },
+    {
+     "name": "AurorasClientSetup-0.1.2.exe",
+     "size": 95156889,
+     "sha256": "cf72004e08a522d670100eb427ef100c4c46f9dc05d8866337d5d64d416f374a",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.2/AurorasClientSetup-0.1.2.exe"
+    }
+   ],
+   "commits": [
+    "Publish releases to a separate public repo (RELEASES_REPO) so the code repo can be private",
+    "Mod README: what the first real builds found and where per-release names live",
+    "Mod: freelook replaces both entity-aligned camera rotations (minecart and normal), per javap -c",
+    "Mod: per-release names in versions/<target> (screen, chat, F1, key type, sky-pass lambda); fix mixin targets found with javap",
+    "Mod: local chat lines through the chat component (LocalPlayer has no sendSystemMessage); fix javap CI task",
+    "CI: mod compile check on the mod-fix branch, javap name dump, show all javac errors"
+   ]
+  },
+  {
+   "tag": "v0.1.3",
+   "version": "0.1.3",
+   "publishedAt": "2026-10-19T17:04:25Z",
+   "body": "Download **AurorasClientSetup-0.1.3.exe** below and run it.\n\nThe Auroras mod is included for Minecraft: 1.21.11 26.1 26.2 26.3 (Fabric). The launcher installs it when you press Play on a Fabric instance of one of these versions.\n",
+   "htmlUrl": "https://github.com/wtncxld-afk/auroras-client/releases/tag/v0.1.3",
+   "assets": [
+    {
+     "name": "auroras-client-fabric-1.21.11.jar",
+     "size": 839685,
+     "sha256": "c37c5376ba38ac6a1f25a6fb64eb2baec35dda5b2106bcc8b5886ae74dc92098",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.3/auroras-client-fabric-1.21.11.jar"
+    },
+    {
+     "name": "auroras-client-fabric-26.1.jar",
+     "size": 837344,
+     "sha256": "2ab49a00b8aeb9956447cbc9e516828942d809ad09bd81232cbd01ae82b4ce36",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.3/auroras-client-fabric-26.1.jar"
+    },
+    {
+     "name": "auroras-client-fabric-26.2.jar",
+     "size": 837350,
+     "sha256": "4ba956bf4f44147c501f330e1214df23e2976a0492c9fffc93db67d1ddb56523",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.3/auroras-client-fabric-26.2.jar"
+    },
+    {
+     "name": "auroras-client-fabric-26.3.jar",
+     "size": 837341,
+     "sha256": "01c4b6a5c6f86a718388b0a80a8a51a459244cbde229f23a6945d64856cc4034",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.3/auroras-client-fabric-26.3.jar"
+    },
+    {
+     "name": "AurorasClientSetup-0.1.3.exe",
+     "size": 95156945,
+     "sha256": "b7b11ad6b0a088b9fa4d335a6e2678417acf69b495c83eac9977f16763a7449f",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.3/AurorasClientSetup-0.1.3.exe"
+    }
+   ],
+   "commits": [
+    "README: installers come from auroras-releases"
+   ]
+  },
+  {
+   "tag": "v0.1.4",
+   "version": "0.1.4",
+   "publishedAt": "2026-10-19T17:56:46Z",
+   "body": "Download **AurorasClientSetup-0.1.4.exe** below and run it.\n\nThe Auroras mod is included for Minecraft: 1.21.11 26.1 26.2 26.3 (Fabric). The launcher installs it when you press Play on a Fabric instance of one of these versions.\n",
+   "htmlUrl": "https://github.com/wtncxld-afk/auroras-client/releases/tag/v0.1.4",
+   "assets": [
+    {
+     "name": "auroras-client-fabric-1.21.11.jar",
+     "size": 858488,
+     "sha256": "7542aac88687d70f93ad4fb474e93bf771e24bf554bb09619eb0d5f78275f855",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.4/auroras-client-fabric-1.21.11.jar"
+    },
+    {
+     "name": "auroras-client-fabric-26.1.jar",
+     "size": 855940,
+     "sha256": "49d2664c93998b922e0097a4c5e024ba0b6797a173bda6f39f63361ab125ad7e",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.4/auroras-client-fabric-26.1.jar"
+    },
+    {
+     "name": "auroras-client-fabric-26.2.jar",
+     "size": 855946,
+     "sha256": "df0c9d4932bc3c5f7b6e67cba7fa9f553ea295629b43b0aa5a71174d6a537e88",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.4/auroras-client-fabric-26.2.jar"
+    },
+    {
+     "name": "auroras-client-fabric-26.3.jar",
+     "size": 855937,
+     "sha256": "39d23ef72589ac03dd79c209c9d10b98012968922ca726b16bd8ca83fff50430",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.4/auroras-client-fabric-26.3.jar"
+    },
+    {
+     "name": "AurorasClientSetup-0.1.4.exe",
+     "size": 95157030,
+     "sha256": "77f7f6a03cb32e274bb8729a83f294f406bd4d337f1470dec279f7cfc0e13da1",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.4/AurorasClientSetup-0.1.4.exe"
+    }
+   ],
+   "commits": [
+    "Release: RELEASES_REPO can be a repository variable or a secret",
+    "Custom Skies: smoother dome, soft aurora curtains, varied twinkling stars",
+    "In-game menu: 3D head that follows the mouse, fluid section screens",
+    "Home: featured server card fits long status lines and MOTDs"
+   ]
+  },
+  {
+   "tag": "v0.1.5",
+   "version": "0.1.5",
+   "publishedAt": "2026-10-19T18:34:33Z",
+   "body": "Download **AurorasClientSetup-0.1.5.exe** below and run it.\n\nThe Auroras mod is included for Minecraft: 1.21.11 26.1 26.2 26.3 (Fabric). The launcher installs it when you press Play on a Fabric instance of one of these versions.\n",
+   "htmlUrl": "https://github.com/wtncxld-afk/auroras-client/releases/tag/v0.1.5",
+   "assets": [
+    {
+     "name": "auroras-client-fabric-1.21.11.jar",
+     "size": 858488,
+     "sha256": "27d6fad33e754a1cad08deb4d54f13238a329c3dee0971f16b4ffe44dcde2133",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.5/auroras-client-fabric-1.21.11.jar"
+    },
+    {
+     "name": "auroras-client-fabric-26.1.jar",
+     "size": 855940,
+     "sha256": "913b6b8c330164f84c8ca1cec081db629ba848fb34b8b4f2a8df8b561774f3be",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.5/auroras-client-fabric-26.1.jar"
+    },
+    {
+     "name": "auroras-client-fabric-26.2.jar",
+     "size": 855946,
+     "sha256": "3e76429472ea60883e5902018c3ddd6be1c8a86e195b469a45878886b3ff7166",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.5/auroras-client-fabric-26.2.jar"
+    },
+    {
+     "name": "auroras-client-fabric-26.3.jar",
+     "size": 855937,
+     "sha256": "28d3e3fb239bcf2f6aa57ae884cead38776e528b1bf2b2a92d34e8f91c6493e5",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.5/auroras-client-fabric-26.3.jar"
+    },
+    {
+     "name": "AurorasClientSetup-0.1.5.exe",
+     "size": 95157997,
+     "sha256": "814cfbc16d610a7f8b4d2b167c4ba19cfe962726c2eba2671599ff3e713c5314",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.5/AurorasClientSetup-0.1.5.exe"
+    }
+   ],
+   "commits": [
+    "Totem Studio starts from the real totem; Settings sliders fill to the knob"
+   ]
+  },
+  {
+   "tag": "v0.1.6",
+   "version": "0.1.6",
+   "publishedAt": "2026-10-19T19:11:44Z",
+   "body": "Download **AurorasClientSetup-0.1.6.exe** below and run it.\n\nThe Auroras mod is included for Minecraft: 1.21.11 26.1 26.2 26.3 (Fabric). The launcher installs it when you press Play on a Fabric instance of one of these versions.\n",
+   "htmlUrl": "https://github.com/wtncxld-afk/auroras-client/releases/tag/v0.1.6",
+   "assets": [
+    {
+     "name": "auroras-client-fabric-1.21.11.jar",
+     "size": 858488,
+     "sha256": "c1cccda68a572730f0b93f4fd6b54326311c9155ebb6e36267b7b7f61c20123a",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.6/auroras-client-fabric-1.21.11.jar"
+    },
+    {
+     "name": "auroras-client-fabric-26.1.jar",
+     "size": 855940,
+     "sha256": "9a25e42642a18a01df613cd7df4c451367a0a8c5c82d70ec14f455b8bcb6190e",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.6/auroras-client-fabric-26.1.jar"
+    },
+    {
+     "name": "auroras-client-fabric-26.2.jar",
+     "size": 855946,
+     "sha256": "93d3c6ca866367f0ec2bdc0b4aaca8815478c674c76b6da90035397f0ec8e856",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.6/auroras-client-fabric-26.2.jar"
+    },
+    {
+     "name": "auroras-client-fabric-26.3.jar",
+     "size": 855937,
+     "sha256": "aad19122428975c65d8c0b573cee257a7c9c4d12aee8cd70c014c8eb346db3ab",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.6/auroras-client-fabric-26.3.jar"
+    },
+    {
+     "name": "AurorasClientSetup-0.1.6.exe",
+     "size": 95158508,
+     "sha256": "954b934c51ef9157154a65e6a1c26ade9bc5a62a387b5c1c65caf55874c2d38e",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.6/AurorasClientSetup-0.1.6.exe"
+    }
+   ],
+   "commits": [
+    "Totem Studio: Real totem downloads Minecraft's game jar from Mojang when none is installed"
+   ]
+  },
+  {
+   "tag": "v0.1.7",
+   "version": "0.1.7",
+   "publishedAt": "2026-10-19T23:09:03Z",
+   "body": "Download **AurorasClientSetup-0.1.7.exe** below and run it.\n\nThe Auroras mod is included for Minecraft: 1.21.11 26.1 26.2 26.3 (Fabric). The launcher installs it when you press Play on a Fabric instance of one of these versions.\n",
+   "htmlUrl": "https://github.com/wtncxld-afk/auroras-client/releases/tag/v0.1.7",
+   "assets": [
+    {
+     "name": "auroras-client-fabric-1.21.11.jar",
+     "size": 912476,
+     "sha256": "506bffe1cb6056edf0e01845e73b404bd305924d140b5e85aad335922b44a46b",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.7/auroras-client-fabric-1.21.11.jar"
+    },
+    {
+     "name": "auroras-client-fabric-26.1.jar",
+     "size": 908456,
+     "sha256": "c74923aeb777294f90cfa7156383290cd018267da0184c7169091a5e0aa7d2bb",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.7/auroras-client-fabric-26.1.jar"
+    },
+    {
+     "name": "auroras-client-fabric-26.2.jar",
+     "size": 910343,
+     "sha256": "23680f6e13d89779bc29ff665e45ca17c9e6d80c2a78649d8815b79583a287f9",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.7/auroras-client-fabric-26.2.jar"
+    },
+    {
+     "name": "auroras-client-fabric-26.3.jar",
+     "size": 910430,
+     "sha256": "66eff20dd29ba85072975340eb32c5b79c748e84b7f8759433a66b42be9c8fa7",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.7/auroras-client-fabric-26.3.jar"
+    },
+    {
+     "name": "AurorasClientSetup-0.1.7.exe",
+     "size": 95203644,
+     "sha256": "51bc30a91fd9934de95616f870eaa6834e1f5c37e1b3c28972e0dacb6f9c0ad0",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.7/AurorasClientSetup-0.1.7.exe"
+    }
+   ],
+   "commits": [
+    "Menu themes with background effects",
+    "Capes: Auroras logo cape (HD), HD detail in the 3D cape preview",
+    "Menus: smooth redesign (rounded glass, shadows, Inter text, line icons), even radial blossoms",
+    "Skies: polish every theme, additive glow layers, unlock Custom Skies on 26.2/26.3",
+    "GUI previewer: replace build script with README steps (security guard bans .sh)",
+    "Add in-game GUI previewer; widen menu category rail, align slider labels"
+   ]
+  },
+  {
+   "tag": "v0.1.8",
+   "version": "0.1.8",
+   "publishedAt": "2026-10-20T08:31:30Z",
+   "body": "Download **AurorasClientSetup-0.1.8.exe** below and run it.\n\nThe Auroras mod is included for Minecraft: 1.21.11 26.1 26.2 26.3 (Fabric). The launcher installs it when you press Play on a Fabric instance of one of these versions.\n",
+   "htmlUrl": "https://github.com/wtncxld-afk/auroras-client/releases/tag/v0.1.8",
+   "assets": [
+    {
+     "name": "auroras-client-fabric-1.21.11.jar",
+     "size": 912476,
+     "sha256": "d440e445f6c5158b99e8e64a54e8f5d7740e8a830cf0eb710db5e3716f7c7ac4",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.8/auroras-client-fabric-1.21.11.jar"
+    },
+    {
+     "name": "auroras-client-fabric-26.1.jar",
+     "size": 908456,
+     "sha256": "983fe57af1f17a4f5e7ba304353779b1112d5382c4c4103cc5ff475c0dffaab4",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.8/auroras-client-fabric-26.1.jar"
+    },
+    {
+     "name": "auroras-client-fabric-26.2.jar",
+     "size": 910343,
+     "sha256": "bbe639c360953036e231ff40ef7c64f4ff0e4258e40c37aec39b412830194259",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.8/auroras-client-fabric-26.2.jar"
+    },
+    {
+     "name": "auroras-client-fabric-26.3.jar",
+     "size": 910430,
+     "sha256": "2b5bedb97b7d3d997c11ca7a0da512922dde29c66f860759932f4b04aa5f78ed",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.8/auroras-client-fabric-26.3.jar"
+    },
+    {
+     "name": "AurorasClientSetup-0.1.8.exe",
+     "size": 95203954,
+     "sha256": "fa3965ca5bf94e6785adf4d19f90ce8d7f7f99884873a86ac5aa95503f0d3575",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.8/AurorasClientSetup-0.1.8.exe"
+    }
+   ],
+   "commits": [
+    "Fix sign-in failing with 'Unexpected skin host'"
+   ]
+  },
+  {
+   "tag": "v0.1.9",
+   "version": "0.1.9",
+   "publishedAt": "2026-10-20T09:37:41Z",
+   "body": "Download **AurorasClientSetup-0.1.9.exe** below and run it.\n\nThe Auroras mod is included for Minecraft: 1.21.11 26.1 26.2 26.3 (Fabric). The launcher installs it when you press Play on a Fabric instance of one of these versions.\n",
+   "htmlUrl": "https://github.com/wtncxld-afk/auroras-client/releases/tag/v0.1.9",
+   "assets": [
+    {
+     "name": "auroras-client-fabric-1.21.11.jar",
+     "size": 956317,
+     "sha256": "e10ed1e123cd96b738a4f6573cd893e92563fda7248b2ca2f15335fd13ef4bf7",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.9/auroras-client-fabric-1.21.11.jar"
+    },
+    {
+     "name": "auroras-client-fabric-26.1.jar",
+     "size": 952060,
+     "sha256": "aec9354d288ba0c01f41f16a2e79c4c765868006436a8587643e1a57d4ecc49d",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.9/auroras-client-fabric-26.1.jar"
+    },
+    {
+     "name": "auroras-client-fabric-26.2.jar",
+     "size": 953947,
+     "sha256": "4dd895e00d44c52f0d51eb93721c3f0e2b17c812314cb36dfcaa9741fe9094e4",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.9/auroras-client-fabric-26.2.jar"
+    },
+    {
+     "name": "auroras-client-fabric-26.3.jar",
+     "size": 954034,
+     "sha256": "1e0cd5cdbbec1f1f2f2f3c4f3b3d917e357743a989fe01aafc615eff8cd89a73",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.9/auroras-client-fabric-26.3.jar"
+    },
+    {
+     "name": "AurorasClientSetup-0.1.9.exe",
+     "size": 95316074,
+     "sha256": "e4655d71644c5b1a02dcf0e7b577e30c9d3bed6aa6664a6a4c8b137ce8f296ca",
+     "url": "https://github.com/wtncxld-afk/auroras-client/releases/download/v0.1.9/AurorasClientSetup-0.1.9.exe"
+    }
+   ],
+   "commits": [
+    "Discord Rich Presence: show \"Playing Auroras Client\" while the game runs",
+    "Import Modrinth modpacks (.mrpack) as new instances",
+    "Fix duplicate variable in HUD editor",
+    "HUD widgets redesign, Creamy keystrokes, performance pass"
+   ]
+  }
+ ]
+}

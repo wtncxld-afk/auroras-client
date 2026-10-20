@@ -1,0 +1,44 @@
+@import "@fontsource-variable/inter";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root { color-scheme: dark; --header-h: 64px; }
+  html { background: #04060b; -webkit-text-size-adjust: 100%; scroll-padding-top: calc(var(--header-h) + 16px); }
+  body { @apply bg-night-950 text-ink antialiased; font-feature-settings: "cv11", "ss01", "ss03"; text-rendering: optimizeLegibility; }
+  ::selection { background: rgba(111, 227, 255, 0.28); color: #fff; }
+  :focus-visible { outline: 2px solid #6fe3ff; outline-offset: 2px; border-radius: 6px; }
+  h1, h2, h3, h4 { letter-spacing: -0.02em; text-wrap: balance; }
+  p { text-wrap: pretty; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+  }
+}
+
+@layer components {
+  .container-page { @apply mx-auto w-full max-w-page px-4 sm:px-6 lg:px-8; }
+  .eyebrow { @apply text-2xs font-semibold uppercase tracking-[0.16em] text-aurora-cyan/90; }
+  .surface { @apply rounded-2xl border border-line bg-night-850/80 shadow-card; }
+  .surface-hover { @apply transition duration-200 hover:border-line-strong hover:bg-night-800/90; }
+  .hairline { background: linear-gradient(90deg, transparent, rgba(148,170,210,0.18), transparent); height: 1px; }
+  .text-gradient { background: linear-gradient(100deg, #e8f9ff 0%, #8fe6ff 35%, #7aa8ff 70%, #a796f7 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .mono-hash { @apply font-mono text-[12px] leading-5 text-ink-soft break-all; }
+  .prose-aur { @apply text-[15px] leading-7 text-ink-soft; }
+  .prose-aur h2 { @apply mt-10 mb-3 text-xl font-semibold text-ink; }
+  .prose-aur h3 { @apply mt-8 mb-2 text-base font-semibold text-ink; }
+  .prose-aur p { @apply my-3; }
+  .prose-aur ul { @apply my-3 list-disc pl-5 marker:text-aurora-cyan/70; }
+  .prose-aur ol { @apply my-3 list-decimal pl-5 marker:text-ink-mute; }
+  .prose-aur li { @apply my-1; }
+  .prose-aur a { @apply text-aurora-cyan underline decoration-aurora-cyan/30 underline-offset-4 hover:decoration-aurora-cyan; }
+  .prose-aur code { @apply rounded-md border border-line bg-night-800 px-1.5 py-0.5 font-mono text-[13px] text-ink; }
+  .prose-aur pre { @apply my-4 overflow-x-auto rounded-xl border border-line bg-night-900 p-4 text-[13px] leading-6; }
+  .prose-aur pre code { @apply border-0 bg-transparent p-0; }
+  .prose-aur strong { @apply font-semibold text-ink; }
+  .prose-aur blockquote { @apply my-4 border-l-2 border-aurora-cyan/40 pl-4 text-ink-mute; }
+  .prose-aur table { @apply my-4 w-full border-collapse text-sm; }
+  .prose-aur th { @apply border-b border-line-strong px-3 py-2 text-left font-medium text-ink; }
+  .prose-aur td { @apply border-b border-line px-3 py-2 align-top; }
+  .prose-aur hr { @apply my-8 border-line; }
+}

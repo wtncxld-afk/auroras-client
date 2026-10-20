@@ -1,0 +1,404 @@
+{
+ "features": [
+  {
+   "id": "module_gui",
+   "label": "Module menu"
+  },
+  {
+   "id": "hud",
+   "label": "HUD"
+  },
+  {
+   "id": "hud_editor",
+   "label": "HUD editor"
+  },
+  {
+   "id": "sky",
+   "label": "Custom skies"
+  },
+  {
+   "id": "emotes",
+   "label": "Emotes"
+  }
+ ],
+ "rows": [
+  {
+   "mc": "26.1",
+   "type": "release",
+   "loader": "fabric",
+   "adapter": "m26_1",
+   "build": "not built",
+   "launch": "untested",
+   "features": {
+    "module_gui": "experimental",
+    "hud": "experimental",
+    "hud_editor": "experimental",
+    "sky": "experimental",
+    "emotes": "experimental"
+   },
+   "issues": [
+    "Adapter code exists but has never been built."
+   ]
+  },
+  {
+   "mc": "26.1-rc-1",
+   "type": "rc",
+   "loader": "fabric",
+   "adapter": null,
+   "build": "no adapter",
+   "launch": "untested",
+   "features": {
+    "module_gui": "unsupported",
+    "hud": "unsupported",
+    "hud_editor": "unsupported",
+    "sky": "unsupported",
+    "emotes": "unsupported"
+   },
+   "issues": [
+    "Auroras builds are only made for releases; the client mod stays disabled on development builds."
+   ]
+  },
+  {
+   "mc": "26.1-pre-1",
+   "type": "prerelease",
+   "loader": "fabric",
+   "adapter": null,
+   "build": "no adapter",
+   "launch": "untested",
+   "features": {
+    "module_gui": "unsupported",
+    "hud": "unsupported",
+    "hud_editor": "unsupported",
+    "sky": "unsupported",
+    "emotes": "unsupported"
+   },
+   "issues": [
+    "Auroras builds are only made for releases; the client mod stays disabled on development builds."
+   ]
+  },
+  {
+   "mc": "26.1-snapshot-1",
+   "type": "snapshot",
+   "loader": "fabric",
+   "adapter": null,
+   "build": "no adapter",
+   "launch": "untested",
+   "features": {
+    "module_gui": "unsupported",
+    "hud": "unsupported",
+    "hud_editor": "unsupported",
+    "sky": "unsupported",
+    "emotes": "unsupported"
+   },
+   "issues": [
+    "Auroras builds are only made for releases; the client mod stays disabled on development builds."
+   ]
+  },
+  {
+   "mc": "1.21.11",
+   "type": "release",
+   "loader": "fabric",
+   "adapter": "m1_21_11",
+   "build": "not built",
+   "launch": "untested",
+   "features": {
+    "module_gui": "experimental",
+    "hud": "experimental",
+    "hud_editor": "experimental",
+    "sky": "experimental",
+    "emotes": "experimental"
+   },
+   "issues": [
+    "Adapter code exists but has never been built."
+   ]
+  },
+  {
+   "mc": "1.21.11-rc1",
+   "type": "rc",
+   "loader": "fabric",
+   "adapter": null,
+   "build": "no adapter",
+   "launch": "untested",
+   "features": {
+    "module_gui": "unsupported",
+    "hud": "unsupported",
+    "hud_editor": "unsupported",
+    "sky": "unsupported",
+    "emotes": "unsupported"
+   },
+   "issues": [
+    "Auroras builds are only made for releases; the client mod stays disabled on development builds."
+   ]
+  },
+  {
+   "mc": "1.21.10",
+   "type": "release",
+   "loader": "fabric",
+   "adapter": null,
+   "build": "no adapter",
+   "launch": "untested",
+   "features": {
+    "module_gui": "unsupported",
+    "hud": "unsupported",
+    "hud_editor": "unsupported",
+    "sky": "unsupported",
+    "emotes": "unsupported"
+   },
+   "issues": [
+    "No Auroras adapter for this version yet; the client mod stays disabled."
+   ]
+  },
+  {
+   "mc": "1.21.9",
+   "type": "release",
+   "loader": "fabric",
+   "adapter": null,
+   "build": "no adapter",
+   "launch": "untested",
+   "features": {
+    "module_gui": "unsupported",
+    "hud": "unsupported",
+    "hud_editor": "unsupported",
+    "sky": "unsupported",
+    "emotes": "unsupported"
+   },
+   "issues": [
+    "No Auroras adapter for this version yet; the client mod stays disabled."
+   ]
+  },
+  {
+   "mc": "1.21.8",
+   "type": "release",
+   "loader": "fabric",
+   "adapter": null,
+   "build": "no adapter",
+   "launch": "untested",
+   "features": {
+    "module_gui": "unsupported",
+    "hud": "unsupported",
+    "hud_editor": "unsupported",
+    "sky": "unsupported",
+    "emotes": "unsupported"
+   },
+   "issues": [
+    "No Auroras adapter for this version yet; the client mod stays disabled."
+   ]
+  },
+  {
+   "mc": "1.21.7",
+   "type": "release",
+   "loader": "fabric",
+   "adapter": null,
+   "build": "no adapter",
+   "launch": "untested",
+   "features": {
+    "module_gui": "unsupported",
+    "hud": "unsupported",
+    "hud_editor": "unsupported",
+    "sky": "unsupported",
+    "emotes": "unsupported"
+   },
+   "issues": [
+    "No Auroras adapter for this version yet; the client mod stays disabled."
+   ]
+  },
+  {
+   "mc": "1.21.6",
+   "type": "release",
+   "loader": "fabric",
+   "adapter": null,
+   "build": "no adapter",
+   "launch": "untested",
+   "features": {
+    "module_gui": "unsupported",
+    "hud": "unsupported",
+    "hud_editor": "unsupported",
+    "sky": "unsupported",
+    "emotes": "unsupported"
+   },
+   "issues": [
+    "No Auroras adapter for this version yet; the client mod stays disabled."
+   ]
+  },
+  {
+   "mc": "25w20a",
+   "type": "snapshot",
+   "loader": "fabric",
+   "adapter": null,
+   "build": "no adapter",
+   "launch": "untested",
+   "features": {
+    "module_gui": "unsupported",
+    "hud": "unsupported",
+    "hud_editor": "unsupported",
+    "sky": "unsupported",
+    "emotes": "unsupported"
+   },
+   "issues": [
+    "Auroras builds are only made for releases; the client mod stays disabled on development builds."
+   ]
+  },
+  {
+   "mc": "1.21.5",
+   "type": "release",
+   "loader": "fabric",
+   "adapter": null,
+   "build": "no adapter",
+   "launch": "untested",
+   "features": {
+    "module_gui": "unsupported",
+    "hud": "unsupported",
+    "hud_editor": "unsupported",
+    "sky": "unsupported",
+    "emotes": "unsupported"
+   },
+   "issues": [
+    "No Auroras adapter for this version yet; the client mod stays disabled."
+   ]
+  },
+  {
+   "mc": "1.21.5-rc1",
+   "type": "rc",
+   "loader": "fabric",
+   "adapter": null,
+   "build": "no adapter",
+   "launch": "untested",
+   "features": {
+    "module_gui": "unsupported",
+    "hud": "unsupported",
+    "hud_editor": "unsupported",
+    "sky": "unsupported",
+    "emotes": "unsupported"
+   },
+   "issues": [
+    "Auroras builds are only made for releases; the client mod stays disabled on development builds."
+   ]
+  },
+  {
+   "mc": "1.21.5-pre1",
+   "type": "prerelease",
+   "loader": "fabric",
+   "adapter": null,
+   "build": "no adapter",
+   "launch": "untested",
+   "features": {
+    "module_gui": "unsupported",
+    "hud": "unsupported",
+    "hud_editor": "unsupported",
+    "sky": "unsupported",
+    "emotes": "unsupported"
+   },
+   "issues": [
+    "Auroras builds are only made for releases; the client mod stays disabled on development builds."
+   ]
+  },
+  {
+   "mc": "25w02a",
+   "type": "snapshot",
+   "loader": "fabric",
+   "adapter": null,
+   "build": "no adapter",
+   "launch": "untested",
+   "features": {
+    "module_gui": "unsupported",
+    "hud": "unsupported",
+    "hud_editor": "unsupported",
+    "sky": "unsupported",
+    "emotes": "unsupported"
+   },
+   "issues": [
+    "Auroras builds are only made for releases; the client mod stays disabled on development builds."
+   ]
+  },
+  {
+   "mc": "1.21.4",
+   "type": "release",
+   "loader": "fabric",
+   "adapter": "y1_21_4",
+   "build": "not built",
+   "launch": "untested",
+   "features": {
+    "module_gui": "experimental",
+    "hud": "experimental",
+    "hud_editor": "experimental",
+    "sky": "experimental",
+    "emotes": "experimental"
+   },
+   "issues": [
+    "Adapter code exists but has never been built."
+   ]
+  },
+  {
+   "mc": "1.21.3",
+   "type": "release",
+   "loader": "fabric",
+   "adapter": null,
+   "build": "no adapter",
+   "launch": "untested",
+   "features": {
+    "module_gui": "unsupported",
+    "hud": "unsupported",
+    "hud_editor": "unsupported",
+    "sky": "unsupported",
+    "emotes": "unsupported"
+   },
+   "issues": [
+    "No Auroras adapter for this version yet; the client mod stays disabled."
+   ]
+  },
+  {
+   "mc": "1.21.2",
+   "type": "release",
+   "loader": "fabric",
+   "adapter": null,
+   "build": "no adapter",
+   "launch": "untested",
+   "features": {
+    "module_gui": "unsupported",
+    "hud": "unsupported",
+    "hud_editor": "unsupported",
+    "sky": "unsupported",
+    "emotes": "unsupported"
+   },
+   "issues": [
+    "No Auroras adapter for this version yet; the client mod stays disabled."
+   ]
+  },
+  {
+   "mc": "1.21.1",
+   "type": "release",
+   "loader": "fabric",
+   "adapter": null,
+   "build": "no adapter",
+   "launch": "untested",
+   "features": {
+    "module_gui": "unsupported",
+    "hud": "unsupported",
+    "hud_editor": "unsupported",
+    "sky": "unsupported",
+    "emotes": "unsupported"
+   },
+   "issues": [
+    "No Auroras adapter for this version yet; the client mod stays disabled."
+   ]
+  },
+  {
+   "mc": "1.21",
+   "type": "release",
+   "loader": "fabric",
+   "adapter": null,
+   "build": "no adapter",
+   "launch": "untested",
+   "features": {
+    "module_gui": "unsupported",
+    "hud": "unsupported",
+    "hud_editor": "unsupported",
+    "sky": "unsupported",
+    "emotes": "unsupported"
+   },
+   "issues": [
+    "No Auroras adapter for this version yet; the client mod stays disabled."
+   ]
+  }
+ ]
+}
