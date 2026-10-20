@@ -1,2 +1,9 @@
 # javap -p -c (bytecode) for these, to check what mixin @At targets call
-net.minecraft.client.KeyMapping
+net.minecraft.client.renderer.GameRenderer
+net.minecraft.client.renderer.LevelRenderer
+net.minecraft.client.gui.Gui
+net.minecraft.client.renderer.ScreenEffectRenderer
+net.minecraft.client.renderer.PostPass
+net.minecraft.client.renderer.rendertype.TextureTransform
+net.minecraft.client.renderer.ShapeRenderer
+net.minecraft.client.Camera

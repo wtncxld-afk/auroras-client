@@ -1,0 +1,13 @@
+# Minecraft jar entries printed in full by mod-check.yml
+assets/minecraft/post_effect/blur.json
+assets/minecraft/post_effect/spider.json
+assets/minecraft/post_effect/invert.json
+assets/minecraft/post_effect/transparency.json
+assets/minecraft/shaders/post/blit.fsh
+assets/minecraft/shaders/post/blur.vsh
+assets/minecraft/shaders/post/sobel.vsh
+assets/minecraft/shaders/post/invert.fsh
+assets/minecraft/shaders/post/box_blur.fsh
+assets/minecraft/shaders/post/spider.fsh
+assets/minecraft/shaders/core/screenquad.vsh
+assets/minecraft/shaders/core/glint.fsh

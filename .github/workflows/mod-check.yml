@@ -34,4 +34,6 @@ jobs:
         run: |
           classes=$(grep -v '^#' ../../../ci/javap-classes.txt | grep . | paste -sd, -)
           code=$(grep -v '^#' ../../../ci/javap-code.txt | grep . | paste -sd, -)
-          gradle mcJavap --no-daemon -q -Ptarget=${{ matrix.target }} "-PjavapClasses=$classes" "-PjavapCode=$code"
+          grep_=$(grep -v '^#' ../../../ci/jar-grep.txt 2>/dev/null | grep . | paste -sd, -)
+          cat_=$(grep -v '^#' ../../../ci/jar-cat.txt 2>/dev/null | grep . | paste -sd, -)
+          gradle mcJavap --no-daemon -q -Ptarget=${{ matrix.target }} "-PjavapClasses=$classes" "-PjavapCode=$code" "-PjarGrep=$grep_" "-PjarCat=$cat_"

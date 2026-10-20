@@ -68,5 +68,14 @@ tasks.register('mcJavap') {
             def p = new ProcessBuilder(args).redirectErrorStream(true).start()
             println "==== javap${withCode ? ' -c' : ''} ${c}"; println p.inputStream.text; p.waitFor()
         }
+        // -PjarGrep=a/,b/ lists Minecraft jar entries containing any of these; -PjarCat=p,q prints those entries (vanilla shader and post effect formats)
+        def grep = (project.findProperty('jarGrep') ?: '').toString().split(',').collect { it.trim() }.findAll { it }
+        def cat = (project.findProperty('jarCat') ?: '').toString().split(',').collect { it.trim() }.findAll { it }
+        if (grep || cat) jars.findAll { it.name.contains('minecraft') }.each { jf ->
+            def z = new java.util.zip.ZipFile(jf)
+            z.entries().each { e -> if (grep.any { g -> e.name.contains(g) }) println "jar ${jf.name}: ${e.name}" }
+            cat.each { n -> def e = z.getEntry(n); if (e != null) { println "==== cat ${n}"; println z.getInputStream(e).text } }
+            z.close()
+        }
     }
 }
