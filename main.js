@@ -681,6 +681,8 @@ ipcMain.handle("emotes:save", (_e, { id, emote }) => modconfig.saveEmote(cfgDir(
 ipcMain.handle("emotes:delete", (_e, { id, emoteId }) => modconfig.deleteEmote(cfgDir(id), String(emoteId)));
 ipcMain.handle("cape:write", (_e, { id, png }) => modconfig.writeCape(cfgDir(id), png));
 ipcMain.handle("cape:clear", (_e, id) => modconfig.clearCape(cfgDir(id)));
+ipcMain.handle("gameskin:write", (_e, { id, png }) => modconfig.writeSkin(cfgDir(id), png));
+ipcMain.handle("gameskin:clear", (_e, id) => modconfig.clearSkin(cfgDir(id)));
 const capeLibDir = () => path.join(user(), "capes");
 ipcMain.handle("capelib:list", () => capelib.list(capeLibDir()));
 ipcMain.handle("capelib:save", (_e, d) => capelib.save(capeLibDir(), d || {}));

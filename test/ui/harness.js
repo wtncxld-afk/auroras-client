@@ -77,6 +77,8 @@ function mockBridge(versions) {
     emotesList: async (id) => { rec("emotesList", id); const E = window.__emotes || (window.__emotes = { custom: [], errors: [], wheel: null }); return JSON.parse(JSON.stringify(E)); },
     emotesSave: async ({ id, emote }) => { const V = window.AurorasVisuals, e = V.parseEmote(emote), E = window.__emotes; E.custom = E.custom.filter((x) => x.id !== e.id).concat([V.emoteToJson(e)]); rec("emotesSave", emote); return JSON.parse(JSON.stringify(E)); },
     emotesDelete: async ({ emoteId }) => { const E = window.__emotes; E.custom = E.custom.filter((x) => x.id !== emoteId); if (E.wheel) E.wheel = E.wheel.map((x) => (x === emoteId ? null : x)); rec("emotesDelete", emoteId); return JSON.parse(JSON.stringify(E)); },
+    gameSkinWrite: async ({ id, png }) => { if (!/^data:image\/png;base64,/.test(png)) throw new Error("That isn’t a PNG image."); rec("gameSkinWrite", { id, bytes: png.length }); return { ok: true }; },
+    gameSkinClear: async (id) => { rec("gameSkinClear", { id }); return { ok: true }; },
     capeWrite: async ({ id, png }) => { if (!/^data:image\/png;base64,/.test(png)) throw new Error("That isn’t a PNG image."); rec("capeWrite", { id, bytes: png.length }); return { ok: true }; },
     capeClear: async (id) => { rec("capeClear", id); return { ok: true }; },
     friendsState: async () => ({ url: window.__frUrl || "", shipped: false }),

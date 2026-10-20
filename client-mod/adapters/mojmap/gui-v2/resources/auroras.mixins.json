@@ -19,7 +19,15 @@
     "PlayerModelMixin",
     "AbstractClientPlayerMixin",
     "LevelRendererSkyMixin",
-    "SkyRendererMixin"
+    "SkyRendererMixin",
+    "LivingEntityMixin",
+    "ItemLayerMixin",
+    "ItemTintMixin",
+    "HandRendererMixin",
+    "HandAuraMixin",
+    "ClientPacketListenerMixin",
+    "FontMixin",
+    "ContainerScreenMixin"
   ],
   "injectors": {
     "defaultRequire": 0

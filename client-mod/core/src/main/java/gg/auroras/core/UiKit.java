@@ -89,9 +89,9 @@ public final class UiKit {
             case "BL" -> "Bottom left"; case "BC" -> "Bottom centre"; case "BR" -> "Bottom right"; default -> o.isEmpty() ? o : Character.toUpperCase(o.charAt(0)) + o.substring(1).replaceAll("([A-Z])", " $1").toLowerCase(Locale.ROOT); };
     }
     /** Which control a setting gets, the same rule as the launcher: segmented for up to 4 options, cycling dropdown above that. */
-    public enum Control { SWITCH, SLIDER, SEGMENTED, DROPDOWN, COLOR, KEY }
+    public enum Control { SWITCH, SLIDER, SEGMENTED, DROPDOWN, COLOR, KEY, TEXT }
     public static Control controlFor(Config.SettingDef d) {
-        return switch (d.type()) { case BOOL -> Control.SWITCH; case COLOR -> Control.COLOR; case KEY -> Control.KEY; case ENUM -> d.options().size() <= 4 ? Control.SEGMENTED : Control.DROPDOWN; default -> Control.SLIDER; };
+        return switch (d.type()) { case BOOL -> Control.SWITCH; case COLOR -> Control.COLOR; case KEY -> Control.KEY; case TEXT -> Control.TEXT; case ENUM -> d.options().size() <= 4 ? Control.SEGMENTED : Control.DROPDOWN; default -> Control.SLIDER; };
     }
 
     /** Time-based ease toward a target (frame-rate independent), for hover and open/close animations. */
