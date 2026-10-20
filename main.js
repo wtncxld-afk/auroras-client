@@ -151,9 +151,9 @@ async function skinFor(uuid, name) {
   const skin = prop && JSON.parse(Buffer.from(prop.value, "base64").toString()).textures.SKIN;
   name = prof.name || name;
   if (!skin) return { uuid, name, model: "classic", skin: null };
-  const u = new URL(skin.url);
-  if (u.protocol !== "https:" || u.hostname !== "textures.minecraft.net") throw new Error("Unexpected skin host");
-  const r = await net.fetch(skin.url, { headers: { "User-Agent": UA } });
+  const url = require("./msauth.js").skinUrl(skin.url);
+  if (!url) throw new Error("Unexpected skin host");
+  const r = await net.fetch(url, { headers: { "User-Agent": UA } });
   if (!r.ok) throw new Error("Couldn’t download the skin");
   return { uuid, name, model: skin.metadata && skin.metadata.model === "slim" ? "slim" : "classic", skin: "data:image/png;base64," + Buffer.from(await r.arrayBuffer()).toString("base64") };
 }
@@ -254,7 +254,9 @@ async function finishSignIn(t) {
   const acct = await minecraftLogin(t.access_token);
   if (t.refresh_token) saveRefresh(acct.uuid, acct.name, t.refresh_token);
   tokens.set(acct.uuid, { token: acct.mcToken, name: acct.name, exp: Date.now() + acct.expiresIn * 1000 });
-  return { ...(await skinFor(acct.uuid, acct.name)), microsoft: true };
+  // a skin that can't be fetched never blocks the sign-in; the account just shows the default skin until a refresh
+  let skin; try { skin = await skinFor(acct.uuid, acct.name); } catch { skin = { uuid: acct.uuid, name: acct.name, model: "classic", skin: null }; }
+  return { ...skin, microsoft: true };
 }
 /**
  * Sign in with Microsoft in a window, like other launchers: Microsoft's own page in a separate, sandboxed window with

@@ -36,3 +36,11 @@ test("client ID: Settings first, then the copy shipped in auth.json; junk ignore
   assert.strictEqual(M.clientId(null, null), "");
   assert.strictEqual(M.clientId({}, require("../auth.json")), "5540599b-7cbe-424f-ad58-50fc1a040a0c", "the owner's own Azure app ID ships in auth.json");
 });
+
+test("skin addresses from Mojang profiles are fetched over HTTPS from textures.minecraft.net only", () => {
+  // Mojang's session server really lists skins as http:// (this broke the first real sign-in)
+  assert.strictEqual(M.skinUrl("http://textures.minecraft.net/texture/abc123"), "https://textures.minecraft.net/texture/abc123");
+  assert.strictEqual(M.skinUrl("https://textures.minecraft.net/texture/abc123"), "https://textures.minecraft.net/texture/abc123");
+  for (const bad of ["http://evil.example/texture/a", "https://textures.minecraft.net.evil.example/a", "https://user@textures.minecraft.net/a", "http://textures.minecraft.net:8080/a", "file:///etc/passwd", "ftp://textures.minecraft.net/a", "not a url", null])
+    assert.strictEqual(M.skinUrl(bad), null, String(bad));
+});

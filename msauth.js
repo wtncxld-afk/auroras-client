@@ -42,4 +42,13 @@ function clientId(settings, shipped) {
   const s = String((settings && settings.msClientId) || "").trim(); if (CLIENT_ID.test(s)) return s;
   const b = String((shipped && shipped.msClientId) || "").trim(); return CLIENT_ID.test(b) ? b : "";
 }
-module.exports = { MSA, REDIRECT, SCOPE, CLIENT_ID, pkce, authorizeUrl, isRedirect, parseRedirect, tokenBody, clientId };
+/**
+ * The skin download address from a Mojang profile, always over HTTPS. Mojang lists skins as http://textures.minecraft.net/…,
+ * so http is upgraded; any other host is refused.
+ */
+function skinUrl(raw) {
+  let u; try { u = new URL(String(raw)); } catch { return null; }
+  if ((u.protocol !== "https:" && u.protocol !== "http:") || u.hostname !== "textures.minecraft.net" || u.username || u.password || u.port) return null;
+  u.protocol = "https:"; return u.href;
+}
+module.exports = { MSA, REDIRECT, SCOPE, CLIENT_ID, pkce, authorizeUrl, isRedirect, parseRedirect, tokenBody, clientId, skinUrl };
