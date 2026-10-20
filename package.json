@@ -7,7 +7,7 @@
     "postinstall": "node scripts/vendor.js",
     "start": "electron .",
     "dist": "electron-builder --win",
-    "test": "node --test test/updater.test.js test/versions.test.js test/launchplan.test.js test/installer.test.js test/launcher.test.js test/visuals.test.js test/modconfig.test.js test/ziputil.test.js test/modpack.test.js test/compat.test.js test/hud.test.js test/spotify.test.js test/skyfx.test.js test/emotes.test.js test/serverping.test.js test/clientmod.test.js test/msauth.test.js test/serverlist.test.js test/capelib.test.js test/friends.test.js test/security.test.js test/selfupdate.test.js",
+    "test": "node --test test/updater.test.js test/versions.test.js test/launchplan.test.js test/installer.test.js test/launcher.test.js test/visuals.test.js test/modconfig.test.js test/ziputil.test.js test/modpack.test.js test/compat.test.js test/hud.test.js test/spotify.test.js test/skyfx.test.js test/emotes.test.js test/serverping.test.js test/clientmod.test.js test/msauth.test.js test/serverlist.test.js test/capelib.test.js test/friends.test.js test/discordrpc.test.js test/security.test.js test/selfupdate.test.js",
     "test:ui": "node --test --test-concurrency=1 test/ui/ui.test.js test/ui/studios.test.js test/ui/stage4.test.js test/ui/quality.test.js test/ui/versions.test.js test/ui/friends.test.js test/ui/privacy.test.js test/ui/sounds.test.js test/ui/halloween.test.js test/ui/modpack.test.js"
   },
   "devDependencies": {
@@ -24,6 +24,7 @@
       "release.json",
       "capelib.js",
       "clientmod.js",
+      "discordrpc.js",
       "friends.js",
       "build/**",
       "compat.js",

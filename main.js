@@ -330,12 +330,15 @@ ipcMain.handle("settings:set", (_e, o) => {
   if (typeof o.msClientId === "string") s.msClientId = /^[0-9a-f-]{36}$/i.test(o.msClientId.trim()) ? o.msClientId.trim() : (o.msClientId.trim() === "" ? "" : (() => { throw new Error("That doesn’t look like an Azure application (client) ID"); })());
   if (typeof o.autoMod === "boolean") s.autoMod = o.autoMod;
   if (typeof o.perfMods === "boolean") s.perfMods = o.perfMods;
+  if (typeof o.discordClientId === "string") { const v = o.discordClientId.trim(); if (v && !discordrpc.isSnowflake(v)) throw new Error("That doesn’t look like a Discord Application ID (17 to 20 digits)."); s.discordClientId = v; }
+  if (typeof o.discordPresence === "boolean") s.discordPresence = o.discordPresence;
+  if (typeof o.discordIdle === "boolean") s.discordIdle = o.discordIdle;
   if (typeof o.spotifyClientId === "string") { const v = o.spotifyClientId.trim(); if (v && !/^[0-9a-f]{32}$/i.test(v)) throw new Error("That doesn’t look like a Spotify client ID (32 letters and numbers)."); s.spotifyClientId = v; }
   if (typeof o.friendsUrl === "string") { const v = o.friendsUrl.trim(); if (v && !friends.checkUrl(v)) throw new Error("The friends server address must start with https://"); s.friendsUrl = v ? friends.checkUrl(v) : ""; }
   if (typeof o.updateUrl === "string") { if (o.updateUrl) { if (new URL(o.updateUrl).protocol !== "https:") throw new Error("Update URL must be https"); } s.updateUrl = o.updateUrl.trim(); }
-  writeSettings(s); return true;
+  writeSettings(s); discordSync(); return true;
 });
-ipcMain.handle("settings:all", () => { const s = readSettings(); return { autoMod: s.autoMod !== false, perfMods: s.perfMods !== false, releaseRepo: RELEASES ? RELEASE.githubRepo : "", cfKey: !!cfKey(), msClientId: s.msClientId || "", msShipped: !!msauth.clientId({}, SHIPPED_AUTH), updateUrl: s.updateUrl || "", friendsUrl: s.friendsUrl || "", friendsShipped: !!friends.friendsUrl({}, SHIPPED_AUTH), spotifyClientId: s.spotifyClientId || "", spotifyConnected: !!readSpotifyToken(), secureStorage: vault.available(), version: app.getVersion() }; });
+ipcMain.handle("settings:all", () => { const s = readSettings(); return { autoMod: s.autoMod !== false, perfMods: s.perfMods !== false, releaseRepo: RELEASES ? RELEASE.githubRepo : "", cfKey: !!cfKey(), msClientId: s.msClientId || "", msShipped: !!msauth.clientId({}, SHIPPED_AUTH), updateUrl: s.updateUrl || "", friendsUrl: s.friendsUrl || "", friendsShipped: !!friends.friendsUrl({}, SHIPPED_AUTH), spotifyClientId: s.spotifyClientId || "", spotifyConnected: !!readSpotifyToken(), discordPresence: s.discordPresence !== false, discordIdle: s.discordIdle === true, discordClientId: s.discordClientId || "", discordShipped: !!discordrpc.clientId({}, SHIPPED_AUTH), secureStorage: vault.available(), version: app.getVersion() }; });
 
 // ---------- Updates (signed manifest; nothing is applied unless it verifies) ----------
 async function fetchBytes(url) { const r = await net.fetch(updater.httpsUrl ? updater.httpsUrl(url) : url, { headers: { "User-Agent": UA } }); if (!r.ok) throw new Error(`Update server returned ${r.status}`); return Buffer.from(await r.arrayBuffer()); }
@@ -553,7 +556,8 @@ ipcMain.handle("launch", async (e, { inst: I, uuid, face, head }) => {
     const child = spawn(cmd.file, cmd.args, { cwd: gameDir, windowsHide: false });
     startSpotify(key, path.join(gameDir, "config", "auroras"));
     friendsPlaying.set(String(uuid), { server: I.server ? String(I.server) : null, instance: String(I.name || "") }); pushPresence(String(uuid));
-    launcher.supervise(child, { logFile: path.join(gameDir, "logs", "auroras-launch.log"), emit: send }).finally(() => { running.delete(key); stopSpotify(key); friendsPlaying.delete(String(uuid)); pushPresence(String(uuid)); });
+    discordGames.set(key, { mc: String(I.mc), loader: String(I.loader), server: I.server ? String(I.server) : null, startedAt: Date.now() }); discordSync();
+    launcher.supervise(child, { logFile: path.join(gameDir, "logs", "auroras-launch.log"), emit: send }).finally(() => { running.delete(key); stopSpotify(key); friendsPlaying.delete(String(uuid)); pushPresence(String(uuid)); discordGames.delete(key); discordSync(); });
     return true;
   } catch (err) { running.delete(key); throw err; }
 });
@@ -584,6 +588,19 @@ ipcMain.handle("friends:overview", async (_e, uuid) => { const { client, acct } 
 ipcMain.handle("friends:act", async (_e, { uuid, action, arg }) => { const { client, acct } = await friendsFor(String(uuid)); return client.act(acct, String(action), arg); });
 ipcMain.handle("friends:presence", (_e, { uuid, state }) => pushPresence(String(uuid), state === "away" ? "away" : state === "offline" ? "offline" : "online"));
 app.on("before-quit", () => { for (const u of friendTokens.keys()) pushPresence(u, "offline"); });
+
+// ---------- Discord Rich Presence: only the Discord app on this PC, over its local IPC socket (see discordrpc.js) ----------
+const discordrpc = require("./discordrpc");
+const discordGames = new Map(); let discord = null, discordId = "";
+/** Shows the newest running game on Discord (or "In the launcher" if the player turned that on), or clears it. Never throws. */
+function discordSync() {
+  try { const s = readSettings(), id = s.discordPresence === false ? "" : discordrpc.clientId(s, SHIPPED_AUTH);
+    if (id !== discordId) { if (discord) discord.close(); discord = id ? discordrpc.createPresence({ clientId: id }) : null; discordId = id; }
+    if (!discord) return; const g = [...discordGames.values()].pop();
+    discord.set(g ? discordrpc.gameActivity(g) : s.discordIdle === true ? discordrpc.idleActivity() : null);
+  } catch {}
+}
+app.whenReady().then(discordSync); app.on("before-quit", () => { if (discord) discord.close(); });
 
 // ---------- Auroras mod settings per instance (config/auroras in the instance folder; the mod reads these) ----------
 const cfgDir = (id) => { if (!/^\d+$/.test(String(id))) throw new Error("Unknown instance"); return path.join(instDir(id), "config", "auroras"); };
