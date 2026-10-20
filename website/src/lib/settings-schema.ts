@@ -22,7 +22,7 @@ export const SETTINGS = {
   maintenance: z.object({ enabled: z.boolean().default(false), message: t(300).default("") }),
   downloads: z.object({
     intro: t(400).default("Every file is listed with its size, publication date and SHA-256 checksum. Only builds that exist are shown."),
-    signingNote: t(400).default("The Windows installer is not Authenticode code-signed yet, so Windows SmartScreen may ask you to confirm. Check the SHA-256 below before running it. Launcher updates are verified with an Ed25519-signed manifest."),
+    signingNote: t(400).default("The Windows installer is not Authenticode code-signed yet, so Windows SmartScreen may ask you to confirm. Check its SHA-256 on this page before running it. Launcher updates are verified with an Ed25519-signed manifest."),
   }),
   supportedVersions: z.object({
     summary: t(300).default("The launcher runs every Minecraft Java release from 1.21 onward. The Auroras client mod is built for these Fabric versions:"),

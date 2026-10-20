@@ -22,7 +22,7 @@ export function totpNow(secret: string, ms = Date.now()) { const b = Buffer.allo
 type Env = Record<string, string | undefined>;
 export type Ctx = { env: Env; totpSecret: string; recovery: string[]; publicKeyPem: string; storageDir: string; server: ChildProcess; sql: postgres.Sql; logs: string[] };
 
-export async function start(): Promise<Ctx> {
+export async function start(opts: { releases?: boolean } = {}): Promise<Ctx> {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "auroras-test-"));
   const { privateKey, publicKey } = crypto.generateKeyPairSync("ed25519");
   const env: Env = {
@@ -40,10 +40,13 @@ export async function start(): Promise<Ctx> {
     return r.stdout;
   };
   run(["--import", "tsx", "scripts/migrate.ts"]);
-  run(["--conditions=react-server", "--import", "tsx", "scripts/seed.ts", "--no-releases"]);
+  run(["--conditions=react-server", "--import", "tsx", "scripts/seed.ts", ...(opts.releases ? [] : ["--no-releases"])]);
   const out = run(["--conditions=react-server", "--import", "tsx", "scripts/owner.ts", "create", "--username", OWNER.username], { OWNER_PASSWORD: OWNER.password });
   const totpSecret = /Secret: ([A-Z2-7 ]+)/.exec(out)![1].replace(/ /g, "");
   const recovery = [...out.matchAll(/^\s+([A-Z0-9x]{4}-[A-Z0-9x]{4}-[A-Z0-9x]{4})$/gim)].map((m) => m[1]);
+  // Next keeps unstable_cache entries on disk across restarts; clear them so a wiped database isn't masked by
+  // pages cached from an earlier run.
+  fs.rmSync(path.join(ROOT, ".next/cache/fetch-cache"), { recursive: true, force: true });
   const logs: string[] = [];
   const server = spawn(process.execPath, [path.join(ROOT, "node_modules/next/dist/bin/next"), "start", "-p", String(PORT)], { cwd: ROOT, env: env as NodeJS.ProcessEnv, stdio: ["ignore", "pipe", "pipe"] });
   server.stdout!.on("data", (d) => logs.push(String(d))); server.stderr!.on("data", (d) => logs.push(String(d)));

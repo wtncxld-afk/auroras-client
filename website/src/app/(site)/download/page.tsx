@@ -97,7 +97,7 @@ export default async function DownloadPage() {
           <div className="surface p-6">
             <div className="flex items-center gap-3"><FileCheck2 size={18} className="text-aurora-cyan" aria-hidden /><h2 id="verify-h" className="font-semibold">Verify your download</h2></div>
             <p className="mt-3 text-sm leading-6 text-ink-mute">In PowerShell, in your Downloads folder, compare the result with the SHA-256 listed for the file:</p>
-            <pre className="mt-3 overflow-x-auto rounded-xl border border-line bg-night-900 p-3 font-mono text-[12.5px] text-ink-soft">Get-FileHash .\{installer?.filename ?? "AurorasClientSetup-<version>.exe"} -Algorithm SHA256</pre>
+            <pre className="mt-3 whitespace-pre-wrap break-all rounded-xl border border-line bg-night-900 p-3 font-mono text-[12.5px] text-ink-soft">Get-FileHash .\{installer?.filename ?? "AurorasClientSetup-<version>.exe"} -Algorithm SHA256</pre>
           </div>
           <div className="surface p-6">
             <div className="flex items-center gap-3"><KeyRound size={18} className="text-aurora-cyan" aria-hidden /><h2 className="font-semibold">Signatures</h2></div>

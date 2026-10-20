@@ -268,3 +268,32 @@ describe("content safety and headers", () => {
     assert.equal(r.status, 200); assert.match(r.headers.get("content-type") || "", /json/);
   });
 });
+
+describe("CI release script (used by the GitHub workflow)", () => {
+  test("drafts from a release folder, verifies SHA256SUMS, then publishes", async () => {
+    const { spawnSync } = await import("node:child_process");
+    const fs = await import("node:fs"), os = await import("node:os");
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "auroras-ci-"));
+    const exe = fakeExe(5000), jar = fakeJar();
+    fs.writeFileSync(path.join(dir, "AurorasClientSetup-0.5.0.exe"), exe);
+    fs.writeFileSync(path.join(dir, "auroras-client-fabric-26.3.jar"), jar);
+    fs.writeFileSync(path.join(dir, "SHA256SUMS.txt"), `${sha256(exe)}  AurorasClientSetup-0.5.0.exe\n${sha256(jar)}  auroras-client-fabric-26.3.jar\n`);
+    const { token } = await owner.j("/api/owner/ci-tokens", { json: { name: "ci-script", allowPublish: true } });
+    const env = { ...process.env, AURORAS_SITE_URL: ORIGIN, AURORAS_SITE_CI_TOKEN: token, ALLOW_HTTP_FOR_TESTS: "1", GITHUB_OUTPUT: path.join(dir, "out.txt") };
+    const run = (a: string[]) => spawnSync(process.execPath, ["--import", "tsx", "scripts/ci-release.ts", ...a], { env, encoding: "utf8" });
+    const d = run(["draft", "--dir", dir, "--version", "v0.5.0"]);
+    assert.equal(d.status, 0, d.stderr + d.stdout);
+    const ids = /ids=(.+)/.exec(fs.readFileSync(path.join(dir, "out.txt"), "utf8"))![1].trim();
+    assert.equal(ids.split(",").length, 2);
+    assert.ok(!(await page("/download")).includes("0.5.0"), "drafts stay private");
+    const p = run(["publish", "--ids", ids]);
+    assert.equal(p.status, 0, p.stderr + p.stdout);
+    const m = await manifest();
+    assert.equal(m.launcher.stable.version, "0.5.0"); assert.equal(m.launcher.stable.sha256, sha256(exe));
+    assert.ok(m.client.some((b: { version: string; mc: string; sha256: string }) => b.version === "0.5.0" && b.mc === "26.3" && b.sha256 === sha256(jar)));
+    fs.writeFileSync(path.join(dir, "SHA256SUMS.txt"), `${"0".repeat(64)}  AurorasClientSetup-0.5.1.exe\n`);
+    fs.renameSync(path.join(dir, "AurorasClientSetup-0.5.0.exe"), path.join(dir, "AurorasClientSetup-0.5.1.exe"));
+    const bad = run(["draft", "--dir", dir, "--version", "0.5.1"]);
+    assert.notEqual(bad.status, 0); assert.match(bad.stderr, /Checksum mismatch/);
+  });
+});

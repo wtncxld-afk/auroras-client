@@ -1,0 +1,100 @@
+# Website: test the site, then sync a launcher release to it.
+#
+# Never runs on ordinary commits. It starts when:
+#   - a GitHub release is published (release.yml does that for each launcher build), or
+#   - someone runs it by hand (Actions > Website release > Run workflow) with a release tag.
+# The "draft" job uploads that release's files to the site as PRIVATE drafts (the server recomputes every SHA-256 and
+# this job compares them with SHA256SUMS.txt). The "publish" job runs in the `website-production` environment: add
+# required reviewers to that environment in the repository settings so nothing goes live without an approval.
+#
+# Secrets (environment or repository): AURORAS_SITE_URL (https://...), AURORAS_SITE_CI_TOKEN (from the dashboard's
+# Security page or `npm run ci-token:create`; needs "Allow publishing" for the publish job). No signing key here: the
+# site signs the update manifest with its own UPDATE_SIGNING_KEY.
+name: Website release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to sync to the website (for example v0.1.9)"
+        required: true
+      channel:
+        description: "Channel"
+        required: true
+        default: stable
+        type: choice
+        options: [stable, beta, experimental]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: website-release
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: website } }
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_USER: auroras, POSTGRES_PASSWORD: ci-only-password, POSTGRES_DB: auroras_test }
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U auroras" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: website/package-lock.json }
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npm run test:bundle
+      - run: npm run test:api
+        env: { TEST_DATABASE_URL: "postgres://auroras:ci-only-password@127.0.0.1:5432/auroras_test" }
+
+  draft:
+    needs: test
+    runs-on: ubuntu-latest
+    environment: website-drafts
+    outputs:
+      ids: ${{ steps.draft.outputs.ids }}
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      CHANNEL: ${{ inputs.channel || (github.event.release.prerelease && 'beta') || 'stable' }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: website/package-lock.json }
+      - run: npm ci
+        working-directory: website
+      - name: Download the release files
+        run: gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir files
+      - name: Upload as private drafts
+        id: draft
+        working-directory: website
+        env:
+          AURORAS_SITE_URL: ${{ secrets.AURORAS_SITE_URL }}
+          AURORAS_SITE_CI_TOKEN: ${{ secrets.AURORAS_SITE_CI_TOKEN }}
+        run: node --import tsx scripts/ci-release.ts draft --dir ../files --version "$TAG" --channel "$CHANNEL"
+
+  publish:
+    needs: draft
+    runs-on: ubuntu-latest
+    environment: website-production
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: website/package-lock.json }
+      - run: npm ci
+        working-directory: website
+      - name: Preflight and publish
+        working-directory: website
+        env:
+          AURORAS_SITE_URL: ${{ secrets.AURORAS_SITE_URL }}
+          AURORAS_SITE_CI_TOKEN: ${{ secrets.AURORAS_SITE_CI_TOKEN }}
+        run: node --import tsx scripts/ci-release.ts publish --ids "${{ needs.draft.outputs.ids }}"
