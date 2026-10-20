@@ -85,12 +85,14 @@ public final class Tests {
         // modules + profiles
         Config.Registry reg = new Config.Registry(); Config.ProfileManager pm = new Config.ProfileManager(reg);
         check("registry: required HUD modules present", List.of("fps", "coords", "keystrokes", "cps", "armor", "clock").stream().allMatch(id -> reg.get(id) != null));
-        check("registry: modules without in-game code are not marked available (damage indicator, aura, nameplate, emblem, trails, particle effects)", List.of("damage", "aura", "nameplate", "emblem", "trails", "particlefx").stream().noneMatch(id -> reg.get(id).available()));
+        check("registry: the in-world cosmetics are available, labelled experimental, and say they are local only or never through walls", List.of("damage", "aura", "nameplate", "emblem", "trails", "particlefx").stream().allMatch(id -> reg.get(id).available() && reg.get(id).note().startsWith("Experimental"))
+            && List.of("aura", "emblem", "trails").stream().allMatch(id -> reg.get(id).note().contains("Only you see")) && List.of("damage", "nameplate").stream().allMatch(id -> reg.get(id).note().contains("never through walls")));
         check("registry: player, rendering and information modules are available and labelled experimental", List.of("zoom", "sprint", "sneak", "freelook", "perspective", "direction", "freelookstatus", "crosshair", "fullbright", "particles", "serverinfo", "memory", "biome", "frametime", "session").stream().allMatch(id -> reg.get(id).available() && reg.get(id).note().startsWith("Experimental")));
         check("registry: modules with in-game code are labelled experimental", List.of("fps", "coords", "keystrokes", "cps", "armor", "clock", "ping", "potions", "target", "sessioninfo", "spotify", "modulelist", "brandinghud").stream().allMatch(id -> reg.get(id).available() && reg.get(id).note().startsWith("Experimental")));
         check("registry: modules with in-game code are flagged experimental until tested in a real game", reg.get("fps").available() && reg.get("fps").note().startsWith("Experimental"));
         check("modules: enable and disable an available module", !pm.enabled("fps") && runOk(() -> pm.setEnabled("fps", true)) && pm.enabled("fps") && runOk(() -> pm.setEnabled("fps", false)) && !pm.enabled("fps"));
-        check("modules: unavailable modules cannot be enabled", throwsIAE(() -> pm.setEnabled("aura", true)));
+        { Config.Registry locked = new Config.Registry(); locked.restrict(List.of("aura"), "Not in this build"); Config.ProfileManager lp = new Config.ProfileManager(locked);
+          check("modules: unavailable modules cannot be enabled", throwsIAE(() -> lp.setEnabled("aura", true)) && !locked.get("aura").available() && locked.get("aura").note().equals("Not in this build")); }
         check("settings: rejects out-of-range scale", throwsIAE(() -> pm.set("fps.scale", "99")));
         check("settings: rejects bad colour", throwsIAE(() -> pm.set("fps.color", "red")));
         check("settings: accepts valid colour and number", runOk(() -> { pm.set("fps.color", "FF00AA"); pm.set("fps.scale", "1.5"); }) && pm.get("fps.scale").equals("1.5"));

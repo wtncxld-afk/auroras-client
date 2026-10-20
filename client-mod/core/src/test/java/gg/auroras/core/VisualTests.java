@@ -268,7 +268,7 @@ public final class VisualTests {
         // registry
         Config.Registry reg = new Config.Registry();
         check("registry: every visual category has at least one module", Arrays.stream(Config.Category.values()).filter(x -> x.visual).allMatch(x -> reg.modules().stream().anyMatch(m -> m.cat() == x)));
-        check("registry: visual modules with in-game code are labelled experimental; the particle system and aura are not claimed", List.of("sky", "totemfx", "glow", "cape").stream().allMatch(id -> reg.get(id).available() && reg.get(id).note().startsWith("Experimental")) && !reg.get("particlefx").available() && !reg.get("aura").available());
+        check("registry: visual modules with in-game code are labelled experimental", List.of("sky", "totemfx", "glow", "cape", "particlefx", "aura", "trails", "emblem").stream().allMatch(id -> reg.get(id).available() && reg.get(id).note().startsWith("Experimental")));
         check("registry: capes say they are never visible to other players", reg.get("cape").note().contains("never visible to other players"));
         check("registry: player-control modules are labelled as changing input, visuals as cosmetic", reg.get("zoom").impact() == Config.Impact.INPUT && reg.get("sky").impact() == Config.Impact.COSMETIC && reg.get("fps").impact() == Config.Impact.DISPLAY);
         check("registry: sky settings validate theme names and ranges", reg.validate("sky.theme", "cosmic") == null && reg.validate("sky.theme", "rainbow") != null && reg.validate("sky.netherTheme", "off") == null && reg.validate("sky.brightness", "5") != null && reg.validate("sky.tint", "88AAFF") == null);

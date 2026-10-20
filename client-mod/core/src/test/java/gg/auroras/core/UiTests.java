@@ -51,6 +51,7 @@ public class UiTests {
         mm.setCategory("All"); ModuleMenu.Layout lg = mm.layout(480, 270); mm.scrollBy(lg, -100); double sc = mm.scroll; mm.scrollBy(lg, -1000);
         check("menu: scrolling stops at the end of the grid", sc > 0 && mm.scroll == UiKit.clampScroll(1e9, lg.content(), lg.body().h()));
         check("menu: switching a module on and off", mm.toggle("fps") && pm.enabled("fps") && mm.toggle("fps") && !pm.enabled("fps"));
+        reg.restrict(List.of("lowfire"), "Not in the Minecraft 26.1 build yet"); // what the 26.x adapter does
         Config.Module unavailable = reg.modules().stream().filter(m -> !m.available()).findFirst().get();
         check("menu: unavailable modules can't be switched on and say why", !mm.toggle(unavailable.id()) && !pm.enabled(unavailable.id()) && mm.message.contains("isn't in the game yet"));
         mm.openSettings("fps"); ModuleMenu.Layout ls = mm.layout(480, 270);

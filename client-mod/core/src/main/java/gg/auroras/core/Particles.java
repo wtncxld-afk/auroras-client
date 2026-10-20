@@ -29,6 +29,16 @@ public final class Particles {
         }
         return spawned;
     }
+    /**
+     * Adds one particle at an exact point (shapes such as an aura ring place their own particles). Returns false when the
+     * pool is off or at its budget, so callers can stop spawning. Used in game as the live count behind the budget.
+     */
+    public boolean spawn(float px, float py, float pz, float pvx, float pvy, float pvz, float lifetime, float sz, int rgb) {
+        if (!enabled || count >= budget) return false;
+        int k = count++; x[k] = px; y[k] = py; z[k] = pz; vx[k] = pvx; vy[k] = pvy; vz[k] = pvz; age[k] = 0; life[k] = Math.max(0.05f, lifetime); size[k] = sz; color[k] = rgb; return true;
+    }
+    /** How many particles rate*dt asks for this frame (fractions carry over), without spawning them. */
+    public int due(double rate, double dt) { if (!enabled || rate <= 0) return 0; carry += rate * dt; int n = (int) carry; carry -= n; return Math.min(n, Math.max(0, budget - count)); }
     /** Advances and removes expired particles. Skips everything when disabled or when the camera is farther than maxDistance from the emitter. */
     public int update(float dt, float gravity, double camDistance, double maxDistance) {
         if (!enabled || count == 0) return count;
