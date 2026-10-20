@@ -1,1 +1,3 @@
 # Minecraft jar entries printed in full by mod-check.yml
+assets/minecraft/shaders/post/blit.fsh
+assets/minecraft/shaders/core/screenquad.vsh

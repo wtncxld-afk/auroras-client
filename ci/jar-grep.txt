@@ -1,2 +1,1 @@
 # Minecraft jar entries containing any of these are listed by mod-check.yml
-shaders/post/

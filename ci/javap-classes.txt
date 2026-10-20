@@ -1,3 +1,5 @@
 # javap -p for these (names only). Edit freely: it only feeds the "Minecraft names (javap)" step of mod-check.yml.
-net.minecraft.client.multiplayer.chat.report.ReportingContext
-net.minecraft.client.resources.sounds.SimpleSoundInstance
+net.minecraft.client.player.AbstractClientPlayer
+net.minecraft.client.ClientClockManager$ClientClockInstance
+net.minecraft.world.clock.ClockInstance
+net.minecraft.client.Minecraft
