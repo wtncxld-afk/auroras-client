@@ -1,1 +1,9 @@
-# javap -p -c (bytecode) for these, to check what mixin @At targets call
+# javap -p -c (bytecode) for these, to check what mixin @At targets call. "a.B#m1|m2" prints only those methods.
+net.minecraft.client.renderer.GameRenderer#render|applyPostEffects|preparePostEffects|displayItemActivation
+net.minecraft.client.renderer.LevelRenderer#renderBlockOutline|extractBlockOutline|submitBlockOutline|renderHitOutline|submitHitOutline
+net.minecraft.client.renderer.rendertype.TextureTransform#setupGlintTexturing
+net.minecraft.client.gui.Gui#renderCameraOverlays|extractCameraOverlays|renderTextureOverlay|extractTextureOverlay
+net.minecraft.client.gui.Hud#renderCameraOverlays|extractCameraOverlays|renderTextureOverlay|extractTextureOverlay
+net.minecraft.client.renderer.PostChain#load|createPass
+net.minecraft.client.multiplayer.ClientLevel#getDefaultClockTime|tickTime|setTimeFromServer
+net.minecraft.client.ClientClockManager

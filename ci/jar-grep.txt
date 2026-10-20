@@ -1,4 +1,2 @@
-# Minecraft jar entries containing any of these are listed by mod-check.yml (shader and post effect formats)
-post_effect/
-textures/misc/enchanted_glint
-textures/effect/
+# Minecraft jar entries containing any of these are listed by mod-check.yml
+shaders/post/

@@ -64,11 +64,19 @@ tasks.register('mcJavap') {
         String cp = jars.collect { it.absolutePath }.join(File.pathSeparator)
         def code = (project.findProperty('javapCode') ?: '').toString().split(',').collect { it.trim() }.findAll { it }
         (classes.collect { [it, false] } + code.collect { [it, true] }).each { pair -> String c = pair[0]; boolean withCode = pair[1]
+            // "a.B#m1|m2" prints only the bodies of methods m1 and m2
+            String methods = c.contains('#') ? c.substring(c.indexOf('#') + 1) : null; c = c.contains('#') ? c.substring(0, c.indexOf('#')) : c
             List<String> args = [javap, '-p'] + (withCode ? ['-c'] : []) + ['-cp', cp, c.toString()]
             def p = new ProcessBuilder(args).redirectErrorStream(true).start()
             String out = p.inputStream.text; p.waitFor()
             // bytecode is long: keep method headers and calls/field accesses only (the parts mixin targets name)
-            if (withCode) out = out.readLines().findAll { l -> !(l ==~ /^\s+\d+: .*/) || l.contains('invoke') || l.contains('Field ') }.join('\n')
+            if (withCode) {
+                boolean keep = methods == null
+                out = out.readLines().findAll { l ->
+                    if (methods != null && l ==~ /^  \S.*/) keep = (l =~ /[ .](${methods})\(/).find()
+                    keep && (!(l ==~ /^\s+\d+: .*/) || l.contains('invoke') || l.contains('Field '))
+                }.join('\n')
+            }
             println "==== javap${withCode ? ' -c' : ''} ${c}"; println out
         }
         // -PjarGrep=a/,b/ lists Minecraft jar entries containing any of these; -PjarCat=p,q prints those entries (vanilla shader and post effect formats)

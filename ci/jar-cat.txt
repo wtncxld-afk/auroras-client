@@ -1,2 +1,1 @@
 # Minecraft jar entries printed in full by mod-check.yml
-assets/minecraft/shaders/core/rendertype_lines.vsh
