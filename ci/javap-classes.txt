@@ -1,11 +1,4 @@
 # javap -p for these (names only). Edit freely: it only feeds the "Minecraft names (javap)" step of mod-check.yml.
-net.minecraft.client.renderer.GameRenderer
-net.minecraft.client.resources.model.geometry.BakedQuad
-net.minecraft.client.resources.model.geometry.BakedQuad$MaterialInfo
-net.minecraft.client.renderer.block.model.BakedQuad
-net.minecraft.client.renderer.SubmitNodeCollector
-net.minecraft.client.renderer.OrderedSubmitNodeCollector
-net.minecraft.client.renderer.entity.player.AvatarRenderer
-net.minecraft.client.renderer.ItemInHandRenderer
-net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements
-net.minecraft.client.renderer.texture.OverlayTexture
+net.minecraft.client.renderer.FirstPersonHandsAndItemsRenderer
+net.minecraft.client.renderer.texture.TextureAtlas
+net.minecraft.client.renderer.Sheets
