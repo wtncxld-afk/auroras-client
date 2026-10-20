@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class AbstractClientPlayerMixin {
     @Inject(method = "getSkin", at = @At("RETURN"), cancellable = true)
     private void auroras$cape(CallbackInfoReturnable<PlayerSkin> cir) {
-        PlayerSkin skin = cir.getReturnValue(), mine = AurorasCape.skin(this, skin);
+        PlayerSkin skin = cir.getReturnValue(), mine = AurorasCape.skin(this, gg.auroras.client.AurorasSkin.skin(this, skin));
         if (mine != skin) cir.setReturnValue(mine);
     }
 }

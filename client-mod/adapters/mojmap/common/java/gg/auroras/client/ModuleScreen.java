@@ -24,7 +24,7 @@ public class ModuleScreen extends AScreen {
     private ModuleMenu.Layout L; private boolean searching; private long caretT0 = System.nanoTime();
     private double openAnim, contentAnim = 1, frameDt = 1 / 60.0, shownScroll; private boolean closing; private long last = System.nanoTime();
     private final Map<String, Double> hoverAnim = new HashMap<>();
-    private final Map<String, Double> knob = new HashMap<>(); private String dragging, listening; private int focus = -1;
+    private final Map<String, Double> knob = new HashMap<>(); private String dragging, listening, editing; private int focus = -1;
     private static String lastCategory = "All";
     private final net.minecraft.client.gui.screens.Screen parent; private final String section;
 
@@ -196,6 +196,10 @@ public class ModuleScreen extends AScreen {
                 case DROPDOWN -> AUi.dropdown(c, ctl.x(), y + 5, ctl.w(), menu.display(d), hov, foc);
                 case COLOR -> AUi.swatch(c, ctl.right() - 58, y + 5, Integer.parseInt(menu.value(d), 16), hov, foc);
                 case KEY -> AUi.button(c, ctl.right() - 70, y + 4, 70, d.key().equals(listening) ? "Press a key…" : keyName(Integer.parseInt(menu.value(d))), d.key().equals(listening), hov, foc, true);
+                case TEXT -> { boolean ed = d.key().equals(editing); String v = menu.value(d);
+                    // a small text field: the caret blinks while editing; Enter or a click elsewhere finishes
+                    boolean caret = ed && ((System.nanoTime() - caretT0) / 500_000_000L) % 2 == 0;
+                    AUi.dropdown(c, ctl.x(), y + 5, ctl.w(), (v.isEmpty() && !ed ? "(empty)" : v) + (caret ? "|" : ""), hov || ed, foc || ed); }
             }
             idx++;
         }
@@ -216,6 +220,7 @@ public class ModuleScreen extends AScreen {
     // ---- input ----
     @Override protected boolean click(double mx, double my, int button) {
         if (closing) return true;
+        if (editing != null) { editing = null; AurorasClient.save(); }
         searching = L.search().contains(mx, my); if (searching) { focus = 0; caretT0 = System.nanoTime(); return true; }
         if (L.hudBtn().contains(mx, my)) { Mc.setScreen(minecraft, new HudEditorScreen(this)); return true; }
         for (int k = 0; k < L.cats().size(); k++) if (L.catRects().get(k).contains(mx, my)) { menu.back(); menu.setCategory(L.cats().get(k)); lastCategory = menu.category; contentAnim = 0; focus = 2 + k; return true; }
@@ -236,6 +241,7 @@ public class ModuleScreen extends AScreen {
             switch (UiKit.controlFor(d)) {
                 case SLIDER -> { if (r.ctl().contains(mx, my) || my >= r.ctl().y() - 3) { dragging = d.key(); menu.slide(d, mx, r.ctl()); } }
                 case KEY -> listening = d.key();
+                case TEXT -> { editing = d.key(); caretT0 = System.nanoTime(); }
                 case SEGMENTED -> { java.util.List<String> labels = d.options().stream().map(UiKit::optionLabel).toList(); int[] ws = AUi.segWidths(labels);
                     int seg = UiKit.segmentAt(mx, r.ctl().right() - AUi.segTotal(labels) + 1, ws); if (seg >= 0) menu.set(d, d.options().get(seg)); }
                 default -> menu.nudge(d, shift() ? -1 : 1, false);
@@ -256,6 +262,9 @@ public class ModuleScreen extends AScreen {
     }
     @Override protected boolean key(int key) {
         // keys are GLFW codes here (Keys converts), the format settings files store
+        if (editing != null) { for (ModuleMenu.Row r : L.rows()) if (r.d().key().equals(editing)) {
+                if (key == Keys.BACKSPACE) menu.eraseText(r.d()); else if (key == Keys.ENTER || key == Keys.ESCAPE || key == Keys.TAB) { editing = null; AurorasClient.save(); } }
+            return true; }
         if (listening != null) { for (ModuleMenu.Row r : L.rows()) if (r.d().key().equals(listening)) menu.set(r.d(), String.valueOf(key == Keys.ESCAPE ? -1 : key)); listening = null; return true; }
         if (key == Keys.ESCAPE) { if (searching) { searching = false; focus = -1; return true; } if (menu.open != null && !(parent != null && ModuleMenu.CLIENT.id().equals(menu.open))) { menu.back(); contentAnim = 0; return true; } closeScreen(); return true; }
         if (searching) { if (key == Keys.BACKSPACE && !menu.query.isEmpty()) setQuery(menu.query.substring(0, menu.query.length() - 1)); else if (key == Keys.ENTER || key == Keys.TAB) { searching = false; focus = 2 + L.cats().size(); } return true; }
@@ -274,12 +283,13 @@ public class ModuleScreen extends AScreen {
             Config.SettingDef d = L.rows().get(focus - first - 1).d();
             if (key == Keys.RIGHT || key == Keys.UP) { menu.nudge(d, 1, shift()); return true; }
             if (key == Keys.LEFT || key == Keys.DOWN) { menu.nudge(d, -1, shift()); return true; }
-            if (key == Keys.ENTER || key == Keys.SPACE) { if (UiKit.controlFor(d) == UiKit.Control.KEY) listening = d.key(); else menu.nudge(d, 1, false); return true; }
+            if (key == Keys.ENTER || key == Keys.SPACE) { if (UiKit.controlFor(d) == UiKit.Control.KEY) listening = d.key(); else if (UiKit.controlFor(d) == UiKit.Control.TEXT) { editing = d.key(); caretT0 = System.nanoTime(); } else menu.nudge(d, 1, false); return true; }
             if (key == Keys.BACKSPACE || key == Keys.DELETE) { menu.reset(d); return true; }
         }
         return false;
     }
     @Override protected boolean typed(String ch) {
+        if (editing != null) { for (ModuleMenu.Row r : L.rows()) if (r.d().key().equals(editing)) { menu.typeText(r.d(), ch); caretT0 = System.nanoTime(); } return true; }
         if (!searching) { if (focus <= 0 && !ch.isBlank() && listening == null) { searching = true; focus = 0; } else return false; }
         if (!ch.chars().allMatch(c -> c >= 32)) return true; setQuery(menu.query + ch); return true;
     }

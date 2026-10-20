@@ -35,7 +35,7 @@ public class AurorasClient implements ClientModInitializer {
     public static final Config.Registry REG = new Config.Registry();
     public static Config.ProfileManager PM;
     static final Path DIR = FabricLoader.getInstance().getConfigDir().resolve("auroras");
-    static String mcVersion = "?";
+    static String mcVersion = "?", modVersion = "";
     static KeyMapping guiKey, benchKey, hudEditKey, emoteKey;
 
     static final Calc.FpsSmoother FPS_SMOOTH = new Calc.FpsSmoother(500);
@@ -47,6 +47,8 @@ public class AurorasClient implements ClientModInitializer {
 
     @Override public void onInitializeClient() {
         mcVersion = FabricLoader.getInstance().getModContainer("minecraft").map(c -> c.getMetadata().getVersion().getFriendlyString()).orElse("?");
+        // "1.2.3+mc26.3" -> "1.2.3" for the main menu's version line
+        modVersion = FabricLoader.getInstance().getModContainer("auroras_client").map(c -> c.getMetadata().getVersion().getFriendlyString()).orElse("").replaceAll("\\+.*$", "");
         // fabric.mod.json already limits this jar to its Minecraft line, so Fabric won't load it on another version.
         REG.restrict(Platform.NOT_PORTED, "Not in the Minecraft " + mcVersion + " build yet");
         // Custom Skies is drawn through our own mixins (Fabric has no sky hook for these versions); it stays locked only if
@@ -61,6 +63,7 @@ public class AurorasClient implements ClientModInitializer {
         AurorasModules.register();
         AurorasWorld.register(); // in-world cosmetics (aura, trails, particles, nameplates, damage, emblem); local only
         AurorasCape.init(DIR); // Custom Capes: only you see it (see AurorasCape)
+        AurorasHands.register(); AurorasStream.register(); AurorasSkin.init(DIR); // first-person, streaming and Skin Changer (all local)
         ClientTickEvents.END_CLIENT_TICK.register(c -> {
             // the menu key is the only way into Auroras' settings, so it never stays unbound (an old options.txt can carry
             // "key.auroras.gui:key.keyboard.unknown"); it goes back to the Menu key setting, Right Shift unless changed
@@ -77,6 +80,7 @@ public class AurorasClient implements ClientModInitializer {
             AurorasModules.tick(c);
             AurorasWorld.tick(c);
             AurorasCape.tick(c);
+            AurorasHands.tick(c); AurorasStream.tick(c); AurorasSpirit.tick(c); AurorasSkin.tick(c);
             // bake the radial menu's art in the background for this window size, so Right Shift opens instantly
             if (c.player != null && Mc.screen(c) == null) RadialArt.prepare(Gfx.screenW(), Gfx.screenH(), Gfx.guiScale());
         });
@@ -103,6 +107,7 @@ public class AurorasClient implements ClientModInitializer {
         if (mc.player == null || Mc.hudHidden(mc) || Mc.screen(mc) instanceof HudEditorScreen) return;
         AurorasModules.drawTotemOverlay(g);
         HudRenderer.render(g, mc, dt, false, null);
+        AurorasStream.drawBadge(g);
     }
     /** Replaces the vanilla crosshair when Crosshair Customizer is on. Returns false to draw the vanilla one. */
     public static boolean crosshair(Gfx g) { return AurorasModules.crosshair(g, Minecraft.getInstance()); }

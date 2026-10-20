@@ -36,7 +36,9 @@ public final class ModuleMenu {
     /** The client's own settings (menu key, visual quality), shown like a module's settings page. Keys are "settings.*". */
     public static final Config.Module CLIENT = new Config.Module("settings", "Client settings", Config.Category.ANIMATIONS, Config.Impact.COSMETIC, true,
         "Applies to every profile", List.of(new Config.SettingDef("guiKey", Config.Type.KEY, "344", 0, 0, List.of()), new Config.SettingDef("quality", Config.Type.ENUM, "BALANCED", 0, 0, List.of("LOW", "BALANCED", "HIGH")),
-            new Config.SettingDef("menuTheme", Config.Type.ENUM, "aurora", 0, 0, MenuTheme.IDS), new Config.SettingDef("menuFx", Config.Type.BOOL, "true", 0, 0, List.of())));
+            new Config.SettingDef("menuTheme", Config.Type.ENUM, "aurora", 0, 0, MenuTheme.IDS), new Config.SettingDef("menuFx", Config.Type.BOOL, "true", 0, 0, List.of()),
+            new Config.SettingDef("customTitle", Config.Type.BOOL, "true", 0, 0, List.of()), new Config.SettingDef("titleLayout", Config.Type.ENUM, "left", 0, 0, Config.Registry.TITLE_LAYOUTS),
+            new Config.SettingDef("customPause", Config.Type.BOOL, "true", 0, 0, List.of())));
     public List<String> categories() { List<String> all = UiKit.categories(reg.modules()); return group == null ? all : all.stream().filter(c -> c.equals("All") || group.contains(c)).toList(); }
     public List<Config.Module> visible() { List<Config.Module> v = UiKit.filter(reg.modules(), category, query); return group == null ? v : v.stream().filter(m -> group.contains(m.cat().label)).toList(); }
     public Config.Module openModule() { return open == null ? null : open.equals(CLIENT.id()) ? CLIENT : reg.get(open); }
@@ -103,6 +105,11 @@ public final class ModuleMenu {
             default -> { }
         }
     }
+    /** Text settings (Name Protect's alias): typing appends what the setting allows and ignores anything else. Returns true when it changed. */
+    public boolean typeText(Config.SettingDef d, String typed) {
+        String v = value(d) + typed; if (pm == null || reg.validate(key(d), v) != null) return false; set(d, v); return true;
+    }
+    public boolean eraseText(Config.SettingDef d) { String v = value(d); if (v.isEmpty()) return false; set(d, v.substring(0, v.length() - 1)); return true; }
     /** Colors offered in game (the launcher has a full picker): the design accents plus neutrals. */
     public static final List<String> PALETTE = List.of("FFFFFF", "E8ECF4", "8A93A6", "8FD3FF", "6FE3FF", "5FD0D6", "A78BFA", "B58CFF", "FFB7CF", "6FCF97", "E0B45A", "E57373");
     public static String cycleColor(String cur, int dir) { int i = PALETTE.indexOf(cur.toUpperCase(Locale.ROOT)); return i < 0 ? PALETTE.get(0) : PALETTE.get(Math.floorMod(i + dir, PALETTE.size())); }
@@ -116,7 +123,7 @@ public final class ModuleMenu {
     public static String label(String key) {
         String s = LABELS.get(key); if (s != null) return s; s = key.replaceAll("([A-Z])", " $1").toLowerCase(Locale.ROOT); return Character.toUpperCase(s.charAt(0)) + s.substring(1);
     }
-    private static final Map<String, String> LABELS = Map.ofEntries(Map.entry("bgOpacity", "Background opacity"), Map.entry("guiKey", "Menu key"), Map.entry("quality", "Visual quality"), Map.entry("menuTheme", "Menu theme"), Map.entry("menuFx", "Background effects"), Map.entry("offX", "Horizontal offset"), Map.entry("offY", "Vertical offset"), Map.entry("tintStrength", "Tint strength"),
+    private static final Map<String, String> LABELS = Map.ofEntries(Map.entry("noCooldownDip", "No cooldown dip"), Map.entry("posX", "Item left / right"), Map.entry("posY", "Item up / down"), Map.entry("posZ", "Item near / far"), Map.entry("itemScale", "Item size"), Map.entry("rotX", "Tilt"), Map.entry("rotY", "Turn"), Map.entry("rotZ", "Roll"), Map.entry("offHand", "Also the off hand"), Map.entry("anyItem", "Any held item"), Map.entry("cancelOnSwing", "Stop when you swing"), Map.entry("bladeSkin", "Blade skin"), Map.entry("bladeColor", "Blade colour"), Map.entry("bladeStrength", "Skin strength"), Map.entry("skinTools", "Skins on tools too"), Map.entry("chroma", "Chroma"), Map.entry("layers", "Glow layers"), Map.entry("pulse", "Pulse"), Map.entry("hand", "Glow on hand"), Map.entry("item", "Glow on item"), Map.entry("shape", "Shape"), Map.entry("color2", "Top colour"), Map.entry("sparkles", "Sparkles"), Map.entry("riseHeight", "Rise height"), Map.entry("self", "My totems"), Map.entry("others", "Other players' totems"), Map.entry("alias", "Your alias"), Map.entry("hideOthers", "Hide other names"), Map.entry("othersAlias", "Others' alias"), Map.entry("hotbar", "Hide hotbar items"), Map.entry("inventory", "Hide inventory items"), Map.entry("held", "Hide held item"), Map.entry("tooltips", "Hide item tooltips"), Map.entry("placeholder", "Show slot placeholders"), Map.entry("badge", "Show 'hidden' badge"), Map.entry("model", "Arm model"), Map.entry("bgOpacity", "Background opacity"), Map.entry("guiKey", "Menu key"), Map.entry("quality", "Visual quality"), Map.entry("menuTheme", "Menu theme"), Map.entry("menuFx", "Background effects"), Map.entry("customTitle", "Custom main menu"), Map.entry("titleLayout", "Main menu layout"), Map.entry("customPause", "Custom pause menu"), Map.entry("offX", "Horizontal offset"), Map.entry("offY", "Vertical offset"), Map.entry("tintStrength", "Tint strength"),
             Map.entry("showArt", "Cover art"), Map.entry("showProgress", "Progress bar"), Map.entry("marquee", "Scroll long titles"), Map.entry("skyQuality", "Sky quality"), Map.entry("h24", "24-hour clock"), Map.entry("windowMs", "Window (ms)"),
             Map.entry("scrollAdjust", "Scroll to change zoom"), Map.entry("skipFront", "Skip front view with F5"), Map.entry("hideRain", "Hide rain splashes"), Map.entry("multiplier", "Amount kept"), Map.entry("level", "Brightness"), Map.entry("graphWidth", "Graph width (px)"), Map.entry("showGraph", "Frame graph"), Map.entry("dynamic", "Widen while moving"),
             Map.entry("bgColor", "Background colour"), Map.entry("radius", "Corner radius"), Map.entry("textMode", "Text colour"), Map.entry("chromaSpeed", "Colour speed"),

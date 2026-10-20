@@ -63,7 +63,8 @@ test("a hostile friends server can't inject anything into the launcher", () => {
 });
 
 // ---------- Source scan ----------
-const walk = (dir, ok, out = []) => { for (const e of fs.readdirSync(dir, { withFileTypes: true })) { if (["node_modules", ".git", "out", "dist", "build", "vendor", ".gradle", "test-results"].includes(e.name)) continue; const p = path.join(dir, e.name); if (e.isDirectory()) walk(p, ok, out); else if (ok(p)) out.push(p); } return out; };
+// .claude holds local agent worktrees (other checkouts of this repo), not shipped code.
+const walk = (dir, ok, out = []) => { for (const e of fs.readdirSync(dir, { withFileTypes: true })) { if (["node_modules", ".git", "out", "dist", "build", "vendor", ".gradle", "test-results", ".claude"].includes(e.name)) continue; const p = path.join(dir, e.name); if (e.isDirectory()) walk(p, ok, out); else if (ok(p)) out.push(p); } return out; };
 const appJs = () => [...walk(ROOT, (p) => /\.js$/.test(p) && !p.includes(path.sep + "test" + path.sep) && !p.includes(path.sep + "scripts" + path.sep)), ...walk(path.join(ROOT, "renderer-src"), (p) => /\.(js|html)$/.test(p))];
 // Every place the launcher, its UI or the friends server may talk to. Anything new must be added here on purpose.
 const HOSTS = new Set(["api.modrinth.com", "modrinth.com", "cdn.modrinth.com", "api.curseforge.com", "api.minecraftservices.com", "sessionserver.mojang.com",

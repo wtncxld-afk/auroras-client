@@ -86,6 +86,17 @@ function writeCape(dir, png) {
   return { ok: true, bytes: b.length };
 }
 function clearCape(dir) { try { fs.unlinkSync(path.join(dir, "cape.png")); } catch {} return { ok: true }; }
+/** Skin Changer (shown only to this player, on their own screen): a 64x64 (or old 64x32) skin PNG, checked before writing. */
+function writeSkin(dir, png) {
+  const b = Buffer.isBuffer(png) ? png : Buffer.from(String(png).replace(/^data:image\/png;base64,/, ""), "base64");
+  if (b.length < 33 || !b.subarray(0, 8).equals(PNG_SIG) || b.toString("latin1", 12, 16) !== "IHDR") throw new Error("That isn’t a PNG image.");
+  if (b.length > 256 * 1024) throw new Error("Skin images must be under 256 KB.");
+  const w = b.readUInt32BE(16), h = b.readUInt32BE(20);
+  if (w !== 64 || (h !== 64 && h !== 32)) throw new Error("Skins must be 64×64 (or the old 64×32). This one is " + w + "×" + h + ".");
+  fs.mkdirSync(dir, { recursive: true }); const tmp = path.join(dir, "skin.png.tmp" + process.pid); fs.writeFileSync(tmp, b); fs.renameSync(tmp, path.join(dir, "skin.png"));
+  return { ok: true, bytes: b.length };
+}
+function clearSkin(dir) { try { fs.unlinkSync(path.join(dir, "skin.png")); } catch {} return { ok: true }; }
 /** The player's face for the in-game menu: an 8x8 PNG (face plus hat layer), checked before writing. */
 function writeFace(dir, png) {
   const b = Buffer.isBuffer(png) ? png : Buffer.from(String(png).replace(/^data:image\/png;base64,/, ""), "base64");
@@ -102,4 +113,4 @@ function writeHead(dir, png) {
   fs.mkdirSync(dir, { recursive: true }); const tmp = path.join(dir, "head.png.tmp" + process.pid); fs.writeFileSync(tmp, b); fs.renameSync(tmp, path.join(dir, "head.png"));
   return { ok: true };
 }
-module.exports = { writeFace, writeHead, writeCape, clearCape, registry, rules, read, update, assignPlace, listLayouts, saveLayout, deleteLayout, EMOTE_LIB, listEmotes, saveEmote, deleteEmote, saveWheel };
+module.exports = { writeFace, writeHead, writeCape, clearCape, writeSkin, clearSkin, registry, rules, read, update, assignPlace, listLayouts, saveLayout, deleteLayout, EMOTE_LIB, listEmotes, saveEmote, deleteEmote, saveWheel };

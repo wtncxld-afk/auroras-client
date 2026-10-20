@@ -72,5 +72,32 @@ public final class UiArt {
     static double dist(int x, int y, int r) { double dx = x + 0.5 - r, dy = y + 0.5 - r; return Math.sqrt(dx * dx + dy * dy); }
     /** Coverage of a pixel whose centre is d pixels outside an edge (negative = inside). */
     static double cover(double d) { return Math.max(0, Math.min(1, 0.5 - d)); }
+    /**
+     * A colour image (straight ARGB, sw x sh) resized to dw x dh by area averaging in premultiplied alpha, so a picture
+     * drawn smaller than its file stays smooth (Minecraft samples GUI textures without filtering) and transparent edges
+     * never darken. Larger sizes are bilinear.
+     */
+    public static int[] resize(int[] src, int sw, int sh, int dw, int dh) {
+        int[] o = new int[dw * dh]; double fx = sw / (double) dw, fy = sh / (double) dh;
+        for (int y = 0; y < dh; y++) for (int x = 0; x < dw; x++) {
+            double a = 0, r = 0, g = 0, b = 0, wsum = 0;
+            if (fx <= 1 && fy <= 1) { // enlarging: bilinear
+                double sx = Math.max(0, Math.min(sw - 1, (x + 0.5) * fx - 0.5)), sy = Math.max(0, Math.min(sh - 1, (y + 0.5) * fy - 0.5));
+                int x0 = (int) sx, y0 = (int) sy, x1 = Math.min(sw - 1, x0 + 1), y1 = Math.min(sh - 1, y0 + 1); double tx = sx - x0, ty = sy - y0;
+                int[][] px = {{x0, y0}, {x1, y0}, {x0, y1}, {x1, y1}}; double[] wt = {(1 - tx) * (1 - ty), tx * (1 - ty), (1 - tx) * ty, tx * ty};
+                for (int k = 0; k < 4; k++) { int p = src[px[k][1] * sw + px[k][0]]; double al = (p >>> 24) / 255.0, w = wt[k] * al; a += wt[k] * al; r += w * ((p >> 16) & 255); g += w * ((p >> 8) & 255); b += w * (p & 255); }
+                wsum = 1;
+            } else { // shrinking: the exact area each output pixel covers
+                double x0 = x * fx, x1 = x0 + fx, y0 = y * fy, y1 = y0 + fy;
+                for (int sy = (int) y0; sy < Math.min(sh, Math.ceil(y1)); sy++) { double cy = Math.min(y1, sy + 1) - Math.max(y0, sy); if (cy <= 0) continue;
+                    for (int sx = (int) x0; sx < Math.min(sw, Math.ceil(x1)); sx++) { double cw = (Math.min(x1, sx + 1) - Math.max(x0, sx)) * cy; if (cw <= 0) continue;
+                        int p = src[sy * sw + sx]; double al = (p >>> 24) / 255.0, w = cw * al; a += w; r += w * ((p >> 16) & 255); g += w * ((p >> 8) & 255); b += w * (p & 255); wsum += cw; } }
+            }
+            double A = wsum > 0 ? a / wsum : 0; if (A <= 0.002 || a <= 0) continue;
+            o[y * dw + x] = (int) Math.round(A * 255) << 24 | ch(r / a) << 16 | ch(g / a) << 8 | ch(b / a);
+        }
+        return o;
+    }
+    private static int ch(double v) { return (int) Math.max(0, Math.min(255, Math.round(v))); }
     static int white(double a) { int al = (int) Math.round(Math.max(0, Math.min(1, a)) * 255); return al == 0 ? 0 : al << 24 | 0xFFFFFF; }
 }
